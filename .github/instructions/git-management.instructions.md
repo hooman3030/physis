@@ -1,0 +1,92 @@
+---
+description: "Use when managing Git branches, commits, rebases, pushes, pull requests, merge requests, merges, GitHub Issues, milestones, or Projects for physis."
+name: "Physis Git Management"
+---
+
+# Git and GitHub workflow
+
+## Before changing Git state
+
+- Inspect `git status --short --branch`, recent commits, and the relevant
+  remote before branching, committing, rebasing, or merging.
+- Preserve unrelated user changes. Do not reset, checkout, clean, stash, amend,
+  or delete work that was not created for the current task.
+- Use non-interactive commands and disable pagers.
+- Check the target branch before changing it. Keep `main` stable and
+  up-to-date.
+
+## Branches
+
+- Work on a short-lived branch for changes beyond a trivial one-file fix.
+- Use descriptive names such as:
+  - `docs/architecture-decision`
+  - `feat/seed-gallery`
+  - `fix/api-validation`
+  - `research/rendering-engine`
+- Branch from the current target branch and verify the starting point.
+- Do not force-push shared branches. If history rewriting is genuinely
+  necessary, stop and request explicit approval.
+- Delete a local or remote branch only when the user requests it or after a
+  merged pull request when deletion is clearly part of the task.
+
+## Commits
+
+- Make focused commits that represent one coherent change.
+- Use imperative, concise subjects with the appropriate type, for example:
+  `docs: record rendering decision` or `fix: reject invalid seed input`.
+- Inspect the staged diff before committing:
+  `git diff --cached --check` and `git diff --cached`.
+- Never commit secrets, tokens, generated artifacts, local machine state, or
+  credentials.
+- Include this trailer in commits unless the user explicitly opts out:
+  `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`.
+- Do not amend an existing commit unless the user explicitly requests it.
+
+## Pull requests and merge requests
+
+- GitHub calls them pull requests; use “merge request” only when the hosting
+  platform uses that term.
+- A PR/MR should have a clear title, a concise summary, linked issues, scope
+  notes, validation results, and any follow-up work.
+- Keep documentation-only, setup, and implementation changes separate when
+  that improves reviewability.
+- Never claim validation that was not run. Report skipped checks and why.
+- Before opening a PR/MR, verify the branch is based on the intended target,
+  the worktree is clean, and the diff contains only the requested change.
+- Prefer `--force-with-lease` over `--force`; normally avoid both.
+- Pushing a branch or opening a PR/MR requires user authorization unless the
+  user explicitly asked for that complete workflow.
+
+## Merging
+
+- Merge only with explicit user authorization for the specific PR/MR.
+- Before merging, confirm required checks, review status, target branch, and
+  whether the branch is up to date.
+- Prefer the repository's configured merge strategy. Do not bypass branch
+  protection, required reviews, or failed checks.
+- After a merge, verify the resulting target branch and report the merge
+  commit or resulting commit range.
+
+## GitHub Issues, milestones, and Projects
+
+- Use Issues for actionable work, research questions, bugs, and follow-up
+  tasks; keep durable architectural decisions in `docs/decisions/`.
+- Search for existing issues before creating duplicates.
+- Link implementation PRs/MRs to issues using the repository's supported
+  closing syntax when closing is intended; do not close an issue accidentally.
+- Use milestones for meaningful outcomes, not individual subtasks.
+- Keep Project custom fields such as status, priority, and area in the GitHub
+  Project. Do not duplicate them in issue bodies unless useful for context.
+- Creating, editing, closing, labeling, assigning, or milestone changes are
+  GitHub state changes and require user authorization unless explicitly
+  included in the request.
+
+## Completion report
+
+Report:
+
+- branch and target branch;
+- commits created;
+- files or issues changed;
+- validation commands and results;
+- whether anything was pushed, opened, merged, or left for user approval.
