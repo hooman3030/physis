@@ -9,6 +9,13 @@ describe('artwork seeds', () => {
     expect(typeof defaultArtworkSeed.createSketch).toBe('function')
   })
 
+  it('registers seeds with unique ids and distinct randomness', () => {
+    const ids = artworkSeeds.map((seed) => seed.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(ids).toContain('drifting-filaments')
+    expect(new Set(ids.map(seedToNumber)).size).toBe(ids.length)
+  })
+
   it('derives stable randomness for a module implementation', () => {
     expect(seedToNumber(defaultArtworkSeed.id)).toBe(seedToNumber('first-light'))
   })
