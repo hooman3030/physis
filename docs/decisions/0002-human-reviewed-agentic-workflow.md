@@ -19,12 +19,18 @@ uncommitted until the human reviews the diff and explicitly approves creating
 a commit. Agents update docs, decisions, and instructions after each chat that
 yields durable knowledge.
 
+At the end of a task, the agent may present a clear approval action for the
+human to authorize committing the reviewed diff. Without that approval, the
+changes remain uncommitted.
+
 ## Consequences
 
 - Progress is slower per task but stays understandable and reviewable.
 - Documentation and agent instructions stay close to current project reality.
 - Extra documentation changes are expected, but commits require explicit human
   approval after review.
+- A simple approval action can make the commit step convenient without making
+  it automatic.
 - Autonomy can be widened later through a new ADR.
 
 ## Alternatives considered

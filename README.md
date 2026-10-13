@@ -18,7 +18,7 @@ application implementation yet.
 - [Glossary](docs/glossary.md)
 - [Presentation laptop operations](docs/operations/presentation-laptop.md)
 - [Architecture decisions](docs/decisions/README.md)
-- [Original AI notes](.ai/)
+- [Initial AI conversation reference](docs/reference/initial-planning/)
 
 ## Planning
 

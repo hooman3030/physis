@@ -8,8 +8,10 @@ implementation unless the task explicitly requests it.
 ## Source of truth
 
 - Read `docs/` for curated project documentation.
-- Read `.ai/` for the preserved source notes from the original planning
-  conversation. It is read-only history; curated `docs/` wins on conflict.
+- Read [`docs/reference/initial-planning/`](docs/reference/initial-planning/)
+  for the preserved notes from the initial AI planning conversation. These are
+  read-only historical reference, not current requirements; curated `docs/`
+  wins on conflict.
 - Record durable architectural choices in `docs/decisions/`.
 - Use GitHub Issues for actionable work rather than turning every idea into a
   document.

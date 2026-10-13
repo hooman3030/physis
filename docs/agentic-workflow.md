@@ -15,6 +15,9 @@ tasks; this workflow grows from that habit into agent work gradually.
 - **Reviewable output.** Changes are first left as an uncommitted diff on a
   short-lived branch. After human review and explicit approval, they may be
   committed or opened as a pull request; never work directly on `main`.
+- **Explicit approval action.** At the end of a task, the agent may present an
+  approval action for the human to accept the current diff and authorize a
+  commit. No approval action means no commit.
 - **Honest validation.** Agents report what was run and what was skipped.
 - **Docs follow chats.** See below.
 
@@ -43,6 +46,11 @@ in the same working session:
 Chats that produce nothing durable need no changes. Doc updates are made as
 their own small change, left uncommitted until the human has reviewed and
 explicitly approved the diff.
+
+At the end of a task, the agent should offer a clear approval action such as
+“Review and commit current changes”. Selecting it authorizes the commit for the
+reviewed diff only; declining or leaving it unanswered keeps the changes
+uncommitted.
 
 ## Boundaries for agents
 
