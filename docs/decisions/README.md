@@ -7,6 +7,7 @@ long-term architecture.
 ## Records
 
 - [ADR 0001: Local-first installation without local inference](0001-local-first-no-local-model.md)
+- [ADR 0002: Human-reviewed, step-by-step agentic workflow](0002-human-reviewed-agentic-workflow.md)
 
 Use the following headings for future records:
 

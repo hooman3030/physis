@@ -12,6 +12,7 @@ application implementation yet.
 - [Vision and principles](docs/vision.md)
 - [Abstract architecture](docs/architecture.md)
 - [Development environment](docs/development-environment.md)
+- [Agentic workflow](docs/agentic-workflow.md)
 - [Presentation laptop operations](docs/operations/presentation-laptop.md)
 - [Architecture decisions](docs/decisions/README.md)
 - [Original AI notes](.ai/)
