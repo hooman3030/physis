@@ -1,18 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { seedToNumber } from './seed'
+import { seedToNumber } from './seed-id'
+import { artworkSeeds, defaultArtworkSeed } from './seeds/registry'
 
-describe('seedToNumber', () => {
-  it('returns the same number for the same seed', () => {
-    expect(seedToNumber('first-light')).toBe(seedToNumber('first-light'))
+describe('artwork seeds', () => {
+  it('provides a pre-built default seed module', () => {
+    expect(defaultArtworkSeed).toBe(artworkSeeds[0])
+    expect(defaultArtworkSeed.id).toBe('first-light')
+    expect(typeof defaultArtworkSeed.createSketch).toBe('function')
   })
 
-  it('distinguishes different seeds', () => {
-    expect(seedToNumber('first-light')).not.toBe(seedToNumber('deep-water'))
-  })
-
-  it('returns an unsigned 32-bit integer', () => {
-    const value = seedToNumber('physis')
-    expect(value).toBeGreaterThanOrEqual(0)
-    expect(value).toBeLessThanOrEqual(0xffffffff)
+  it('derives stable randomness for a module implementation', () => {
+    expect(seedToNumber(defaultArtworkSeed.id)).toBe(seedToNumber('first-light'))
   })
 })

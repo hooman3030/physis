@@ -67,7 +67,7 @@ SQLite is appropriate for structured metadata. The filesystem can hold source
 trees, generated builds, screenshots, and other larger assets. A version should
 record at least:
 
-- seed and version identifiers;
+- seed module and version identifiers;
 - parent version and lineage;
 - rendering engine;
 - authored prompt and change proposal;
@@ -75,8 +75,10 @@ record at least:
 - creation time and validation results;
 - snapshot references.
 
-A snapshot is a captured state. A seed is a reproducible starting point for a
-new branch. Selecting a snapshot as a seed must preserve the original branch.
+A snapshot is a captured state. A seed is a pre-built, self-contained artwork
+module that can render a fullscreen piece and serve as a reproducible starting
+point for a new branch. Selecting a snapshot as a seed must preserve the
+original branch.
 
 ## Remote studio
 

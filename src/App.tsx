@@ -1,37 +1,34 @@
 import { useState } from 'react'
 import { ArtworkCanvas } from './ArtworkCanvas'
+import { artworkSeeds, defaultArtworkSeed } from './seeds/registry'
+import type { ArtworkSeed } from './seeds/types'
 import './styles.css'
 
-const initialSeed = 'first-light'
-
 export function App() {
-  const [seed, setSeed] = useState(initialSeed)
-  const [draftSeed, setDraftSeed] = useState(initialSeed)
-
-  function applySeed(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const nextSeed = draftSeed.trim()
-    if (nextSeed) setSeed(nextSeed)
-  }
+  const [seed, setSeed] = useState<ArtworkSeed>(defaultArtworkSeed)
 
   return (
     <main>
-      <ArtworkCanvas key={seed} seed={seed} />
+      <ArtworkCanvas key={seed.id} seed={seed} />
       <section className="studio-panel" aria-label="Artwork controls">
         <p className="eyebrow">PHYSIS / FIRST SLICE</p>
         <h1>Living matter, rendered.</h1>
-        <p className="seed-label">Current seed: {seed}</p>
-        <form onSubmit={applySeed}>
-          <label htmlFor="seed">Explore another seed</label>
-          <div className="seed-controls">
-            <input
-              id="seed"
-              value={draftSeed}
-              onChange={(event) => setDraftSeed(event.target.value)}
-            />
-            <button type="submit">Render</button>
-          </div>
-        </form>
+        <p className="seed-label">Current seed: {seed.label}</p>
+        <label htmlFor="seed">Choose a seed module</label>
+        <select
+          id="seed"
+          value={seed.id}
+          onChange={(event) => {
+            const nextSeed = artworkSeeds.find((candidate) => candidate.id === event.target.value)
+            if (nextSeed) setSeed(nextSeed)
+          }}
+        >
+          {artworkSeeds.map((candidate) => (
+            <option key={candidate.id} value={candidate.id}>
+              {candidate.label}
+            </option>
+          ))}
+        </select>
       </section>
     </main>
   )

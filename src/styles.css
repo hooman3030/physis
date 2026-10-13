@@ -77,12 +77,8 @@ label {
   color: #c7c2b7;
 }
 
-.seed-controls {
-  display: flex;
-  gap: 0.5rem;
-}
-
 input,
+select,
 button {
   border: 1px solid rgb(244 241 232 / 30%);
   border-radius: 0.5rem;
@@ -90,7 +86,8 @@ button {
   font: inherit;
 }
 
-input {
+input,
+select {
   min-width: 0;
   flex: 1;
   color: #f4f1e8;

@@ -18,10 +18,11 @@ artwork surface. Use Vite+'s Oxlint and Oxfmt integrations for linting and
 formatting. The VS Code workspace selects the Oxc extension as the formatter,
 enables format-on-save, and enables Oxlint diagnostics.
 
-Use a small FNV-1a-derived seed utility to convert text seeds into stable
-unsigned integers. Pass those values to p5's seeded random and noise functions
-so a seed can reproduce an artwork without introducing a separate random
-number dependency.
+Represent each seed as a pre-built `ArtworkSeed` module with an identity,
+display label, and fullscreen p5 sketch factory. The first module uses a small
+FNV-1a-derived utility internally to convert its stable module identity into a
+number for p5's seeded random and noise functions. This keeps reproducibility
+inside the module without confusing a module with a text value.
 
 Keep the first app at the repository root. A later local API can become a
 workspace package when it is needed; the first slice does not justify that
