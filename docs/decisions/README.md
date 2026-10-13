@@ -8,8 +8,9 @@ long-term architecture.
 
 - [ADR 0001: Local-first installation without local inference](0001-local-first-no-local-model.md)
 - [ADR 0002: Human-reviewed, step-by-step agentic workflow](0002-human-reviewed-agentic-workflow.md)
-- [ADR 0003: First slice as a static Canvas 2D page](0003-first-slice-static-canvas.md) (superseded)
+- [ADR 0003: First slice as a static Canvas 2D page](0003-first-slice-static-canvas.md) (partially superseded)
 - [ADR 0004: React frontend with Vite+](0004-react-vite-plus-frontend.md)
+- [ADR 0005: Artwork-first display with reusable controls](0005-artwork-display-and-controls.md)
 
 Use the following headings for future records:
 
