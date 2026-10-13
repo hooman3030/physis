@@ -20,6 +20,10 @@ main,
   min-height: 100vh;
 }
 
+main {
+  position: relative;
+}
+
 .artwork-canvas {
   position: fixed;
   inset: 0;
@@ -32,15 +36,18 @@ main,
 
 .studio-panel {
   position: fixed;
-  z-index: 1;
-  left: clamp(1.25rem, 5vw, 5rem);
-  bottom: clamp(1.25rem, 6vw, 5rem);
-  max-width: 32rem;
+  z-index: 2;
+  top: 50%;
+  right: clamp(1.25rem, 5vw, 5rem);
+  width: min(24rem, calc(100vw - 2.5rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
   padding: 1.5rem;
   border: 1px solid rgb(244 241 232 / 20%);
   border-radius: 1rem;
   background: rgb(13 17 23 / 72%);
   backdrop-filter: blur(1rem);
+  transform: translateY(-50%);
 }
 
 .eyebrow,
@@ -55,10 +62,9 @@ label {
   color: #a9d5c0;
 }
 
-h1 {
+h2 {
   margin: 0.75rem 0 1rem;
-  font-size: clamp(2rem, 5vw, 4rem);
-  line-height: 0.95;
+  font-size: 1.5rem;
 }
 
 .seed-label {
@@ -67,8 +73,8 @@ h1 {
   text-transform: none;
 }
 
-form {
-  margin-top: 1.5rem;
+.seed-label code {
+  color: #f4f1e8;
 }
 
 label {
@@ -98,4 +104,48 @@ button {
   color: #0d1117;
   background: #a9d5c0;
   cursor: pointer;
+}
+
+.controls-reveal {
+  position: fixed;
+  z-index: 3;
+  top: 50%;
+  right: 0;
+  display: grid;
+  width: 0.875rem;
+  height: 4rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0.5rem 0 0 0.5rem;
+  background: rgb(13 17 23 / 22%);
+  opacity: 0.12;
+  transform: translateY(-50%);
+  transition:
+    opacity 140ms ease,
+    background-color 140ms ease;
+}
+
+.controls-reveal:hover,
+.controls-reveal:focus-visible {
+  background: rgb(13 17 23 / 80%);
+  opacity: 0.9;
+}
+
+.controls-reveal:focus-visible {
+  outline: 2px solid #a9d5c0;
+  outline-offset: -2px;
+}
+
+.controls-reveal-mark {
+  width: 2px;
+  height: 2rem;
+  border-radius: 1px;
+  background: #f4f1e8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .controls-reveal {
+    transition: none;
+  }
 }

@@ -34,11 +34,13 @@ rendering loop.
    runtime, output size, and external requests so unattended operation remains
    predictable.
 
-## Scope for the first planning milestone
+## Initial planning outcomes
 
-- Define the initial system boundaries and data concepts.
-- Establish the laptop and development workflow.
-- Decide the first rendering approach, with p5.js as the likely starting
-  point.
-- Leave implementation, provider selection, and visual-quality evaluation for
-  explicit follow-up decisions.
+- The initial system boundaries and data concepts are documented in
+  `docs/architecture.md`.
+- The laptop and development workflow are documented in
+  `docs/development-environment.md`.
+- The first artwork slice uses React, TypeScript, Vite+, and p5.js; see
+  [ADR 0004](decisions/0004-react-vite-plus-frontend.md).
+- Backend implementation, provider selection, and visual-quality evaluation
+  remain explicit follow-up decisions.

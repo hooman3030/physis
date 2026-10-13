@@ -1,5 +1,12 @@
 # Abstract architecture
 
+The local-first runtime boundary follows
+[ADR 0001](decisions/0001-local-first-no-local-model.md). The first-slice
+frontend and its scope are recorded in
+[ADR 0003](decisions/0003-first-slice-static-canvas.md),
+[ADR 0004](decisions/0004-react-vite-plus-frontend.md), and
+[ADR 0005](decisions/0005-artwork-display-and-controls.md).
+
 ## System boundary
 
 Physis is a local-first installation with four separable concerns:
@@ -45,6 +52,12 @@ beginning would add complexity without helping the first milestone.
 
 The browser should render algorithmically. AI should intervene only between
 iterations, never once per animation frame.
+
+The installed artwork display starts without visible controls. A discreet
+in-art control panel is available by keyboard shortcut or edge target for
+development and direct interaction. Keep its control components independent
+of their host so the same controls can be embedded in a future remote studio.
+The artwork remains fullscreen when the panel is closed.
 
 ## Evolution and safety
 

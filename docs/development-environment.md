@@ -2,12 +2,12 @@
 
 ## Roles of the machines
 
-| Machine | Role |
-| --- | --- |
-| MacBook | Primary development, documentation, and AI-assisted authoring |
-| GitHub repository | Source control, issues, project planning, and decisions |
-| Old Linux laptop | Local artwork runtime, archive, API, and presentation display |
-| Phone or other computer | Local-network remote studio and secondary view |
+| Machine                 | Role                                                          |
+| ----------------------- | ------------------------------------------------------------- |
+| MacBook                 | Primary development, documentation, and AI-assisted authoring |
+| GitHub repository       | Source control, issues, project planning, and decisions       |
+| Old Linux laptop        | Local artwork runtime, archive, API, and presentation display |
+| Phone or other computer | Local-network remote studio and secondary view                |
 
 GitHub Codespaces may be tried later as an optional development environment.
 It is not the artwork host and is not required for the local-first design.
@@ -43,8 +43,7 @@ The following should be decided when implementation begins rather than
 assumed now:
 
 - exact Linux distribution and installation procedure;
-- first frontend and API package versions;
-- whether the first artwork uses Canvas 2D, p5.js, or WebGL directly;
+- API package and version choices;
 - candidate isolation mechanism;
 - authentication mechanism for the local dashboard;
 - hosted model/provider and request budget.
