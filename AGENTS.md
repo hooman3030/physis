@@ -9,7 +9,7 @@ implementation unless the task explicitly requests it.
 
 - Read `docs/` for curated project documentation.
 - Read `.ai/` for the preserved source notes from the original planning
-  conversation.
+  conversation. It is read-only history; curated `docs/` wins on conflict.
 - Record durable architectural choices in `docs/decisions/`.
 - Use GitHub Issues for actionable work rather than turning every idea into a
   document.
