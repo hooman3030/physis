@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for the planning baseline.
+Accepted.
 
 ## Context
 

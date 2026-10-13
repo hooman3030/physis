@@ -8,11 +8,29 @@ implementation unless the task explicitly requests it.
 ## Source of truth
 
 - Read `docs/` for curated project documentation.
-- Read `.ai/` for the preserved source notes from the original planning
-  conversation.
+- Read [`docs/reference/initial-planning/`](docs/reference/initial-planning/)
+  for the preserved notes from the initial AI planning conversation. These are
+  read-only historical reference, not current requirements; curated `docs/`
+  wins on conflict.
 - Record durable architectural choices in `docs/decisions/`.
 - Use GitHub Issues for actionable work rather than turning every idea into a
   document.
+
+## Agentic workflow
+
+Follow `docs/agentic-workflow.md` (see ADR 0002).
+
+- Work in small, single-purpose steps; for non-trivial work propose a short
+  plan and wait for approval before editing.
+- Keep output human-reviewable: focused diffs on a branch, never on `main`.
+- After any chat that yields a lasting decision, changed understanding, or new
+  agent rule, update `docs/`, `docs/decisions/`, and `AGENTS.md` or
+  `.github/instructions/` in a separate small change. Show the diff and wait
+  for the human's explicit approval before creating a commit.
+- Keep GitHub Issues and the Project current automatically, without being
+  asked (standing authorization; see
+  `.github/instructions/git-management.instructions.md`).
+- Ask rather than assume when a choice affects architecture.
 
 ## Architectural constraints
 
@@ -29,6 +47,9 @@ implementation unless the task explicitly requests it.
 - Follow the branch, commit, pull-request, merge, and GitHub workflow in
   `.github/instructions/git-management.instructions.md`.
 - Never discard unrelated work or rewrite shared history.
-- Create commits when the requested work is complete and validated.
-- Do not push, merge, close issues, or change GitHub Project configuration
-  unless the user has requested or explicitly authorized that action.
+- Create commits only after the human has reviewed the diff and explicitly
+  approved the commit.
+- Do not push, merge, or change GitHub Project configuration (fields, views,
+  workflows) unless the user has requested or explicitly authorized that
+  action. Creating, updating, and closing issues and setting item status for
+  the work in progress is authorized; see the standing rule above.

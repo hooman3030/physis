@@ -12,6 +12,11 @@ body:
     validations:
       required: true
   - type: textarea
+    id: scope
+    attributes:
+      label: Scope and out of scope
+      description: What is included, and what must not be touched? Likely files help an agent.
+  - type: textarea
     id: acceptance
     attributes:
       label: Acceptance criteria

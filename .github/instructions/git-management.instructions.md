@@ -31,6 +31,8 @@ name: "Physis Git Management"
 
 ## Commits
 
+- Leave changes uncommitted until the human has reviewed the diff and
+  explicitly approved creating a commit.
 - Make focused commits that represent one coherent change.
 - Use imperative, concise subjects with the appropriate type, for example:
   `docs: record rendering decision` or `fix: reject invalid seed input`.
@@ -77,9 +79,21 @@ name: "Physis Git Management"
 - Use milestones for meaningful outcomes, not individual subtasks.
 - Keep Project custom fields such as status, priority, and area in the GitHub
   Project. Do not duplicate them in issue bodies unless useful for context.
-- Creating, editing, closing, labeling, assigning, or milestone changes are
-  GitHub state changes and require user authorization unless explicitly
-  included in the request.
+- The user has standing-authorized the agent to keep Issues and the Project
+  current without being asked. At the start of work, make sure an issue exists
+  for it (search first) and set its Project status to In Progress. When
+  scope, blockers, or findings change, update the issue body or add a
+  comment. When work is merged or verified done, close the issue (via the PR's
+  closing keyword where possible) and set status to Done. Keep a clear Next
+  item (Todo/Ready) so the Project shows what was done last, what is in
+  progress, and what comes next. Blocked work stays open with the blocker
+  stated in the issue.
+- Still require explicit authorization for Project configuration changes
+  (fields, views, workflows), deleting issues, milestones, assigning other
+  people, and pushing, merging, or opening PRs.
+- If `gh` lacks the `project` scope, say so and ask the user to run
+  `gh auth refresh -s project`; update issues meanwhile and report that the
+  Project status could not be set.
 
 ## Completion report
 
