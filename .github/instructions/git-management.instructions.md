@@ -26,8 +26,13 @@ name: "Physis Git Management"
 - Branch from the current target branch and verify the starting point.
 - Do not force-push shared branches. If history rewriting is genuinely
   necessary, stop and request explicit approval.
-- Delete a local or remote branch only when the user requests it or after a
-  merged pull request when deletion is clearly part of the task.
+- Delete branches once their work is merged. GitHub deletes the remote head
+  branch automatically when a pull request merges; after a merge, run
+  `git fetch --prune` and delete the matching local branch. Squash-merged
+  branches are not detected by `git branch --merged`, so confirm the work is
+  on the target branch before using `git branch -D`.
+- Never delete a branch with unmerged work or one that was not created for the
+  current task.
 
 ## Commits
 
