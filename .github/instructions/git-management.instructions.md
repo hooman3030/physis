@@ -84,15 +84,26 @@ name: "Physis Git Management"
 - Use milestones for meaningful outcomes, not individual subtasks.
 - Keep Project custom fields such as status, priority, and area in the GitHub
   Project. Do not duplicate them in issue bodies unless useful for context.
-- The user has standing-authorized the agent to keep Issues and the Project
-  current without being asked. At the start of work, make sure an issue exists
-  for it (search first) and set its Project status to In Progress. When
-  scope, blockers, or findings change, update the issue body or add a
-  comment. When work is merged or verified done, close the issue (via the PR's
-  closing keyword where possible) and set status to Done. Keep a clear Next
-  item (Todo/Ready) so the Project shows what was done last, what is in
-  progress, and what comes next. Blocked work stays open with the blocker
-  stated in the issue.
+- Keep relevant Issues and the Project current without waiting for a reminder.
+  At task start, search for an existing issue; create one only for concrete,
+  independently actionable work, and set its Project status to In Progress
+  when work actually begins. Update the issue when scope, blockers, or
+  findings change.
+- At task completion and after every merge, reconcile the issue linked to the
+  work, issues explicitly mentioned by the user, and issues made stale by the
+  change. Close an issue when completion is verified, including when the
+  owner confirms work done outside the repository. After a merge, verify
+  whether the linked issue actually closed; do not assume a closing keyword
+  worked. Set completed Project items to Done.
+- Keep a clear next actionable item when one is known. Do not bulk-edit
+  unrelated issues or invent follow-up issues to fill a Project slot. If no
+  concrete next task has been chosen, leave the backlog unchanged and ask the
+  user to choose. Blocked issues stay open with the blocker recorded; they do
+  not prevent unrelated work from proceeding.
+- Keep `docs/roadmap.md` aligned with GitHub milestones: milestones describe
+  outcomes and issues track actionable work. Close a milestone only when its
+  exit outcome is verified and its work is complete. Do not invent due dates
+  or make an unrelated blocker a milestone gate.
 - Still require explicit authorization for Project configuration changes
   (fields, views, workflows), deleting issues, milestones, assigning other
   people, and pushing, merging, or opening PRs.

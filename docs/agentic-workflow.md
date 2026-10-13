@@ -24,12 +24,16 @@ tasks; this workflow grows from that habit into agent work gradually.
 ## Task loop
 
 1. **Frame** – the human states the goal in chat or an issue.
-2. **Plan** – the agent proposes steps, affected files, and open questions.
-3. **Approve** – the human confirms or adjusts the plan.
-4. **Execute** – the agent does one step on a branch and validates it.
-5. **Review** – the human reads the diff and gives feedback.
-6. **Record** – docs, decisions, and instructions are updated (below).
-7. **Integrate** – commit, push, PR, and merge only when the human authorizes.
+2. **Track** – find the matching GitHub Issue; create one only when the work
+   is concrete and independently actionable. Keep unrelated ideas in the
+   conversation until they are ready to be scoped.
+3. **Plan** – the agent proposes steps, affected files, and open questions.
+4. **Approve** – the human confirms or adjusts the plan.
+5. **Execute** – the agent does one step on a branch and validates it.
+6. **Review** – the human reads the diff and gives feedback.
+7. **Record** – docs, decisions, instructions, and relevant issues are
+   reconciled (below).
+8. **Integrate** – commit, push, PR, and merge only when the human authorizes.
 
 ## Keeping documentation current
 
@@ -54,10 +58,31 @@ uncommitted.
 
 ## Keeping the Project current
 
-The GitHub Project must always show where development is: what was done last,
-what is in progress, and what is next. The agent maintains this automatically
-as part of every task; the human should never have to ask. See
-`.github/instructions/git-management.instructions.md` for the rules.
+At task completion and after each merge, reconcile the issues relevant to that
+work: the issue linked to the task or PR, issues explicitly mentioned by the
+human, and issues whose scope or status the change made stale. Close work that
+is verified complete (including when the owner confirms an outcome, even if it
+was completed outside this repository); otherwise update its status, body, or
+comments with the current blocker or finding. A linked issue that a merged PR
+did not close should be checked rather than assumed complete.
+
+Keep a clear in-progress item and next actionable item in the GitHub Project.
+Do not bulk-edit unrelated issues or create a task just to fill a "next" slot:
+create follow-up issues only for concrete, independently actionable work.
+When the next direction has not been chosen, leave the backlog alone and ask
+the owner to choose. Blocked work stays open and records the blocker; it need
+not block other work.
+
+Keep `docs/roadmap.md` and GitHub milestones aligned. Milestones describe
+outcomes, with concrete work tracked as linked issues. Close a milestone only
+when its exit outcome is verified and its work is complete; do not invent due
+dates or treat unrelated blockers as gates.
+
+This is a human-reviewed reconciliation step, not a rule to generate an issue
+for every merge. Merge events alone do not establish whether work is complete
+or what should come next. See
+`.github/instructions/git-management.instructions.md` for the operational
+rules.
 
 ## Boundaries for agents
 
