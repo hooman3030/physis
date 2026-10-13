@@ -41,7 +41,7 @@ in the same working session:
 | A durable architectural or process choice | New or updated ADR in `docs/decisions/` |
 | Changed understanding, scope, or design | The relevant file in `docs/` |
 | A new rule for how agents should behave | `AGENTS.md` or `.github/instructions/` |
-| Actionable work or open questions | Proposed GitHub Issue (needs approval to create) |
+| Actionable work or open questions | GitHub Issue, created and kept current by the agent |
 
 Chats that produce nothing durable need no changes. Doc updates are made as
 their own small change, left uncommitted until the human has reviewed and
@@ -52,10 +52,17 @@ At the end of a task, the agent should offer a clear approval action such as
 reviewed diff only; declining or leaving it unanswered keeps the changes
 uncommitted.
 
+## Keeping the Project current
+
+The GitHub Project must always show where development is: what was done last,
+what is in progress, and what is next. The agent maintains this automatically
+as part of every task; the human should never have to ask. See
+`.github/instructions/git-management.instructions.md` for the rules.
+
 ## Boundaries for agents
 
 - No application implementation unless the task asks for it.
-- No push, merge, issue closing, or Project changes without authorization.
+- No push, merge, or Project configuration changes without authorization.
 - Stop and ask when a decision would significantly affect the architecture.
 - Never commit secrets or provider credentials.
 

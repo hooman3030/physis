@@ -26,8 +26,10 @@ Follow `docs/agentic-workflow.md` (see ADR 0002).
 - After any chat that yields a lasting decision, changed understanding, or new
   agent rule, update `docs/`, `docs/decisions/`, and `AGENTS.md` or
   `.github/instructions/` in a separate small change. Show the diff and wait
-  for the human's explicit approval before creating a commit. Propose GitHub
-  Issues for actionable work rather than creating them unasked.
+  for the human's explicit approval before creating a commit.
+- Keep GitHub Issues and the Project current automatically, without being
+  asked (standing authorization; see
+  `.github/instructions/git-management.instructions.md`).
 - Ask rather than assume when a choice affects architecture.
 
 ## Architectural constraints
@@ -47,5 +49,7 @@ Follow `docs/agentic-workflow.md` (see ADR 0002).
 - Never discard unrelated work or rewrite shared history.
 - Create commits only after the human has reviewed the diff and explicitly
   approved the commit.
-- Do not push, merge, close issues, or change GitHub Project configuration
-  unless the user has requested or explicitly authorized that action.
+- Do not push, merge, or change GitHub Project configuration (fields, views,
+  workflows) unless the user has requested or explicitly authorized that
+  action. Creating, updating, and closing issues and setting item status for
+  the work in progress is authorized; see the standing rule above.

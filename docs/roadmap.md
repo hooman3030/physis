@@ -11,7 +11,8 @@ Suggested issues:
 
 1. Static page with a Canvas 2D sketch driven by a seed.
 2. Seed controls (reproducible output for the same seed).
-3. Verify performance on the presentation laptop.
+3. Verify performance on the presentation laptop (blocked: the laptop cannot
+   boot yet; see the operations notes).
 
 ## Later (not planned in detail)
 
