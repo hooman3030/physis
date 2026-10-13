@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "physis: check",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["check"],
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "physis: test",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["test"],
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ]
+}
