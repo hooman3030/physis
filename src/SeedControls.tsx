@@ -1,9 +1,11 @@
-import type { ArtworkSeed } from './seeds/types'
+import type { ArtworkParameterValues, ArtworkSeed } from './seeds/types'
 
 type SeedControlsProps = {
   activeSeed: ArtworkSeed
   seeds: readonly ArtworkSeed[]
   onSeedChange: (seed: ArtworkSeed) => void
+  parameterValues: ArtworkParameterValues
+  onParameterChange: (id: string, value: number) => void
   hidden?: boolean
 }
 
@@ -11,6 +13,8 @@ export function SeedControls({
   activeSeed,
   seeds,
   onSeedChange,
+  parameterValues,
+  onParameterChange,
   hidden = false,
 }: SeedControlsProps) {
   return (
@@ -20,10 +24,9 @@ export function SeedControls({
       aria-label="Artwork controls"
       hidden={hidden}
     >
-      <p className="eyebrow">PHYSIS / CONTROLS</p>
-      <h2>Artwork controls</h2>
+      <p className="eyebrow">physis ⍩‣➣"(⌯_ .∙✧ ✵・• ∙. ∙・⏜ ◎ ⏝◦ ○ ∙ </p>
       <p className="seed-label">
-        Active module: <code>{activeSeed.id}</code> — {activeSeed.label}
+        Active module: <code>{activeSeed.id}</code>
       </p>
       <label htmlFor="seed">Choose a seed module</label>
       <select
@@ -40,6 +43,28 @@ export function SeedControls({
           </option>
         ))}
       </select>
+      {activeSeed.parameters.map((parameter) => {
+        const value = parameterValues[parameter.id] ?? parameter.defaultValue
+        const inputId = `parameter-${parameter.id}`
+
+        return (
+          <div className="parameter-control" key={parameter.id}>
+            <div className="parameter-heading">
+              <label htmlFor={inputId}>{parameter.label}</label>
+              <output htmlFor={inputId}>{Number(value.toFixed(4))}</output>
+            </div>
+            <input
+              id={inputId}
+              type="range"
+              min={parameter.min}
+              max={parameter.max}
+              step={parameter.step}
+              value={value}
+              onChange={(event) => onParameterChange(parameter.id, Number(event.target.value))}
+            />
+          </div>
+        )
+      })}
     </section>
   )
 }

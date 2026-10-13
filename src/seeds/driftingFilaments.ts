@@ -1,28 +1,41 @@
-import { seedToNumber } from '../seed-id'
 import type { ArtworkSeed } from './types'
-
-const FILAMENT_COUNT = 160
-const NOISE_SCALE = 0.0014
-const STEP_LENGTH = 1.4
 
 type Filament = { x: number; y: number; hue: number }
 
 export const driftingFilamentsSeed: ArtworkSeed = {
   id: 'drifting-filaments',
   label: 'Drifting filaments',
-  createSketch: (instance) => {
-    const numericSeed = seedToNumber('drifting-filaments')
+  parameters: [
+    {
+      id: 'filamentCount',
+      label: 'Filament count',
+      defaultValue: 160,
+      min: 20,
+      max: 400,
+      step: 20,
+    },
+    {
+      id: 'noiseScale',
+      label: 'Noise scale',
+      defaultValue: 0.0014,
+      min: 0.0002,
+      max: 0.004,
+      step: 0.0001,
+    },
+    { id: 'stepLength', label: 'Step length', defaultValue: 1.4, min: 0.2, max: 4, step: 0.1 },
+  ],
+  createSketch: (instance, getParameters) => {
     let filaments: Filament[] = []
 
+    const spawn = (): Filament => ({
+      x: instance.random(instance.width),
+      y: instance.random(instance.height),
+      hue: instance.random(150, 330),
+    })
+
     const reset = () => {
-      instance.randomSeed(numericSeed)
-      instance.noiseSeed(numericSeed)
       instance.background(8, 10, 16)
-      filaments = Array.from({ length: FILAMENT_COUNT }, () => ({
-        x: instance.random(instance.width),
-        y: instance.random(instance.height),
-        hue: instance.random(150, 330),
-      }))
+      filaments = Array.from({ length: getParameters().filamentCount }, spawn)
     }
 
     instance.setup = () => {
@@ -33,6 +46,11 @@ export const driftingFilamentsSeed: ArtworkSeed = {
     }
 
     instance.draw = () => {
+      const { filamentCount, noiseScale, stepLength } = getParameters()
+
+      if (filaments.length > filamentCount) filaments.length = filamentCount
+      while (filaments.length < filamentCount) filaments.push(spawn())
+
       // A translucent veil fades old trails so the field keeps evolving.
       instance.noStroke()
       instance.fill(230, 60, 6, 6)
@@ -41,14 +59,14 @@ export const driftingFilamentsSeed: ArtworkSeed = {
       for (const filament of filaments) {
         const angle =
           instance.noise(
-            filament.x * NOISE_SCALE,
-            filament.y * NOISE_SCALE,
+            filament.x * noiseScale,
+            filament.y * noiseScale,
             instance.frameCount * 0.0006,
           ) *
           instance.TWO_PI *
           2
-        const nextX = filament.x + Math.cos(angle) * STEP_LENGTH
-        const nextY = filament.y + Math.sin(angle) * STEP_LENGTH
+        const nextX = filament.x + Math.cos(angle) * stepLength
+        const nextY = filament.y + Math.sin(angle) * stepLength
 
         instance.stroke(filament.hue, 55, 95, 40)
         instance.strokeWeight(1.2)

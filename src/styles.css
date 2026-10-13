@@ -45,9 +45,16 @@ main {
   padding: 1.5rem;
   border: 1px solid rgb(244 241 232 / 20%);
   border-radius: 1rem;
-  background: rgb(13 17 23 / 72%);
-  backdrop-filter: blur(1rem);
+  background: rgb(13 17 23 / 22%);
+  backdrop-filter: blur(0.7rem) saturate(160%);
   transform: translateY(-50%);
+  flex-direction: column;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.studio-panel[hidden] {
+  display: none;
 }
 
 .eyebrow,
@@ -60,11 +67,7 @@ label {
 
 .eyebrow {
   color: #a9d5c0;
-}
-
-h2 {
-  margin: 0.75rem 0 1rem;
-  font-size: 1.5rem;
+  text-transform: lowercase;
 }
 
 .seed-label {
@@ -83,6 +86,22 @@ label {
   color: #c7c2b7;
 }
 
+.parameter-control {
+  margin-top: 1rem;
+}
+
+.parameter-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.parameter-heading output {
+  color: #a9d5c0;
+  font-variant-numeric: tabular-nums;
+}
+
 input,
 select,
 button {
@@ -98,6 +117,13 @@ select {
   flex: 1;
   color: #f4f1e8;
   background: rgb(244 241 232 / 8%);
+}
+
+input[type='range'] {
+  display: block;
+  width: 100%;
+  padding: 0;
+  accent-color: #a9d5c0;
 }
 
 button {

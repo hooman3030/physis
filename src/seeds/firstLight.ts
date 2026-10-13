@@ -1,17 +1,13 @@
-import { seedToNumber } from '../seed-id'
 import type { ArtworkSeed } from './types'
 
 export const firstLightSeed: ArtworkSeed = {
   id: 'first-light',
   label: 'First light',
+  parameters: [],
   createSketch: (instance) => {
-    const numericSeed = seedToNumber('first-light')
-
     instance.setup = () => {
       instance.createCanvas(instance.windowWidth, instance.windowHeight)
       instance.pixelDensity(Math.min(instance.pixelDensity(), 2))
-      instance.randomSeed(numericSeed)
-      instance.noiseSeed(numericSeed)
     }
 
     instance.draw = () => {

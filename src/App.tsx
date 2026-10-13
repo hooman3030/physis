@@ -1,13 +1,22 @@
 import { useEffect, useState } from 'react'
 import { ArtworkCanvas } from './ArtworkCanvas'
+import { loadSettings, saveSettings, type ArtworkSettings } from './persistence'
 import { SeedControls } from './SeedControls'
 import { artworkSeeds, defaultArtworkSeed } from './seeds/registry'
 import type { ArtworkSeed } from './seeds/types'
 import './styles.css'
 
 export function App() {
-  const [seed, setSeed] = useState<ArtworkSeed>(defaultArtworkSeed)
+  const [settings, setSettings] = useState<ArtworkSettings>(() =>
+    loadSettings(artworkSeeds, defaultArtworkSeed),
+  )
   const [controlsOpen, setControlsOpen] = useState(false)
+  const { seed } = settings
+  const parameterValues = settings.parametersBySeed[seed.id]
+
+  useEffect(() => {
+    saveSettings(settings)
+  }, [settings])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -40,9 +49,13 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  const handleSeedChange = (nextSeed: ArtworkSeed) => {
+    setSettings((current) => ({ ...current, seed: nextSeed }))
+  }
+
   return (
     <main>
-      <ArtworkCanvas key={seed.id} seed={seed} />
+      <ArtworkCanvas key={seed.id} seed={seed} parameters={parameterValues} />
       <button
         type="button"
         className="controls-reveal"
@@ -57,7 +70,17 @@ export function App() {
       <SeedControls
         activeSeed={seed}
         seeds={artworkSeeds}
-        onSeedChange={setSeed}
+        onSeedChange={handleSeedChange}
+        parameterValues={parameterValues}
+        onParameterChange={(id, value) => {
+          setSettings((current) => ({
+            ...current,
+            parametersBySeed: {
+              ...current.parametersBySeed,
+              [current.seed.id]: { ...current.parametersBySeed[current.seed.id], [id]: value },
+            },
+          }))
+        }}
         hidden={!controlsOpen}
       />
     </main>
