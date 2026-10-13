@@ -12,8 +12,9 @@ tasks; this workflow grows from that habit into agent work gradually.
   issue, branch, and focused diff.
 - **Plan before code.** For non-trivial work the agent proposes a short plan
   first and waits for approval.
-- **Reviewable output.** Changes arrive as commits on a short-lived branch or
-  a pull request, never directly on `main`.
+- **Reviewable output.** Changes are first left as an uncommitted diff on a
+  short-lived branch. After human review and explicit approval, they may be
+  committed or opened as a pull request; never work directly on `main`.
 - **Honest validation.** Agents report what was run and what was skipped.
 - **Docs follow chats.** See below.
 
@@ -25,7 +26,7 @@ tasks; this workflow grows from that habit into agent work gradually.
 4. **Execute** – the agent does one step on a branch and validates it.
 5. **Review** – the human reads the diff and gives feedback.
 6. **Record** – docs, decisions, and instructions are updated (below).
-7. **Integrate** – push, PR, and merge only when the human authorizes.
+7. **Integrate** – commit, push, PR, and merge only when the human authorizes.
 
 ## Keeping documentation current
 
@@ -40,7 +41,8 @@ in the same working session:
 | Actionable work or open questions | Proposed GitHub Issue (needs approval to create) |
 
 Chats that produce nothing durable need no changes. Doc updates are made as
-their own small commit so they are easy to review.
+their own small change, left uncommitted until the human has reviewed and
+explicitly approved the diff.
 
 ## Boundaries for agents
 

@@ -14,15 +14,17 @@ understanding of, or control over, the codebase.
 
 Use AI agents for scoped, single-step tasks with a plan-approve-execute-review
 loop, described in [the agentic workflow](../agentic-workflow.md). The human
-approves plans and reviews every change before it is integrated. Agents update
-docs, decisions, and instructions after each chat that yields durable
-knowledge.
+approves plans and reviews every change before it is integrated. Changes remain
+uncommitted until the human reviews the diff and explicitly approves creating
+a commit. Agents update docs, decisions, and instructions after each chat that
+yields durable knowledge.
 
 ## Consequences
 
 - Progress is slower per task but stays understandable and reviewable.
 - Documentation and agent instructions stay close to current project reality.
-- Extra commits for documentation upkeep are expected.
+- Extra documentation changes are expected, but commits require explicit human
+  approval after review.
 - Autonomy can be widened later through a new ADR.
 
 ## Alternatives considered

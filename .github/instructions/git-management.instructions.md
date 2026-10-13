@@ -31,6 +31,8 @@ name: "Physis Git Management"
 
 ## Commits
 
+- Leave changes uncommitted until the human has reviewed the diff and
+  explicitly approved creating a commit.
 - Make focused commits that represent one coherent change.
 - Use imperative, concise subjects with the appropriate type, for example:
   `docs: record rendering decision` or `fix: reject invalid seed input`.
