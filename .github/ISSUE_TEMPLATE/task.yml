@@ -1,0 +1,25 @@
+name: Task
+description: Track a concrete, actionable piece of project work.
+title: "[Task] "
+labels:
+  - task
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: What concrete outcome should be produced?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How will completion be verified?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Link relevant documentation, decisions, or prior issues.

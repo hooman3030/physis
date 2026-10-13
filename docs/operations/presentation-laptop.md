@@ -1,0 +1,50 @@
+# Presentation laptop operations
+
+## Intended operating mode
+
+The old laptop is intended to become a dedicated display running Linux. At
+runtime it should eventually start the artwork and open it in a fullscreen
+browser, while keeping a lightweight local control API available to trusted
+devices.
+
+This document records the operational context, not an installation procedure.
+The exact Linux setup remains a prerequisite task.
+
+## Current hardware and boot context
+
+The laptop is an Acer Switch Alpha 12 with the hardware recorded in
+`docs/development-environment.md`. Previous notes report:
+
+- Windows was removed and the machine currently shows “No bootable device”
+  without installation media.
+- A Linux Mint USB was previously reached through Windows Recovery's device
+  selection route.
+- Normal boot selection and the UEFI setup are affected by a forgotten
+  firmware password.
+- A balenaEtcher error occurred while opening a Linux Mint ISO, so image
+  creation should be verified rather than ignored.
+
+These observations are historical troubleshooting notes, not confirmed
+resolution steps.
+
+## Operational requirements
+
+When implementation starts, the installation should eventually provide:
+
+- automatic startup after boot;
+- fullscreen/kiosk display mode;
+- recovery to the last stable artwork after a process failure;
+- local persistence for seeds, versions, and snapshots;
+- a local-network control surface;
+- a way to pause evolution before maintenance;
+- visible logs or diagnostics for failures.
+
+Do not expose the control API directly to the public internet. If off-site
+access becomes necessary, prefer a private VPN.
+
+## Safety notes
+
+Any future operating-system or boot-media work must verify the selected disk
+before writing or erasing it. Firmware-password recovery should use a
+legitimate model-specific procedure or service; random bypass instructions are
+not part of this project setup.

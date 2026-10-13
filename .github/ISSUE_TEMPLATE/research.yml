@@ -1,0 +1,32 @@
+name: Research
+description: Investigate an unresolved technical or operational question.
+title: "[Research] "
+labels:
+  - research
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Record findings and a recommendation. Do not turn this into an
+        implementation task until the question is resolved.
+  - type: textarea
+    id: question
+    attributes:
+      label: Research question
+      description: What specific question needs an answer?
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: What hardware, privacy, cost, or reliability constraints apply?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What decision or documented result should this research produce?
+    validations:
+      required: true

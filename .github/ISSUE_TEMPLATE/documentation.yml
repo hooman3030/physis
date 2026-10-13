@@ -1,0 +1,25 @@
+name: Documentation
+description: Capture a durable explanation, decision, or documentation gap.
+title: "[Docs] "
+labels:
+  - documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for durable project knowledge. For architectural choices,
+        also consider adding a decision record under `docs/decisions/`.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Documentation goal
+      description: What should be documented or clarified?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and sources
+      description: Which files, decisions, or discussions should inform it?
+    validations:
+      required: true
