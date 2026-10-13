@@ -11,7 +11,7 @@ export const driftingFilamentsSeed: ArtworkSeed = {
       label: 'Filament count',
       defaultValue: 160,
       min: 20,
-      max: 400,
+      max: 3000,
       step: 20,
     },
     {
