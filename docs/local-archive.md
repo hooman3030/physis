@@ -67,20 +67,34 @@ parent must belong to the same code node, so a lineage never crosses code.
 
 ## Control API
 
-Run the service with `pnpm server` (bundles `server/main.ts`, then runs it with
-Node). It registers the bundled Seeds, restores the Presence from the archive
-and listens on loopback only.
+Run the service with `pnpm server` (builds the browser bundle and bundles
+`server/main.ts`, then runs it with Node). It registers the bundled Seeds,
+restores the Presence from the archive, serves the browser bundle, and listens
+on loopback by default. `pnpm dev` uses Vite for the browser app and proxies
+`/api` requests to the loopback service.
 
-| Variable                 | Default                                       |
-| ------------------------ | --------------------------------------------- |
-| `PHYSIS_PORT`            | `4317`                                        |
-| `PHYSIS_ARCHIVE_PATH`    | `data/archive.sqlite` (git-ignored)           |
-| `PHYSIS_SOURCE_REVISION` | `git rev-parse HEAD`                          |
-| `PHYSIS_ALLOWED_ORIGINS` | `http://127.0.0.1:5173,http://localhost:5173` |
+| Variable                   | Default                                             |
+| -------------------------- | --------------------------------------------------- |
+| `PHYSIS_PORT`              | `4317`                                              |
+| `PHYSIS_BIND_HOST`         | `127.0.0.1` (loopback only)                         |
+| `PHYSIS_ARCHIVE_PATH`      | `data/archive.sqlite` (git-ignored)                 |
+| `PHYSIS_SOURCE_REVISION`   | `git rev-parse HEAD`                                |
+| `PHYSIS_ALLOWED_ORIGINS`   | `http://127.0.0.1:5173,http://localhost:5173`       |
+| `PHYSIS_REMOTE_TOKEN`      | unset; optional environment override                |
+| `PHYSIS_REMOTE_TOKEN_FILE` | `${XDG_CONFIG_HOME:-~/.config}/physis/remote-token` |
+| `PHYSIS_WEB_ROOT`          | `dist`                                              |
+
+`pnpm server` also loads optional, machine-local settings from `.env.local`.
+Copy `.env.example` once and edit the private bind address there; `.env.local`
+is ignored by Git. Update the address if the laptop receives a different
+private IP. This uses Node's optional env-file support, available in Node 22.9
+and later.
 
 Routes under `/api/v1`:
 
 - `GET /health`
+- `POST /pairing/request`, `GET /pairing/status`,
+  `POST /pairing/complete` with `{pin}`, and local-only `POST /pairing/dismiss`
 - `GET /presence`, `GET /presence/events` (SSE; current state on connect, then
   `event: presence` on every change)
 - `POST /presence` with `{kind: "code" | "imprint", id}` selects anything from
@@ -95,7 +109,48 @@ Routes under `/api/v1`:
   to its former parent; deleting the active Imprint returns a conflict
 
 Live tweaks are never archived until imprinted, and are lost on restart. The
-service refuses non-loopback hosts, checks the `Host` and `Origin` headers, and
-requires `application/json` on writes. There is no authentication in M2; the
-service remains loopback-only until remote access is implemented according to
+loopback service checks the `Host` and `Origin` headers and requires
+`application/json` on writes. Loopback development remains unauthenticated.
+
+### Opt-in remote access
+
+Create the installation secret once on the laptop:
+
+```sh
+pnpm remote:token
+```
+
+The command stores 32 random bytes in the machine-local config directory with
+mode `0600`; it does not print the secret. The browser receives its credential
+only after successful PIN pairing. To revoke paired browsers, run
+`pnpm remote:token -- --replace` and restart the service. An
+environment-provided `PHYSIS_REMOTE_TOKEN` overrides the token file.
+
+Copy the example config and set the laptop's private interface address (RFC 1918
+IPv4 or IPv6 ULA):
+
+```sh
+cp -n .env.example .env.local
+```
+
+Edit `.env.local`, replacing the example IP, then run:
+
+```sh
+pnpm server
+```
+
+The Node service prints a URL such as `http://192.168.1.20:4317`. Open that URL
+on the installation display and on devices connected to the same trusted
+network. On a phone, choose **Request PIN**; the temporary six-digit code then
+appears on the installation display. Enter it on the phone to pair that
+browser. The code expires after five minutes, is consumed on success, and is
+protected by a short lockout after repeated incorrect attempts. Paired browsers
+remember their credential; no long token needs to be typed or copied.
+
+Remote mode refuses wildcard or public addresses and authenticates control,
+archive, and Presence-event requests. The installation display is recognized
+by its local connection and does not need pairing. Keep the host firewall
+restricted to the trusted LAN. Do not use guest, public, or untrusted Wi-Fi,
+and do not configure router port forwarding; the baseline HTTP connection does
+not encrypt credentials in transit. See
 [ADR 0008](decisions/0008-remote-studio-network-and-authentication.md).

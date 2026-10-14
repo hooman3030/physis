@@ -17,7 +17,7 @@ devices. The owner also prefers to authorize a browser once rather than
 re-enter credentials on every visit.
 
 The prototype is not intended for public-internet access. Plain HTTP on a
-private network does not protect a bearer token from a device able to observe
+private network does not protect credentials from a device able to observe
 that network.
 
 ## Decision
@@ -30,40 +30,55 @@ that network.
   local network. Do not configure router port forwarding or expose the
   control API to the public internet. Keep the existing loopback-only mode
   available for local use.
+- In remote mode, the Node service serves the built browser bundle and control
+  API from the same origin. The presentation display and remote studio reuse
+  this bundle; each browser renders artwork locally.
 - When remote access is enabled, require one installation-wide bearer token
-  for every API route, including archive reads and Presence events. Generate
-  the token with a cryptographically secure random generator, keep it in
-  machine-local configuration outside source control, and provide a way to
+  for control and archive routes, including Presence events. Keep it in
+  machine-local configuration outside source control and provide a way to
   replace it. Replacing the token revokes existing browser access and
   requires each browser to be paired again.
-- A user enters the token once per browser. The browser stores it in
-  `localStorage` and sends it in the `Authorization: Bearer` header; it must
-  never appear in a URL. Use authenticated `fetch` streaming for Presence
-  events because native `EventSource` cannot set an Authorization header.
+- Pairing is initiated by a remote browser requesting access. The installation
+  display then shows a six-digit PIN for five minutes; a successful exchange
+  consumes it and returns the installation token to that browser. Five
+  incorrect PIN attempts invalidate the code and impose a one-minute lockout.
+  The PIN is never returned to remote clients or written to logs.
+- The installation display is identified by a connection originating from the
+  bound host address. It can read the pending PIN and use the API without
+  pairing. Remote pairing status exposes the PIN only to that local display.
+- A paired browser stores the bearer token in `localStorage` and sends it in
+  the `Authorization: Bearer` header; it must never appear in a URL. Use
+  authenticated `fetch` streaming for Presence events because native
+  `EventSource` cannot set an Authorization header.
 - Keep Host and Origin checks as defense in depth; they do not replace token
-  authentication. Provider credentials remain on the laptop and are never
-  sent to the dashboard.
+  authentication. Store the bind address in a git-ignored `.env.local` file.
+  Provider credentials remain on the laptop and are never sent to the
+  dashboard.
 - The baseline remote connection uses HTTP on the trusted private network.
-  Anyone able to observe that network could capture and reuse the token.
+  Anyone able to observe that network could capture and reuse a browser
+  credential.
   Therefore, do not use guest, public, or otherwise untrusted Wi-Fi. If access
   across an untrusted network or from off-site is needed, require a private
   VPN or add transport encryption before enabling that use.
 - The M2 loopback-only service remains unauthenticated for local development.
-  The remote-enabled M3 configuration must enforce authentication before
-  accepting remote API requests.
+  In remote mode, only the local installation display and the pairing
+  bootstrap/status routes bypass bearer-token authentication.
 
 ## Consequences
 
-- A browser needs a one-time token entry, after which authorization survives
-  refreshes and browser restarts until its local storage is cleared or the
-  installation token is rotated.
+- A phone requests a PIN, reads it from the installation display, and enters
+  it once. The browser credential survives refreshes and browser restarts
+  until local storage is cleared or the installation token is rotated.
 - Browser storage is accessible to same-origin JavaScript, so the dashboard
   must avoid unsafe script/content practices; this token does not protect
   against a dashboard cross-site scripting flaw.
 - A single shared token is simple to provision, but does not identify
   individual users or devices. Rotation revokes every paired browser at once.
 - The implementation must authenticate event streams without placing
-  credentials in URLs and must keep remote access opt-in.
+  credentials in URLs, rate-limit PIN guesses, and keep remote access opt-in.
+- An API or network interruption does not stop artwork already rendering in
+  an open browser tab. A fresh page load still requires the Node service to
+  serve the bundle.
 - This boundary depends on a trusted private network and host firewall rather
   than providing confidentiality against other clients on that network.
 - Authentication, firewall configuration, and remote binding are follow-up

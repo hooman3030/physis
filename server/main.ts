@@ -1,10 +1,11 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { artworkSeeds } from '../src/seeds/registry'
 import { createControlServer } from './api'
 import { openArchive } from './archive'
 import { registerBundledSeeds } from './bootstrap'
+import { resolveRemoteAccessToken } from './remoteAccess'
 
 function git(...args: string[]): string {
   return execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
@@ -28,13 +29,20 @@ async function main(): Promise<void> {
   const archive = openArchive({ path: archivePath, modules: artworkSeeds })
   registerBundledSeeds(archive, artworkSeeds, revision)
 
+  const host = process.env.PHYSIS_BIND_HOST ?? '127.0.0.1'
+  const remoteAccessToken = resolveRemoteAccessToken(host)
+  const webRoot = resolve(process.env.PHYSIS_WEB_ROOT ?? 'dist')
+  const staticDirectory = existsSync(resolve(webRoot, 'index.html')) ? webRoot : undefined
   const allowedOrigins = process.env.PHYSIS_ALLOWED_ORIGINS?.split(',').filter(Boolean)
   const server = createControlServer({
     archive,
     modules: artworkSeeds,
     sourceRevision: revision,
     sourceDirty: dirty,
+    host,
     port: Number(process.env.PHYSIS_PORT ?? 4317),
+    remoteAccessToken,
+    staticDirectory,
     allowedOrigins,
   })
   const { url } = await server.start()

@@ -12,7 +12,7 @@ export const driftingFilamentsSeed: P5Seed = {
       label: 'Filament count',
       defaultValue: 160,
       min: 20,
-      max: 3000,
+      max: 10000,
       step: 20,
     },
     {

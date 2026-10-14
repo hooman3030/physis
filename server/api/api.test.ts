@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { request as httpRequest } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -10,6 +10,7 @@ import { registerBundledSeeds } from '../bootstrap'
 import { createControlServer, type ControlServer } from './index'
 
 const REVISION = 'a1b2c3d4e5f6'
+const REMOTE_TOKEN = 'a'.repeat(64)
 const modules = [driftingFilamentsSeed, firstLightSeed]
 const seedId = driftingFilamentsSeed.id
 const [firstParameter] = driftingFilamentsSeed.parameters
@@ -19,7 +20,13 @@ let archive: Archive
 let server: ControlServer
 let base: string
 
-async function boot(options: { allowedOrigins?: string[] } = {}) {
+async function boot(
+  options: {
+    allowedOrigins?: string[]
+    remoteAccessToken?: string
+    staticDirectory?: string
+  } = {},
+) {
   archive = openArchive({ path: join(directory, 'archive.sqlite'), modules })
   registerBundledSeeds(archive, modules, REVISION)
   server = createControlServer({
@@ -264,8 +271,126 @@ describe('network boundary', () => {
   it('binds to loopback and refuses other hosts', () => {
     expect(() =>
       createControlServer({ archive, modules, sourceRevision: REVISION, host: '0.0.0.0' }),
-    ).toThrow(/loopback/)
+    ).toThrow(/private IP/)
     expect(base).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/)
+  })
+
+  it('requires a token and built bundle before binding to a private address', () => {
+    expect(() =>
+      createControlServer({
+        archive,
+        modules,
+        sourceRevision: REVISION,
+        host: '192.168.1.42',
+        staticDirectory: directory,
+      }),
+    ).toThrow(/PHYSIS_REMOTE_TOKEN/)
+    expect(() =>
+      createControlServer({
+        archive,
+        modules,
+        sourceRevision: REVISION,
+        host: '192.168.1.42',
+        remoteAccessToken: REMOTE_TOKEN,
+      }),
+    ).toThrow(/built frontend bundle/)
+    expect(() =>
+      createControlServer({
+        archive,
+        modules,
+        sourceRevision: REVISION,
+        host: '203.0.113.42',
+        remoteAccessToken: REMOTE_TOKEN,
+        staticDirectory: directory,
+      }),
+    ).toThrow(/private IP/)
+    expect(() =>
+      createControlServer({
+        archive,
+        modules,
+        sourceRevision: REVISION,
+        host: '192.168.1.42',
+        remoteAccessToken: 'not-a-token',
+        staticDirectory: directory,
+      }),
+    ).toThrow(/64 hexadecimal characters/)
+    expect(() =>
+      createControlServer({
+        archive,
+        modules,
+        sourceRevision: REVISION,
+        host: '192.168.1.42',
+        remoteAccessToken: REMOTE_TOKEN,
+        staticDirectory: directory,
+      }),
+    ).not.toThrow()
+  })
+
+  it('authenticates every API route in token mode and allows authenticated preflight', async () => {
+    await shutdown()
+    writeFileSync(join(directory, 'index.html'), '<main>Physis</main>')
+    await boot({
+      allowedOrigins: ['http://127.0.0.1:5173'],
+      remoteAccessToken: REMOTE_TOKEN,
+      staticDirectory: directory,
+    })
+
+    const dashboard = await fetch(base, { headers: { accept: 'text/html' } })
+    expect(dashboard.status).toBe(200)
+    expect((await call('GET', '/presence')).status).toBe(401)
+    expect((await call('GET', '/health')).status).toBe(401)
+    expect((await call('GET', '/imprints')).status).toBe(401)
+    expect((await call('GET', '/presence/events')).status).toBe(401)
+    expect(
+      (
+        await call('GET', '/presence', undefined, {
+          authorization: `Bearer ${'b'.repeat(64)}`,
+        })
+      ).status,
+    ).toBe(401)
+    expect(
+      (await call('GET', '/presence', undefined, { authorization: `Bearer ${REMOTE_TOKEN}` }))
+        .status,
+    ).toBe(200)
+
+    const preflight = await fetch(`${base}/api/v1/presence`, {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'http://127.0.0.1:5173',
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'authorization',
+      },
+    })
+    expect(preflight.status).toBe(204)
+    expect(preflight.headers.get('access-control-allow-headers')).toContain('authorization')
+  })
+
+  it('pairs a browser through an on-demand PIN without exposing that PIN remotely', async () => {
+    await shutdown()
+    await boot({ remoteAccessToken: REMOTE_TOKEN })
+
+    const request = await call('POST', '/pairing/request')
+    expect(request.status).toBe(202)
+    expect(request.body).toMatchObject({ expiresAt: expect.any(Number) })
+
+    const installationDisplay = await call('GET', '/pairing/status')
+    expect(installationDisplay.body.pin).toMatch(/^\d{6}$/)
+    const wrongPin = installationDisplay.body.pin === '000000' ? '000001' : '000000'
+    expect((await call('POST', '/pairing/complete', { pin: wrongPin })).status).toBe(401)
+
+    const paired = await call('POST', '/pairing/complete', {
+      pin: installationDisplay.body.pin,
+    })
+    expect(paired).toMatchObject({ status: 200, body: { token: REMOTE_TOKEN } })
+    expect((await call('GET', '/pairing/status')).body).toBeNull()
+    expect((await call('GET', '/presence')).status).toBe(401)
+    expect(
+      (
+        await call('GET', '/presence', undefined, {
+          authorization: `Bearer ${REMOTE_TOKEN}`,
+        })
+      ).status,
+    ).toBe(200)
   })
 
   it('rejects foreign origins but allows configured and same-origin callers', async () => {
@@ -308,6 +433,32 @@ describe('network boundary', () => {
       outgoing.end()
     })
     expect(status).toBe(403)
+  })
+})
+
+describe('static dashboard', () => {
+  it('serves the built app and falls back to its entrypoint for browser routes', async () => {
+    await shutdown()
+    mkdirSync(join(directory, 'assets'))
+    writeFileSync(join(directory, 'index.html'), '<main>Physis</main>')
+    writeFileSync(join(directory, 'assets', 'app.js'), 'console.log("ok")')
+    await boot({ staticDirectory: directory })
+
+    const page = await fetch(base, { headers: { accept: 'text/html' } })
+    expect(page.status).toBe(200)
+    expect(await page.text()).toBe('<main>Physis</main>')
+
+    const route = await fetch(`${base}/studio`, { headers: { accept: 'text/html' } })
+    expect(route.status).toBe(200)
+    expect(await route.text()).toBe('<main>Physis</main>')
+
+    const asset = await fetch(`${base}/assets/app.js`)
+    expect(asset.status).toBe(200)
+    expect(asset.headers.get('content-type')).toContain('text/javascript')
+    expect(await asset.text()).toBe('console.log("ok")')
+
+    const missingAsset = await fetch(`${base}/assets/missing.js`)
+    expect(missingAsset.status).toBe(404)
   })
 })
 

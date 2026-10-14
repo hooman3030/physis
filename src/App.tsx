@@ -2,15 +2,21 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArtworkCanvas } from './ArtworkCanvas'
 import {
   ControlApiError,
+  completePairing,
   createImprint,
   deleteImprint,
+  dismissPairingPin,
+  getPairingStatus,
   getPresence,
   listImprints,
+  requestPairingPin,
+  saveControlApiToken,
   selectCode,
   selectImprint,
   setParameters as updateApiParameters,
   subscribeToPresence,
   type ImprintRecord,
+  type PairingStatus,
   type PresenceSnapshot,
 } from './controlClient'
 import {
@@ -21,6 +27,7 @@ import {
 } from './persistence'
 import { reportApplicationError } from './errorNotifications'
 import { ImprintArchive } from './ImprintArchive'
+import { RemoteAccessPairing } from './RemoteAccessPairing'
 import { SeedControls } from './SeedControls'
 import type { P5Seed } from './seeds/p5'
 import { artworkSeeds, defaultArtworkSeed } from './seeds/registry'
@@ -44,6 +51,9 @@ export function App() {
   const [controlsOpen, setControlsOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [controlStatus, setControlStatus] = useState<ControlStatus>('connecting')
+  const [authenticationRequired, setAuthenticationRequired] = useState(false)
+  const [pairingStatus, setPairingStatus] = useState<PairingStatus | null>(null)
+  const [credentialRevision, setCredentialRevision] = useState(0)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [imprints, setImprints] = useState<readonly ImprintRecord[]>([])
   const [activeImprintId, setActiveImprintId] = useState<string | null>(null)
@@ -51,6 +61,8 @@ export function App() {
   const [archiveLoadFailed, setArchiveLoadFailed] = useState(false)
   const settingsRef = useRef(settings)
   const statusRef = useRef(controlStatus)
+  const authenticationRequiredRef = useRef(false)
+  const pairingStatusFailureRef = useRef(false)
   const revisionRef = useRef(-1)
   const saveFeedbackTimer = useRef<number | null>(null)
   const { seed } = settings
@@ -106,6 +118,50 @@ export function App() {
     }))
   }, [])
 
+  const requirePairing = useCallback((error: unknown): boolean => {
+    if (!(error instanceof ControlApiError) || error.status !== 401) return false
+    const alreadyRequired = authenticationRequiredRef.current
+    authenticationRequiredRef.current = true
+    setAuthenticationRequired(true)
+    statusRef.current = 'offline'
+    setControlStatus('offline')
+    if (!alreadyRequired)
+      reportApplicationError('This browser needs to be paired with the installation.')
+    return true
+  }, [])
+
+  useEffect(() => {
+    if (controlStatus !== 'connected' && !authenticationRequired) return
+
+    let disposed = false
+    let loading = false
+    const refreshPairingStatus = async () => {
+      if (loading) return
+      loading = true
+      try {
+        const status = await getPairingStatus()
+        if (!disposed) {
+          setPairingStatus(status)
+          pairingStatusFailureRef.current = false
+        }
+      } catch (error) {
+        if (!disposed && !pairingStatusFailureRef.current) {
+          reportApplicationError(`Could not check pairing status: ${errorMessage(error)}`)
+          pairingStatusFailureRef.current = true
+        }
+      } finally {
+        loading = false
+      }
+    }
+
+    void refreshPairingStatus()
+    const timer = window.setInterval(() => void refreshPairingStatus(), 2000)
+    return () => {
+      disposed = true
+      window.clearInterval(timer)
+    }
+  }, [authenticationRequired, controlStatus, credentialRevision])
+
   const refreshImprints = useCallback(async () => {
     if (statusRef.current !== 'connected') {
       setArchiveLoadFailed(true)
@@ -120,7 +176,9 @@ export function App() {
       setImprints([...records].sort((left, right) => right.createdAt.localeCompare(left.createdAt)))
     } catch (error) {
       setArchiveLoadFailed(true)
-      reportApplicationError(`Could not load Imprints: ${errorMessage(error)}`)
+      if (!requirePairing(error)) {
+        reportApplicationError(`Could not load Imprints: ${errorMessage(error)}`)
+      }
       if (!(error instanceof ControlApiError)) {
         statusRef.current = 'offline'
         setControlStatus('offline')
@@ -128,7 +186,7 @@ export function App() {
     } finally {
       setArchiveLoading(false)
     }
-  }, [])
+  }, [requirePairing])
 
   useEffect(() => {
     if (archiveOpen && controlStatus === 'connected') void refreshImprints()
@@ -138,6 +196,8 @@ export function App() {
     let disposed = false
     let connecting = false
     let closeEvents: (() => void) | null = null
+    authenticationRequiredRef.current = false
+    setAuthenticationRequired(false)
 
     const setStatus = (status: ControlStatus) => {
       statusRef.current = status
@@ -145,7 +205,14 @@ export function App() {
     }
 
     const connect = async (initial: boolean) => {
-      if (disposed || connecting || statusRef.current === 'connected') return
+      if (
+        disposed ||
+        connecting ||
+        statusRef.current === 'connected' ||
+        authenticationRequiredRef.current
+      ) {
+        return
+      }
       connecting = true
       if (initial) setStatus('connecting')
 
@@ -160,17 +227,23 @@ export function App() {
         if (closeEvents === null) {
           closeEvents = subscribeToPresence(
             (nextSnapshot) => applyPresence(nextSnapshot),
-            () => setStatus('connected'),
+            () => {
+              authenticationRequiredRef.current = false
+              setAuthenticationRequired(false)
+              setStatus('connected')
+            },
             (error) => {
               setStatus('offline')
-              reportApplicationError(error.message)
+              if (!requirePairing(error)) reportApplicationError(error.message)
             },
           )
         }
       } catch (error) {
         if (!disposed) {
           setStatus('offline')
-          reportApplicationError(`Control API unavailable: ${errorMessage(error)}`)
+          if (!requirePairing(error)) {
+            reportApplicationError(`Control API unavailable: ${errorMessage(error)}`)
+          }
         }
       } finally {
         connecting = false
@@ -187,7 +260,7 @@ export function App() {
       window.clearInterval(retryTimer)
       closeEvents?.()
     }
-  }, [applyPresence])
+  }, [applyPresence, credentialRevision, requirePairing])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -241,6 +314,38 @@ export function App() {
     setSaveStatus('idle')
   }
 
+  const handleRequestPin = async (): Promise<boolean> => {
+    try {
+      await requestPairingPin()
+      return true
+    } catch (error) {
+      reportApplicationError(`Could not request a pairing PIN: ${errorMessage(error)}`)
+      return false
+    }
+  }
+
+  const handlePair = async (pin: string): Promise<boolean> => {
+    try {
+      saveControlApiToken(await completePairing(pin))
+    } catch (error) {
+      reportApplicationError(`Could not pair this browser: ${errorMessage(error)}`)
+      return false
+    }
+    authenticationRequiredRef.current = false
+    setAuthenticationRequired(false)
+    setCredentialRevision((revision) => revision + 1)
+    return true
+  }
+
+  const handleDismissPin = async () => {
+    try {
+      await dismissPairingPin()
+      setPairingStatus(null)
+    } catch (error) {
+      reportApplicationError(`Could not cancel pairing: ${errorMessage(error)}`)
+    }
+  }
+
   const handleSeedChange = (nextSeed: P5Seed) => {
     setSettings((current) => ({ ...current, seed: nextSeed }))
     clearSaveFeedback()
@@ -248,7 +353,9 @@ export function App() {
       void selectCode(nextSeed.id)
         .then((snapshot) => applyPresence(snapshot))
         .catch((error: unknown) => {
-          reportApplicationError(`Module selection failed: ${errorMessage(error)}`)
+          if (!requirePairing(error)) {
+            reportApplicationError(`Module selection failed: ${errorMessage(error)}`)
+          }
           if (!(error instanceof ControlApiError)) {
             statusRef.current = 'offline'
             setControlStatus('offline')
@@ -268,7 +375,9 @@ export function App() {
     clearSaveFeedback()
     if (statusRef.current === 'connected') {
       void updateApiParameters({ [id]: value }).catch((error: unknown) => {
-        reportApplicationError(`Parameter update failed: ${errorMessage(error)}`)
+        if (!requirePairing(error)) {
+          reportApplicationError(`Parameter update failed: ${errorMessage(error)}`)
+        }
         if (!(error instanceof ControlApiError)) {
           statusRef.current = 'offline'
           setControlStatus('offline')
@@ -290,7 +399,9 @@ export function App() {
       if (archiveOpen) void refreshImprints()
     } catch (error) {
       setSaveStatus('idle')
-      reportApplicationError(`Imprint save failed: ${errorMessage(error)}`)
+      if (!requirePairing(error)) {
+        reportApplicationError(`Imprint save failed: ${errorMessage(error)}`)
+      }
       if (!(error instanceof ControlApiError)) {
         statusRef.current = 'offline'
         setControlStatus('offline')
@@ -314,7 +425,9 @@ export function App() {
       await deleteImprint(imprint.id)
       setImprints((current) => current.filter((candidate) => candidate.id !== imprint.id))
     } catch (error) {
-      reportApplicationError(`Could not delete Imprint ${imprint.id}: ${errorMessage(error)}`)
+      if (!requirePairing(error)) {
+        reportApplicationError(`Could not delete Imprint ${imprint.id}: ${errorMessage(error)}`)
+      }
       if (!(error instanceof ControlApiError)) {
         statusRef.current = 'offline'
         setControlStatus('offline')
@@ -326,7 +439,9 @@ export function App() {
     try {
       applyPresence(await selectImprint(imprint.id))
     } catch (error) {
-      reportApplicationError(`Could not select Imprint ${imprint.id}: ${errorMessage(error)}`)
+      if (!requirePairing(error)) {
+        reportApplicationError(`Could not select Imprint ${imprint.id}: ${errorMessage(error)}`)
+      }
       if (!(error instanceof ControlApiError)) {
         statusRef.current = 'offline'
         setControlStatus('offline')
@@ -337,6 +452,13 @@ export function App() {
   return (
     <main data-open-panels={controlsOpen && archiveOpen ? 'both' : 'one'}>
       <ArtworkCanvas key={seed.id} seed={seed} parameters={parameterValues} />
+      <RemoteAccessPairing
+        required={authenticationRequired}
+        pairingStatus={pairingStatus}
+        onRequestPin={handleRequestPin}
+        onSubmit={handlePair}
+        onDismissPin={handleDismissPin}
+      />
       <button
         type="button"
         className="controls-reveal"

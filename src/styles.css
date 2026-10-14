@@ -58,6 +58,82 @@ main {
   display: none;
 }
 
+.remote-access-pairing {
+  position: fixed;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  width: min(24rem, calc(100vw - 2rem));
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid rgb(244 241 232 / 25%);
+  border-radius: 1rem;
+  background: rgb(13 17 23 / 82%);
+  backdrop-filter: blur(0.7rem) saturate(160%);
+  transform: translate(-50%, -50%);
+}
+
+.remote-access-pairing h1,
+.remote-access-pairing p {
+  margin: 0;
+}
+
+.remote-access-pairing h1 {
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.remote-access-pairing > p:not(.eyebrow) {
+  color: #c7c2b7;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.remote-access-pairing input {
+  width: 100%;
+}
+
+.remote-access-pairing button {
+  align-self: flex-end;
+}
+
+.remote-pairing-code {
+  position: fixed;
+  z-index: 4;
+  top: 1rem;
+  left: 50%;
+  display: flex;
+  width: min(24rem, calc(100vw - 2rem));
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgb(244 241 232 / 25%);
+  border-radius: 1rem;
+  background: rgb(13 17 23 / 90%);
+  backdrop-filter: blur(0.7rem) saturate(160%);
+  transform: translateX(-50%);
+}
+
+.remote-pairing-code p {
+  margin: 0;
+}
+
+.remote-pairing-code strong {
+  align-self: center;
+  color: #f4f1e8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 2.5rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  padding-left: 0.3em;
+}
+
+.remote-pairing-code button {
+  align-self: flex-end;
+}
+
 .archive-panel {
   right: auto;
   left: var(--studio-panel-gutter);

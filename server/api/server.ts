@@ -1,6 +1,15 @@
+import { timingSafeEqual } from 'node:crypto'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import type { Archive, CodeNodeRecord } from '../archive'
+import {
+  isLocalInstallationAddress,
+  isLoopbackHost,
+  isPrivateNetworkAddress,
+  LOOPBACK_HOSTS,
+} from './network'
+import { PairingPin } from './pairing'
+import { serveStaticFile } from './static'
 import {
   HttpError,
   optionalInteger,
@@ -12,7 +21,6 @@ import {
 } from './http'
 import { LivePresence, type ControlModule, type SelectKind } from './presence'
 
-const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
 const DEFAULT_ALLOWED_ORIGINS = ['http://127.0.0.1:5173', 'http://localhost:5173']
 const HEARTBEAT_MS = 25_000
 const API = '/api/v1'
@@ -24,6 +32,8 @@ export type ControlServerOptions = {
   sourceDirty?: boolean
   host?: string
   port?: number
+  remoteAccessToken?: string
+  staticDirectory?: string
   // Browser origins allowed to call the API cross-origin, e.g. the dev server.
   allowedOrigins?: readonly string[]
 }
@@ -45,8 +55,21 @@ function hostnameOf(hostHeader: string | undefined): string | null {
 
 export function createControlServer(options: ControlServerOptions): ControlServer {
   const host = options.host ?? '127.0.0.1'
-  if (!LOOPBACK_HOSTS.has(host)) {
-    throw new Error(`The control API only binds to loopback in M2; refusing host ${host}`)
+  const remoteEnabled = !isLoopbackHost(host)
+  if (remoteEnabled && !isPrivateNetworkAddress(host)) {
+    throw new Error(`Remote access must bind to a private IP address; refusing host ${host}`)
+  }
+  if (remoteEnabled && options.remoteAccessToken === undefined) {
+    throw new Error('Remote access requires PHYSIS_REMOTE_TOKEN')
+  }
+  if (remoteEnabled && options.staticDirectory === undefined) {
+    throw new Error('Remote access requires a built frontend bundle')
+  }
+  if (
+    options.remoteAccessToken !== undefined &&
+    !/^[\da-f]{64}$/i.test(options.remoteAccessToken)
+  ) {
+    throw new Error('The remote access token must be 64 hexadecimal characters')
   }
 
   const archive = options.archive
@@ -54,6 +77,8 @@ export function createControlServer(options: ControlServerOptions): ControlServe
   const allowedOrigins = new Set(options.allowedOrigins ?? DEFAULT_ALLOWED_ORIGINS)
   const sseClients = new Set<ServerResponse>()
   const sourceDirty = options.sourceDirty ?? false
+  const pairingPin =
+    options.remoteAccessToken === undefined ? null : new PairingPin(options.remoteAccessToken)
 
   presence.subscribe((snapshot) => {
     const frame = `event: presence\ndata: ${JSON.stringify(snapshot)}\n\n`
@@ -68,25 +93,48 @@ export function createControlServer(options: ControlServerOptions): ControlServe
   function corsHeaders(request: IncomingMessage): Record<string, string> {
     const origin = request.headers.origin
     if (origin === undefined || origin === `http://${request.headers.host}`) return {}
+    if (!allowedOrigins.has(origin)) return {}
     return {
       'access-control-allow-origin': origin,
       'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'access-control-allow-headers': 'content-type',
+      'access-control-allow-headers': 'authorization, content-type',
       vary: 'origin',
     }
   }
 
-  // Loopback binding does not stop other web pages in the same browser from
-  // calling the API, so the Host and Origin headers are checked as well.
   function guard(request: IncomingMessage): void {
     const hostname = hostnameOf(request.headers.host)
-    if (hostname === null || !LOOPBACK_HOSTS.has(hostname)) {
+    if (
+      hostname === null ||
+      (remoteEnabled
+        ? hostname.toLowerCase() !== host.toLowerCase()
+        : !LOOPBACK_HOSTS.has(hostname))
+    ) {
       throw new HttpError(403, 'Unexpected Host header')
     }
     const origin = request.headers.origin
     if (origin !== undefined && origin !== `http://${request.headers.host}`) {
       if (!allowedOrigins.has(origin)) throw new HttpError(403, 'Origin is not allowed')
     }
+  }
+
+  function authenticate(request: IncomingMessage): void {
+    if (
+      options.remoteAccessToken === undefined ||
+      (remoteEnabled && isLocalInstallationRequest(request))
+    ) {
+      return
+    }
+    const token = request.headers.authorization?.match(/^Bearer ([\da-f]{64})$/i)?.[1]
+    const expected = Buffer.from(options.remoteAccessToken, 'hex')
+    const supplied = token === undefined ? null : Buffer.from(token, 'hex')
+    if (supplied === null || !timingSafeEqual(supplied, expected)) {
+      throw new HttpError(401, 'A valid installation token is required')
+    }
+  }
+
+  function isLocalInstallationRequest(request: IncomingMessage): boolean {
+    return isLocalInstallationAddress(host, request.socket.remoteAddress)
   }
 
   function openEventStream(request: IncomingMessage, response: ServerResponse): void {
@@ -116,6 +164,9 @@ export function createControlServer(options: ControlServerOptions): ControlServe
     const ok = (body: unknown) => ({ status: 200, body })
 
     if (method === 'GET') {
+      if (resource === 'pairing' && id === 'status' && segments.length === 2) {
+        return ok(isLocalInstallationRequest(request) ? (pairingPin?.current() ?? null) : null)
+      }
       if (resource === 'health' && segments.length === 1) {
         const problems = archive.verify()
         return ok({ ok: problems.length === 0, problems })
@@ -141,6 +192,25 @@ export function createControlServer(options: ControlServerOptions): ControlServe
         if (sub === undefined) return ok(archive.getImprint(id))
         if (sub === 'ancestry' && segments.length === 3) return ok(archive.getImprintAncestry(id))
       }
+    }
+
+    if (method === 'POST' && resource === 'pairing' && id === 'request' && segments.length === 2) {
+      if (pairingPin === null) throw new HttpError(404, 'Remote pairing is not enabled')
+      return { status: 202, body: pairingPin.request() }
+    }
+
+    if (method === 'POST' && resource === 'pairing' && id === 'complete' && segments.length === 2) {
+      if (pairingPin === null) throw new HttpError(404, 'Remote pairing is not enabled')
+      const body = await readJsonObject(request)
+      return ok({ token: pairingPin.complete(requireString(body, 'pin')) })
+    }
+
+    if (method === 'POST' && resource === 'pairing' && id === 'dismiss' && segments.length === 2) {
+      if (!isLocalInstallationRequest(request)) {
+        throw new HttpError(403, 'Only the installation display can dismiss the pairing code')
+      }
+      pairingPin?.dismiss()
+      return ok({ dismissed: true })
     }
 
     if (method === 'POST' && resource === 'presence' && segments.length === 1) {
@@ -188,7 +258,7 @@ export function createControlServer(options: ControlServerOptions): ControlServe
       return ok({ id })
     }
 
-    const known = ['health', 'presence', 'code-nodes', 'imprints']
+    const known = ['health', 'pairing', 'presence', 'code-nodes', 'imprints']
     if (known.includes(resource ?? '')) throw new HttpError(405, 'Method not allowed')
     throw new HttpError(404, 'Not found')
   }
@@ -201,6 +271,10 @@ export function createControlServer(options: ControlServerOptions): ControlServe
         const method = request.method ?? 'GET'
 
         if (url.pathname !== API && !url.pathname.startsWith(`${API}/`)) {
+          if (options.staticDirectory !== undefined && (method === 'GET' || method === 'HEAD')) {
+            const served = await serveStaticFile(request, response, options.staticDirectory)
+            if (served) return
+          }
           throw new HttpError(404, 'Not found')
         }
         if (method === 'OPTIONS') {
@@ -208,6 +282,12 @@ export function createControlServer(options: ControlServerOptions): ControlServe
           response.end()
           return
         }
+        const pairingEndpoint =
+          url.pathname === `${API}/pairing/status` ||
+          url.pathname === `${API}/pairing/request` ||
+          url.pathname === `${API}/pairing/complete` ||
+          url.pathname === `${API}/pairing/dismiss`
+        if (!pairingEndpoint) authenticate(request)
         if (method === 'GET' && url.pathname === `${API}/presence/events`) {
           openEventStream(request, response)
           return
