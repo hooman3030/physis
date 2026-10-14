@@ -1,28 +1,15 @@
-import type {
-  Archive,
-  CodeNodeRecord,
-  ImprintRecord,
-  ModuleDeclaration,
-  ParameterValues,
-} from '../archive'
+import type { Archive, CodeNodeRecord, ImprintRecord, ParameterValues } from '../archive'
+import type { ArtworkParameter, SeedDeclaration } from '../../src/seeds/types'
 import { HttpError } from './http'
 
-export type ControlParameter = ModuleDeclaration['parameters'][number] & {
-  defaultValue: number
-}
-
-// Structurally compatible with the browser's ArtworkSeed.
-export type ControlModule = {
-  id: string
-  label?: string
-  parameters: readonly ControlParameter[]
-}
+export type ControlParameter = ArtworkParameter
+export type ControlModule = SeedDeclaration
 
 export type PresenceSnapshot = {
   revision: number
   code: CodeNodeRecord | null
   imprint: ImprintRecord | null
-  module: { id: string; label?: string; parameters: readonly ControlParameter[] } | null
+  module: SeedDeclaration | null
   parameters: ParameterValues | null
 }
 
@@ -86,7 +73,12 @@ export class LivePresence {
       module:
         module === undefined
           ? null
-          : { id: module.id, label: module.label, parameters: module.parameters },
+          : {
+              id: module.id,
+              label: module.label,
+              parameters: module.parameters,
+              runtime: module.runtime,
+            },
       parameters: this.#parameters,
     }
   }

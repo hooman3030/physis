@@ -15,7 +15,7 @@ const snapshot = {
   revision: 3,
   code: { id: 'first-light' },
   imprint: null,
-  module: { id: 'first-light', label: 'First Light', parameters: [] },
+  module: { id: 'first-light', label: 'First Light', parameters: [], runtime: 'p5' },
   parameters: {},
 }
 
@@ -47,6 +47,21 @@ describe('control API client', () => {
       'http://127.0.0.1:4317/api/v1/presence',
       expect.objectContaining({ headers: { accept: 'application/json' } }),
     )
+  })
+
+  it('rejects Presence modules with an unknown runtime', async () => {
+    const invalid = {
+      ...snapshot,
+      module: { ...snapshot.module, runtime: 'webgpu' },
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response(JSON.stringify(invalid), { status: 200 })),
+    )
+
+    await expect(getPresence()).rejects.toThrow('invalid module declaration')
   })
 
   it('sends module, parameter, and Imprint changes using the API contract', async () => {

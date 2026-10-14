@@ -1,9 +1,10 @@
-import type { ArtworkParameterValues, ArtworkSeed } from './seeds/types'
+import type { P5Seed } from './seeds/p5'
+import type { ArtworkParameterValues } from './seeds/types'
 
 type SeedControlsProps = {
-  activeSeed: ArtworkSeed
-  seeds: readonly ArtworkSeed[]
-  onSeedChange: (seed: ArtworkSeed) => void
+  activeSeed: P5Seed
+  seeds: readonly P5Seed[]
+  onSeedChange: (seed: P5Seed) => void
   parameterValues: ArtworkParameterValues
   onParameterChange: (id: string, value: number) => void
   onSaveImprint: () => void

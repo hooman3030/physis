@@ -5,6 +5,7 @@ describe('artwork seeds', () => {
   it('provides a pre-built default seed module', () => {
     expect(artworkSeeds).toContain(defaultArtworkSeed)
     expect(defaultArtworkSeed.id).toBe('first-light')
+    expect(defaultArtworkSeed.runtime).toBe('p5')
     expect(typeof defaultArtworkSeed.createSketch).toBe('function')
   })
 

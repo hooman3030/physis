@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
-import p5 from 'p5'
-import type { ArtworkParameterValues, ArtworkSeed } from './seeds/types'
+import { mountSeedRuntime, type SeedModule } from './runtime'
+import type { ArtworkParameterValues } from './seeds/types'
 
 type ArtworkCanvasProps = {
-  seed: ArtworkSeed
+  seed: SeedModule
   parameters: ArtworkParameterValues
 }
 
@@ -18,27 +18,7 @@ export function ArtworkCanvas({ seed, parameters }: ArtworkCanvasProps) {
   useEffect(() => {
     if (!containerRef.current) return
 
-    let disposed = false
-
-    // p5 creates its canvas asynchronously and remove() is a no-op before that,
-    // so an instance disposed early must remove itself once setup is reached.
-    const artwork = new p5((instance) => {
-      seed.createSketch(instance, () => parametersRef.current)
-
-      const { setup } = instance
-      instance.setup = async () => {
-        if (disposed) {
-          await instance.remove()
-          return
-        }
-        await setup?.call(instance)
-      }
-    }, containerRef.current)
-
-    return () => {
-      disposed = true
-      artwork.remove()
-    }
+    return mountSeedRuntime(containerRef.current, seed, () => parametersRef.current)
   }, [seed])
 
   return <div ref={containerRef} className="artwork-canvas" aria-label={`Artwork: ${seed.label}`} />

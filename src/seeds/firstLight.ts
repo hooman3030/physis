@@ -1,8 +1,9 @@
-import type { ArtworkSeed } from './types'
+import type { P5Seed } from './p5'
 
-export const firstLightSeed: ArtworkSeed = {
+export const firstLightSeed: P5Seed = {
   id: 'first-light',
   label: 'First light',
+  runtime: 'p5',
   parameters: [],
   createSketch: (instance) => {
     instance.setup = () => {

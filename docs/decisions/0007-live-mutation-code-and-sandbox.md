@@ -120,22 +120,17 @@ interface ArtworkRuntime {
 
 ## Consequences for the Seed type
 
-`ArtworkSeed` in `src/seeds/types.ts` is p5-specific: `createSketch` takes a
-`p5` instance, and `ArtworkCanvas` mounts p5 directly. That fits bundled p5
-modules but not this ADR. Required changes, to be done as a separate task
-before M4 and not inside #10:
+Before #24, `ArtworkSeed` in `src/seeds/types.ts` was p5-specific:
+`createSketch` took a `p5` instance, and `ArtworkCanvas` mounted p5 directly.
+Issue #24 implements the renderer-independent declaration and runtime boundary:
 
-- Split the declaration from the implementation. A runtime-independent
-  `SeedDeclaration` (`id`, `label`, `parameters`, `runtime`) is what the archive
-  and the control API consume; this is already how the archive is typed, so #10
-  is unaffected.
-- Add a `runtime: RuntimeKind` field and move `createSketch` into a
-  p5-specific implementation type. Existing seeds keep working as `p5` modules.
-- Replace direct p5 mounting in `ArtworkCanvas` with a runtime adapter, so
-  bundled and runtime modules go through the same path and the same
-  checks.
-- Keep `src/seeds/types.ts` free of runtime imports so the server can keep
-  importing declarations without pulling in browser libraries.
+- `SeedDeclaration` (`id`, `label`, `parameters`, `runtime`) is shared by the
+  archive and control API. `src/seeds/types.ts` has no renderer imports.
+- `P5Seed` adds the p5-specific `createSketch` implementation. Existing seeds
+  declare the `p5` runtime.
+- `ArtworkCanvas` delegates mounting to the runtime adapter registry; p5 is
+  the first adapter. Other renderers and runtime Mutation execution remain
+  future work.
 
 ## Open questions
 

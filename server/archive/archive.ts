@@ -1,20 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { backup as sqliteBackup, DatabaseSync } from 'node:sqlite'
+import type { SeedDeclaration } from '../../src/seeds/types'
 import { ArchiveError } from './errors'
 import { migrate } from './migrations'
 
-export type ParameterDeclaration = {
-  id: string
-  min: number
-  max: number
-}
-
-// Structurally compatible with the browser's ArtworkSeed declarations.
-export type ModuleDeclaration = {
-  id: string
-  parameters: readonly ParameterDeclaration[]
-}
+export type ParameterDeclaration = SeedDeclaration['parameters'][number]
+export type ModuleDeclaration = SeedDeclaration
 
 export type ParameterValues = Readonly<Record<string, number>>
 

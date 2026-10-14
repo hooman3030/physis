@@ -22,8 +22,8 @@ import {
 import { reportApplicationError } from './errorNotifications'
 import { ImprintArchive } from './ImprintArchive'
 import { SeedControls } from './SeedControls'
+import type { P5Seed } from './seeds/p5'
 import { artworkSeeds, defaultArtworkSeed } from './seeds/registry'
-import type { ArtworkSeed } from './seeds/types'
 import './styles.css'
 
 type ControlStatus = 'connecting' | 'connected' | 'offline'
@@ -40,7 +40,7 @@ export function App() {
     )
     return { settings, errors }
   })
-  const [settings, setSettings] = useState<ArtworkSettings>(initialSettings.settings)
+  const [settings, setSettings] = useState<ArtworkSettings<P5Seed>>(initialSettings.settings)
   const [controlsOpen, setControlsOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [controlStatus, setControlStatus] = useState<ControlStatus>('connecting')
@@ -80,12 +80,18 @@ export function App() {
     if (!force && snapshot.revision < revisionRef.current) return
     revisionRef.current = snapshot.revision
     setActiveImprintId(snapshot.imprint?.id ?? null)
-
     if (snapshot.code === null) return
     const activeSeed = artworkSeeds.find((candidate) => candidate.id === snapshot.code?.id)
-    if (activeSeed === undefined || snapshot.module?.id !== activeSeed.id) {
+    const module = snapshot.module
+    if (activeSeed === undefined || module === null || module.id !== activeSeed.id) {
       reportApplicationError(
         `Active module ${snapshot.code.id} is unavailable in this frontend build.`,
+      )
+      return
+    }
+    if (module.runtime !== activeSeed.runtime) {
+      reportApplicationError(
+        `Active module ${snapshot.code.id} requires the ${module.runtime} runtime, but this frontend provides ${activeSeed.runtime}.`,
       )
       return
     }
@@ -235,7 +241,7 @@ export function App() {
     setSaveStatus('idle')
   }
 
-  const handleSeedChange = (nextSeed: ArtworkSeed) => {
+  const handleSeedChange = (nextSeed: P5Seed) => {
     setSettings((current) => ({ ...current, seed: nextSeed }))
     clearSaveFeedback()
     if (statusRef.current === 'connected') {
