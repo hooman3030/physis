@@ -60,6 +60,18 @@ This supports a simple tree view of Seeds and a detailed view that expands
 their Imprints and running Presences. The underlying parent and reference
 relationships do not depend on a particular visualization.
 
+### Seed code immutability
+
+Every Seed and Imprint must remain renderable. A registered Seed module is
+never edited in place after Imprints reference it: a Mutation is a new module
+registered under its own ID alongside its parent, so an Imprint's Seed ID
+always resolves to the code it was saved with. The source revision (a Git
+commit hash supplied by the caller) is provenance only; the archive records it
+but never computes it or runs Git. Git history is never rewritten, so every
+recorded revision stays retrievable. Bundled Seed source is not stored in or
+run from the archive. Runtime Mutations created live are specified separately
+in [ADR 0007](0007-live-mutation-code-and-sandbox.md).
+
 ### Storage and runtime
 
 - Run a small local control service as a separate process from the browser
@@ -128,8 +140,7 @@ relationships do not depend on a particular visualization.
   loopback-only.
 - Specify retention, pruning, and backup frequency before unattended
   operation.
-- Define how archived Mutations retain executable source code if historical
-  revisions later become unavailable. A source revision is provenance, not a
-  copy of the code.
+- Decide how Mutations are generated and registered once evolution is
+  implemented (M4). Until then, see "Seed code immutability" below.
 - Decide how a Presence is identified across browser restarts and whether
   multiple simultaneous Presences are supported.

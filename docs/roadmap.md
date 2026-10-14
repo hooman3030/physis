@@ -83,14 +83,21 @@ not part of the rendering loop. Local model inference is not in the baseline.
 result has recorded lineage and validation, and evolution is bounded by
 approved resource and request limits.
 
-1. Specify candidate isolation and validation limits
+1. Make the Seed type renderer-agnostic with runtime adapters
+   ([#24](https://github.com/hooman3030/physis/issues/24)).
+2. Specify candidate isolation and validation limits
    ([#20](https://github.com/hooman3030/physis/issues/20)).
-2. Select a hosted provider and request budget, if desired
+3. Select a hosted provider and request budget, if desired
    ([#13](https://github.com/hooman3030/physis/issues/13)).
-3. Implement candidate validation and promotion
+4. Implement candidate validation and promotion
    ([#17](https://github.com/hooman3030/physis/issues/17)).
-4. Add the optional hosted-AI provider adapter
+5. Add the optional hosted-AI provider adapter
    ([#19](https://github.com/hooman3030/physis/issues/19)).
+
+Live, observable mutation with automated health checks and self-correcting
+feedback loops is specified in [live-evolution.md](live-evolution.md). Its
+requirements supersede the Git-only Mutation storage in ADR 0006; the proposed
+replacement is [ADR 0007](decisions/0007-live-mutation-code-and-sandbox.md).
 
 [GitHub milestone M4](https://github.com/hooman3030/physis/milestone/5)
 

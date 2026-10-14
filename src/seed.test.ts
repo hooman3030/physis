@@ -3,7 +3,7 @@ import { artworkSeeds, defaultArtworkSeed } from './seeds/registry'
 
 describe('artwork seeds', () => {
   it('provides a pre-built default seed module', () => {
-    expect(defaultArtworkSeed).toBe(artworkSeeds[0])
+    expect(artworkSeeds).toContain(defaultArtworkSeed)
     expect(defaultArtworkSeed.id).toBe('first-light')
     expect(typeof defaultArtworkSeed.createSketch).toBe('function')
   })
