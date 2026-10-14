@@ -68,8 +68,9 @@ registered under its own ID alongside its parent, so an Imprint's Seed ID
 always resolves to the code it was saved with. The source revision (a Git
 commit hash supplied by the caller) is provenance only; the archive records it
 but never computes it or runs Git. Git history is never rewritten, so every
-recorded revision stays retrievable. Executable source is not stored in or run
-from the archive.
+recorded revision stays retrievable. Bundled Seed source is not stored in or
+run from the archive. Runtime Mutations created live are specified separately
+in [ADR 0007](0007-live-mutation-code-and-sandbox.md).
 
 ### Storage and runtime
 
