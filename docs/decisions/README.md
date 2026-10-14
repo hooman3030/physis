@@ -11,6 +11,7 @@ long-term architecture.
 - [ADR 0003: First slice as a static Canvas 2D page](0003-first-slice-static-canvas.md) (partially superseded)
 - [ADR 0004: React frontend with Vite+](0004-react-vite-plus-frontend.md)
 - [ADR 0005: Artwork-first display with reusable controls](0005-artwork-display-and-controls.md)
+- [ADR 0006: Local control service and artwork lineage](0006-local-control-service-and-archive.md)
 
 Use the following headings for future records:
 

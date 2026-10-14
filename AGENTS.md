@@ -15,6 +15,11 @@ implementation unless the task explicitly requests it.
 - Record durable architectural choices in `docs/decisions/`.
 - Use GitHub Issues for actionable work rather than turning every idea into a
   document.
+- Follow the domain naming convention in `docs/glossary.md`: use Seed,
+  Mutation, Imprint, and Presence consistently for abstract artwork concepts.
+  Metaphorical naming is welcome for domain-level modules and components, but
+  keep concrete controls, standard technical concepts, and external API terms
+  plain when that is clearer.
 
 ## Agentic workflow
 
