@@ -62,6 +62,9 @@ instruction and the project review gates below take precedence.
 - Keep documentation-only, setup, and implementation changes separate when
   that improves reviewability.
 - Never claim validation that was not run. Report skipped checks and why.
+- Documentation-only changes run `pnpm check` but do not require typechecking,
+  tests, or builds; CI skips those heavier checks for documentation-only
+  changes. Run the full checks when any non-documentation file is changed.
 - Before opening a PR/MR, verify the branch is based on the intended target,
   the worktree is clean, and the diff contains only the requested change.
 - Prefer `--force-with-lease` over `--force`; normally avoid both.

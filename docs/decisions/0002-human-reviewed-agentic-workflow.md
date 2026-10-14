@@ -23,10 +23,18 @@ At the end of a task, the agent may present a clear approval action for the
 human to authorize committing the reviewed diff. Without that approval, the
 changes remain uncommitted.
 
+Run formatting and lint checks for every change. To keep documentation updates
+fast, documentation-only changes skip typechecking, tests, and builds in CI.
+Any change that includes code, configuration, workflow files, or other
+non-documentation files runs the full quality checks. This validation split
+does not change the human review or commit-approval requirements.
+
 ## Consequences
 
 - Progress is slower per task but stays understandable and reviewable.
 - Documentation and agent instructions stay close to current project reality.
+- Documentation-only changes get a faster CI path without skipping formatting
+  or lint checks.
 - Extra documentation changes are expected, but commits require explicit human
   approval after review.
 - A simple approval action can make the commit step convenient without making

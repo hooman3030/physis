@@ -3,7 +3,8 @@
 A change is done when:
 
 - it meets the issue's acceptance criteria and stays in scope;
-- validation was run and reported honestly (commands and results);
+- validation appropriate to the change was run and reported honestly
+  (commands and results);
 - affected docs, ADRs, and instructions are updated;
 - a human has reviewed the diff.
 
@@ -11,20 +12,25 @@ A change is done when:
 
 Run these from the repository root:
 
-- `pnpm check` — Vite+ formatting, Oxlint, and type-oriented checks;
+- `pnpm check` — Vite+ formatting and Oxlint; run for every change;
 - `pnpm check:fix` — apply Oxfmt and Oxlint fixes;
 - `pnpm typecheck` — strict TypeScript validation;
 - `pnpm test -- --run` — run Vitest once;
 - `pnpm build` — create the production bundle.
 - `pnpm server:build` — bundle the standalone local control service.
 
+CI runs `pnpm check` for every change. Documentation-only changes (files under
+`docs/` or Markdown, MDX, and reStructuredText files elsewhere) skip
+typechecking, tests, and builds. Changes to code, configuration, workflows, or
+any other non-documentation file run all checks.
+
 ## Refactoring and maintainability
 
-CI verifies objective quality properties such as formatting, linting, type
-correctness, tests, and successful builds. It does not automatically decide
-whether a file is too large or an abstraction should be extracted: those
-judgments depend on cohesion and domain boundaries and fixed thresholds tend
-to create noisy exceptions.
+For code changes, CI verifies objective quality properties such as formatting,
+linting, type correctness, tests, and successful builds. It does not
+automatically decide whether a file is too large or an abstraction should be
+extracted: those judgments depend on cohesion and domain boundaries and fixed
+thresholds tend to create noisy exceptions.
 
 For every change, review the touched code for:
 

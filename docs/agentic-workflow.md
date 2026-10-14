@@ -37,8 +37,12 @@ tasks; this workflow grows from that habit into agent work gradually.
 
 During execution and review, distinguish two kinds of quality work:
 
-- **Required quality:** formatting, linting, type safety, tests, and builds are
-  automated by the documented CI checks.
+- **Required quality:** every change runs formatting and lint checks with
+  `pnpm check`. Documentation-only changes (files under `docs/` or Markdown,
+  MDX, and reStructuredText files elsewhere) skip typechecking, tests, and
+  builds in CI. Any non-documentation change runs the full CI checks:
+  typechecking, tests, and frontend and server builds as well as formatting
+  and linting.
 - **Design quality:** duplication, cohesion, boundary violations, and
   refactoring opportunities require contextual review. Agents inspect touched
   code and human reviewers decide whether a refactor belongs in the current

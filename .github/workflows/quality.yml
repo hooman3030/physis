@@ -16,6 +16,36 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Classify changed files
+        id: scope
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git diff --name-only -z "$BASE_SHA" "$HEAD_SHA" > "$RUNNER_TEMP/changed-files"
+          docs_only=true
+          seen_file=false
+          while IFS= read -r -d '' file; do
+            seen_file=true
+            case "$file" in
+              docs/*|*.md|*.mdx|*.rst) ;;
+              *) docs_only=false; break ;;
+            esac
+          done < "$RUNNER_TEMP/changed-files"
+
+          if [[ "$seen_file" != true ]]; then
+            docs_only=false
+          fi
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -35,13 +65,17 @@ jobs:
         run: pnpm check
 
       - name: Typecheck
+        if: steps.scope.outputs.docs_only != 'true'
         run: pnpm typecheck
 
       - name: Run tests
+        if: steps.scope.outputs.docs_only != 'true'
         run: pnpm test -- --run
 
       - name: Build frontend
+        if: steps.scope.outputs.docs_only != 'true'
         run: pnpm build
 
       - name: Build server
+        if: steps.scope.outputs.docs_only != 'true'
         run: pnpm server:build
