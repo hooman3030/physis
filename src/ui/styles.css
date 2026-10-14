@@ -39,7 +39,7 @@
   --radius-control: 0.5rem;
   --radius-pill: 999px;
   --radius-circle: 50%;
-  --studio-panel-gutter: clamp(1.25rem, 5vw, 5rem);
+  --studio-panel-gutter: clamp(1.25rem, 1vw, 5rem);
 }
 
 * {
