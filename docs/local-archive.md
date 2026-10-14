@@ -65,6 +65,12 @@ parent must belong to the same code node, so a lineage never crosses code.
   the foreign-key check, and stored-Gene parsing; an empty list means
   healthy.
 
+The planned Lineage Explorer previews are supplementary files stored beside
+the database under `previews/`, not archive metadata. A database-only backup
+remains valid but omits those visuals; include the preview directory when
+preserving the complete visual archive matters. Missing preview files use a
+placeholder and do not make the archive unhealthy.
+
 ## Control API
 
 Run the service with `pnpm server` (builds the browser bundle and bundles
