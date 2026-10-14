@@ -5,6 +5,10 @@ name: 'Physis Git Management'
 
 # Git and GitHub workflow
 
+For an explicitly requested, unambiguous commit-and-merge workflow, use the
+repository's `commit-and-merge` skill to keep execution concise. This
+instruction and the project review gates below take precedence.
+
 ## Before changing Git state
 
 - Inspect `git status --short --branch`, recent commits, and the relevant
