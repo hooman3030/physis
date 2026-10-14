@@ -293,6 +293,19 @@ h3 {
   background: var(--surface-accent-background);
 }
 
+.gene-action-key {
+  min-width: 1.25em;
+  margin-left: 0.3rem;
+  padding: 0.15em 0.3em;
+  border: 1px solid var(--border-default);
+  border-radius: 0.2rem;
+  background: var(--surface-control-background);
+  font: inherit;
+  font-size: 0.85em;
+  line-height: 1;
+  text-align: center;
+}
+
 .gene-action-icon {
   display: block;
   width: 1rem;

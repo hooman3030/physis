@@ -52,6 +52,7 @@ export function App() {
   const [settings, setSettings] = useState<ArtworkSettings<P5Seed>>(initialSettings.settings)
   const [controlsOpen, setControlsOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
+  const [canvasResetVersion, setCanvasResetVersion] = useState(0)
   const [controlStatus, setControlStatus] = useState<ControlStatus>('connecting')
   const [fps, setFps] = useState<number | null>(null)
   const [authenticationRequired, setAuthenticationRequired] = useState(false)
@@ -282,6 +283,18 @@ export function App() {
       }
 
       if (
+        event.code === 'KeyR' &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.repeat
+      ) {
+        event.preventDefault()
+        setCanvasResetVersion((version) => version + 1)
+        return
+      }
+
+      if (
         event.code === 'KeyC' &&
         !event.altKey &&
         !event.ctrlKey &&
@@ -459,7 +472,7 @@ export function App() {
   return (
     <main data-open-panels={controlsOpen && archiveOpen ? 'both' : 'one'}>
       <ArtworkCanvas
-        key={seed.id}
+        key={`${seed.id}-${canvasResetVersion}`}
         seed={seed}
         genes={geneValues}
         onFpsChange={import.meta.env.DEV ? setFps : undefined}
@@ -501,6 +514,7 @@ export function App() {
         geneValues={geneValues}
         onGeneChange={handleGeneChange}
         onGenesChange={handleGenesChange}
+        onResetCanvas={() => setCanvasResetVersion((version) => version + 1)}
         onSaveImprint={handleSaveImprint}
         controlStatus={controlStatus}
         saveStatus={saveStatus}

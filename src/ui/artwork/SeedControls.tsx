@@ -30,6 +30,7 @@ type SeedControlsProps = {
   geneValues: ArtworkGeneValues
   onGeneChange: (id: string, value: number) => void
   onGenesChange: (values: ArtworkGeneValues) => void
+  onResetCanvas: () => void
   onSaveImprint: () => void
   controlStatus: 'connecting' | 'connected' | 'offline'
   saveStatus: 'idle' | 'saving' | 'saved'
@@ -44,6 +45,7 @@ export function SeedControls({
   geneValues,
   onGeneChange,
   onGenesChange,
+  onResetCanvas,
   onSaveImprint,
   controlStatus,
   saveStatus,
@@ -112,6 +114,15 @@ export function SeedControls({
       <div className="genes-heading">
         <h3>Genes</h3>
         <div className="gene-actions">
+          <button
+            type="button"
+            className="gene-action-button"
+            title="rebirth (r)"
+            aria-label="rebirth, R key"
+            onClick={onResetCanvas}
+          >
+            rebirth <kbd className="gene-action-key">r</kbd>
+          </button>
           <button
             type="button"
             className="gene-action-button"

@@ -18,6 +18,7 @@ describe('seed controls', () => {
         geneValues={{}}
         onGeneChange={vi.fn()}
         onGenesChange={vi.fn()}
+        onResetCanvas={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="offline"
         saveStatus="idle"
@@ -42,6 +43,7 @@ describe('seed controls', () => {
         geneValues={{ filamentCount: 200, noiseScale: 0.002, stepLength: 2 }}
         onGeneChange={vi.fn()}
         onGenesChange={vi.fn()}
+        onResetCanvas={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="connected"
         saveStatus="idle"
@@ -57,6 +59,16 @@ describe('seed controls', () => {
     expect(markup).toContain('Step length')
     expect(markup).toContain('aria-label="Reset genes to defaults"')
     expect(markup).toContain('aria-label="Randomize all genes"')
+    const geneActionsStart = markup.indexOf('class="gene-actions"')
+    const rebirthButtonIndex = markup.indexOf('aria-label="rebirth, R key"')
+    const resetGenesButtonIndex = markup.indexOf('aria-label="Reset genes to defaults"')
+    const geneActionsEnd = markup.indexOf('</div>', geneActionsStart)
+    const geneActionsMarkup = markup.slice(geneActionsStart, geneActionsEnd)
+
+    expect(rebirthButtonIndex).toBeGreaterThan(geneActionsStart)
+    expect(rebirthButtonIndex).toBeLessThan(resetGenesButtonIndex)
+    expect(rebirthButtonIndex).toBeLessThan(geneActionsEnd)
+    expect(geneActionsMarkup).toContain('<kbd class="gene-action-key">r</kbd>')
     expect(markup).toContain('Save Imprint')
     expect(markup).toContain('class="connection-indicator-label" aria-hidden="true">API')
     expect(markup).not.toContain('disabled=""')
@@ -71,6 +83,7 @@ describe('seed controls', () => {
         geneValues={{}}
         onGeneChange={vi.fn()}
         onGenesChange={vi.fn()}
+        onResetCanvas={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="connected"
         saveStatus="saved"
