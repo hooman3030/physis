@@ -11,7 +11,7 @@ export function ErrorToast({ messages, onDismiss }: ErrorToastProps) {
   return (
     <div className="error-toast-stack" aria-live="assertive" aria-relevant="additions">
       {[...messages].reverse().map(({ id, message }) => (
-        <div className="error-toast" key={id} role="alert">
+        <div className="error-toast surface shape-card" key={id} role="alert">
           <span>{message}</span>
           <button
             type="button"

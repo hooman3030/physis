@@ -22,6 +22,7 @@ describe('seed controls', () => {
     expect(markup).toContain(defaultArtworkSeed.label)
     expect(markup).toContain('aria-label="Installation control API unavailable"')
     expect(markup).toContain('class="connection-indicator"')
+    expect(markup).toContain('class="connection-indicator-label" aria-hidden="true">Offline')
     expect(markup).not.toContain('Active module:')
     expect(markup).not.toContain('browser-only controls are active')
     expect(markup).toContain('disabled=""')
@@ -46,6 +47,7 @@ describe('seed controls', () => {
     expect(markup).toContain('Noise scale')
     expect(markup).toContain('Step length')
     expect(markup).toContain('Save Imprint')
+    expect(markup).toContain('class="connection-indicator-label" aria-hidden="true">API')
     expect(markup).not.toContain('disabled=""')
   })
 

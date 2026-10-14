@@ -44,7 +44,7 @@ export function RemoteAccessPairing({
   return (
     <>
       {required && (
-        <form className="remote-access-pairing" onSubmit={submit}>
+        <form className="remote-access-pairing surface shape-panel" onSubmit={submit}>
           <p className="eyebrow">Remote studio</p>
           <h1>Pair this browser</h1>
           <p>
@@ -75,7 +75,7 @@ export function RemoteAccessPairing({
         </form>
       )}
       {pairingStatus !== null && (
-        <aside className="remote-pairing-code" role="status" aria-live="polite">
+        <aside className="remote-pairing-code surface shape-panel" role="status" aria-live="polite">
           <p className="eyebrow">Device pairing requested</p>
           <p>Enter this PIN on the requesting device before it expires.</p>
           <strong>{pairingStatus.pin}</strong>

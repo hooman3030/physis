@@ -6,7 +6,10 @@ export function DevelopmentOverlay({ fps }: DevelopmentOverlayProps) {
   if (!import.meta.env.DEV) return null
 
   return (
-    <aside className="development-overlay" aria-label="Development diagnostics">
+    <aside
+      className="development-overlay surface shape-control"
+      aria-label="Development diagnostics"
+    >
       <span aria-hidden="true">FPS</span>
       <output
         aria-label={fps === null ? 'Frame rate measuring' : `Frame rate ${fps} frames per second`}

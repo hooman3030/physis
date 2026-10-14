@@ -17,5 +17,10 @@ new one-off colors, type sizes, radii, or surface treatments.
   `corner-shape: squircle`.
 - Browsers without `corner-shape` support fall back to the matching
   `border-radius`.
-- Glass surfaces share the same background and backdrop filter.
+- Apply `.surface` to share the translucent background, backdrop filter, and
+  sheen. Pair it with `.shape-panel`, `.shape-card`, or `.shape-control` for
+  the appropriate tokenized shape.
+- Use `.control-base` for the common border, padding, and type treatment when
+  styling a custom control.
 - Parameter sliders span the full width of their control.
+- Use `.range-control` for the shared slider track and thumb treatment.
