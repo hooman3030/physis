@@ -15,6 +15,13 @@ pnpm install
 pnpm dev
 ```
 
+To connect the browser controls to the local archive and Presence API, run
+`pnpm server` in a second terminal. The API binds to loopback on port `4317`;
+the client remains usable in browser-only mode when the API is unavailable.
+Press **C** for artwork controls and **A** for the Imprint archive; both panels
+can remain open together, and **Escape** closes them. Selecting an archived
+Imprint restores its saved parameters into the active Presence.
+
 Run the project checks with `pnpm check`, `pnpm typecheck`, `pnpm test -- --run`,
 and `pnpm build`. VS Code workspace settings select the Oxc formatter and
 enable format-on-save and Oxlint diagnostics. Install the recommended Oxc
