@@ -26,6 +26,7 @@ import {
   type ArtworkSettings,
 } from './persistence'
 import { reportApplicationError } from './errorNotifications'
+import { DevelopmentOverlay } from './DevelopmentOverlay'
 import { ImprintArchive } from './ImprintArchive'
 import { RemoteAccessPairing } from './RemoteAccessPairing'
 import { SeedControls } from './SeedControls'
@@ -51,6 +52,7 @@ export function App() {
   const [controlsOpen, setControlsOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [controlStatus, setControlStatus] = useState<ControlStatus>('connecting')
+  const [fps, setFps] = useState<number | null>(null)
   const [authenticationRequired, setAuthenticationRequired] = useState(false)
   const [pairingStatus, setPairingStatus] = useState<PairingStatus | null>(null)
   const [credentialRevision, setCredentialRevision] = useState(0)
@@ -451,7 +453,13 @@ export function App() {
 
   return (
     <main data-open-panels={controlsOpen && archiveOpen ? 'both' : 'one'}>
-      <ArtworkCanvas key={seed.id} seed={seed} parameters={parameterValues} />
+      <ArtworkCanvas
+        key={seed.id}
+        seed={seed}
+        parameters={parameterValues}
+        onFpsChange={import.meta.env.DEV ? setFps : undefined}
+      />
+      <DevelopmentOverlay fps={fps} />
       <RemoteAccessPairing
         required={authenticationRequired}
         pairingStatus={pairingStatus}

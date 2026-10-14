@@ -9,6 +9,7 @@ type RuntimeAdapter = {
     container: HTMLDivElement,
     seed: SeedModule,
     getParameters: () => ArtworkParameterValues,
+    onFpsChange?: (fps: number) => void,
   ) => () => void
 }
 
@@ -20,11 +21,12 @@ export function mountSeedRuntime(
   container: HTMLDivElement,
   seed: SeedModule,
   getParameters: () => ArtworkParameterValues,
+  onFpsChange?: (fps: number) => void,
 ): () => void {
   const adapter = adapters[seed.runtime]
   if (adapter === undefined) {
     throw new Error(`No runtime adapter is registered for "${seed.runtime}"`)
   }
 
-  return adapter.mount(container, seed, getParameters)
+  return adapter.mount(container, seed, getParameters, onFpsChange)
 }

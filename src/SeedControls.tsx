@@ -33,7 +33,12 @@ export function SeedControls({
       aria-label="Artwork controls"
       hidden={hidden}
     >
-      <p className="eyebrow">physis ⍩‣➣"(⌯_ .∙✧ ✵・• ∙. ∙・⏜ ◎ ⏝◦ ○ ∙ </p>
+      <div>
+        <div className="controls-header">
+          <p className="eyebrow">controls</p>
+        </div>
+        <h2>Seeds</h2>
+      </div>
       <span
         className="connection-indicator"
         data-status={controlStatus}
