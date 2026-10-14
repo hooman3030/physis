@@ -13,17 +13,26 @@ controls without coupling the artwork renderer to that dashboard.
 
 ## Decision
 
-Start the artwork fullscreen with its in-art control panel hidden. Reveal the
-panel with a keyboard shortcut or a discreet edge target. Keep control
-components independent of the display host so they can be reused in the
-future remote studio. Add parameter editors when seeds expose supported
-parameter metadata. Numeric parameters declare their label, default, bounds,
-and step so the panel can render suitable inputs. Parameter editing remains
-independent of the display host.
+Start the artwork fullscreen with its in-art control panels hidden. Reveal
+artwork controls with **C** or a discreet right-edge target; reveal the
+Imprint archive with **A** or a discreet left-edge target. Both panels can
+remain open together, and **Escape** closes them. Keep control components
+independent of the display host so they can be reused in the future remote
+studio. Add parameter editors when seeds expose supported parameter metadata.
+Numeric parameters declare their label, default, bounds, and step so the panel
+can render suitable inputs. Parameter editing remains independent of the
+display host.
 
 The active seed ID identifies a program module, not a guarantee of identical
 pixels across runs. The first-slice controls expose the active module ID and
 label and allow switching among registered modules.
+
+The browser client connects to the loopback control API when it is available,
+uses its Presence as the active state, and receives updates through the
+Presence event stream. If the API is unavailable, the artwork continues to
+render and the controls operate locally; saving an Imprint requires the API.
+The Imprint archive lists saved Imprints from the API and selecting one
+restores its code and parameters into the active Presence.
 
 ## Consequences
 
@@ -31,6 +40,8 @@ label and allow switching among registered modules.
 - Developers retain a local way to inspect and switch active modules.
 - Control state and rendering remain separable, allowing reuse in another
   host.
+- The artwork runtime does not depend on the control API; while disconnected,
+  browser controls do not persist changes to the archive.
 - Seeds without parameter metadata do not display parameter inputs.
 - The active seed and each seed's parameter values persist in the browser's
   `localStorage`. Stored values are validated against the seed's declared
