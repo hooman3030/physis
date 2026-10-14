@@ -126,3 +126,27 @@ The M1 laptop performance check ([#4](https://github.com/hooman3030/physis/issue
 remains open but is not a prerequisite for M2–M4 work.
 
 [GitHub milestone M5](https://github.com/hooman3030/physis/milestone/4)
+
+## M6 — Artist-Directed Gene Evolution
+
+Add an adjustable World that drifts the active Presence's Genes over time,
+then evaluate saved-Imprint-informed bias for both World drift and Gene
+randomization. Keep implementation focused on artist-facing behavior; the
+bias model must be researched before it is applied.
+
+**Exit outcome:** the artist can control World-driven Gene drift, and can
+optionally use a documented benevolent or hostile saved-Imprint-informed bias
+for both World behavior and Gene randomization without losing the unbiased
+randomize option.
+
+1. Add randomized LFO World drift without bias
+   ([#44](https://github.com/hooman3030/physis/issues/44)).
+2. Define a saved-Imprint-informed bias model
+   ([#45](https://github.com/hooman3030/physis/issues/45)).
+3. Apply the model to World drift
+   ([#46](https://github.com/hooman3030/physis/issues/46)) and Gene
+   randomization ([#47](https://github.com/hooman3030/physis/issues/47)).
+
+See [Art direction: World and Gene bias](art-direction.md).
+
+[GitHub milestone M6](https://github.com/hooman3030/physis/milestone/7)

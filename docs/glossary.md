@@ -12,6 +12,9 @@
 - **Presence** – an artwork currently running in the browser: a pointer to the
   Seed or Mutation it runs and, optionally, the Imprint it started from. It is
   not part of any lineage; selecting anything in the archive starts a Presence.
+- **World** – an environment that can influence how a Presence's Gene values
+  change over time. Its influence is adjustable; saved-Imprint-informed bias is
+  a future direction, not yet a defined analysis.
 - **Source revision** – a Git commit hash identifying the build that
   contained a Seed or Mutation's code. It is provenance only; Seed modules
   are immutable, so each Seed ID always resolves to its original code.
