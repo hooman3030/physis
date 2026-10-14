@@ -9,6 +9,7 @@ import {
   LOOPBACK_HOSTS,
 } from './network'
 import { PairingPin } from './pairing'
+import { PreviewStore, readPreviewUpload, type PreviewAsset, type PreviewKind } from '../previews'
 import { serveStaticFile } from './static'
 import {
   HttpError,
@@ -34,6 +35,7 @@ export type ControlServerOptions = {
   port?: number
   remoteAccessToken?: string
   staticDirectory?: string
+  previewDirectory?: string
   // Browser origins allowed to call the API cross-origin, e.g. the dev server.
   allowedOrigins?: readonly string[]
 }
@@ -73,6 +75,8 @@ export function createControlServer(options: ControlServerOptions): ControlServe
   }
 
   const archive = options.archive
+  const previewStore =
+    options.previewDirectory === undefined ? null : new PreviewStore(options.previewDirectory)
   const presence = new LivePresence(archive, options.modules)
   const allowedOrigins = new Set(options.allowedOrigins ?? DEFAULT_ALLOWED_ORIGINS)
   const sseClients = new Set<ServerResponse>()
@@ -250,6 +254,13 @@ export function createControlServer(options: ControlServerOptions): ControlServe
       segments.length === 2
     ) {
       archive.deleteImprint(id)
+      if (previewStore !== null) {
+        try {
+          await previewStore.remove('imprint', id)
+        } catch (error) {
+          console.error(`Could not remove preview for deleted Imprint ${id}`, error)
+        }
+      }
       return ok({ id })
     }
 
@@ -285,6 +296,51 @@ export function createControlServer(options: ControlServerOptions): ControlServe
         if (!pairingEndpoint) authenticate(request)
         if (method === 'GET' && url.pathname === `${API}/presence/events`) {
           openEventStream(request, response)
+          return
+        }
+        if ((method === 'GET' || method === 'PUT') && url.pathname.startsWith(`${API}/previews/`)) {
+          const segments = url.pathname.slice(API.length).split('/').filter(Boolean)
+          const [resource, kindValue, id, assetValue] = segments
+          if (
+            resource !== 'previews' ||
+            segments.length !== 4 ||
+            id === undefined ||
+            (assetValue !== 'poster' && assetValue !== 'animation')
+          ) {
+            throw new HttpError(404, 'Not found')
+          }
+          if (previewStore === null) throw new HttpError(503, 'Preview storage is unavailable')
+          if (kindValue !== 'code' && kindValue !== 'imprint') {
+            throw new HttpError(404, 'Not found')
+          }
+          const kind: PreviewKind = kindValue
+          const asset: PreviewAsset = assetValue
+          if (kind === 'code') archive.getCodeNode(id)
+          else archive.getImprint(id)
+
+          if (method === 'GET') {
+            const preview = await previewStore.get(kind, id, asset)
+            if (preview === null) {
+              response.writeHead(204, {
+                'cache-control': 'private, no-store',
+                ...corsHeaders(request),
+              })
+              response.end()
+              return
+            }
+            response.writeHead(200, {
+              'content-type': preview.contentType,
+              'content-length': preview.bytes.length,
+              'cache-control': 'private, no-store',
+              ...corsHeaders(request),
+            })
+            response.end(preview.bytes)
+            return
+          }
+
+          await previewStore.put(kind, id, asset, await readPreviewUpload(request, asset))
+          response.writeHead(204, corsHeaders(request))
+          response.end()
           return
         }
 

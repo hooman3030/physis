@@ -10,6 +10,7 @@ import {
   getPresence,
   listImprints,
   requestPairingPin,
+  saveLineagePreview,
   saveControlApiToken,
   selectCode,
   selectImprint,
@@ -27,9 +28,13 @@ import {
 } from '../persistence'
 import { reportApplicationError } from '../errorNotifications'
 import { ImprintArchive } from '../ui/archive/ImprintArchive'
+import { captureArtworkAnimation } from '../ui/archive/animationCapture'
 import { DevelopmentOverlay } from '../ui/overlays/DevelopmentOverlay'
 import { RemoteAccessPairing } from '../ui/overlays/RemoteAccessPairing'
 import { SeedControls } from '../ui/artwork/SeedControls'
+import { LineageRoute } from './LineageRoute'
+import { captureArtworkPreview } from '../ui/archive/previewCapture'
+import { resolveAppRoute } from './routes'
 import type { P5Seed } from '../seeds/p5/types'
 import type { ArtworkGeneValues } from '../seeds/types'
 import { artworkSeeds, defaultArtworkSeed } from '../seeds/registry'
@@ -42,6 +47,20 @@ function errorMessage(error: unknown): string {
 }
 
 export function App() {
+  const route = resolveAppRoute(window.location.pathname)
+  if (route === 'lineage') return <LineageRoute />
+  if (route === 'not-found') {
+    return (
+      <main className="application-error-fallback">
+        <p>Page not found.</p>
+        <a href="/">Return to the artwork</a>
+      </main>
+    )
+  }
+  return <ArtworkApp />
+}
+
+function ArtworkApp() {
   const [initialSettings] = useState(() => {
     const errors: string[] = []
     const settings = loadSettings(artworkSeeds, defaultArtworkSeed, (message) =>
@@ -63,6 +82,8 @@ export function App() {
   const [activeImprintId, setActiveImprintId] = useState<string | null>(null)
   const [archiveLoading, setArchiveLoading] = useState(false)
   const [archiveLoadFailed, setArchiveLoadFailed] = useState(false)
+  const [canvasRevision, setCanvasRevision] = useState(0)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const settingsRef = useRef(settings)
   const statusRef = useRef(controlStatus)
   const authenticationRequiredRef = useRef(false)
@@ -71,6 +92,10 @@ export function App() {
   const saveFeedbackTimer = useRef<number | null>(null)
   const { seed } = settings
   const geneValues = settings.genesBySeed[seed.id]
+  const handleCanvasReady = useCallback((canvas: HTMLCanvasElement | null) => {
+    canvasRef.current = canvas
+    if (canvas !== null) setCanvasRevision((revision) => revision + 1)
+  }, [])
 
   settingsRef.current = settings
   statusRef.current = controlStatus
@@ -133,6 +158,43 @@ export function App() {
       reportApplicationError('This browser needs to be paired with the installation.')
     return true
   }, [])
+
+  useEffect(() => {
+    if (controlStatus !== 'connected' || canvasRevision === 0) return
+
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      const canvas = canvasRef.current
+      if (canvas === null) return
+      void captureArtworkPreview(canvas)
+        .then(async (preview) => {
+          if (!cancelled && preview !== null) {
+            await saveLineagePreview('code', seed.id, preview)
+          }
+        })
+        .catch((error: unknown) => {
+          if (!cancelled && !requirePairing(error)) {
+            reportApplicationError(`Could not save the Seed preview: ${errorMessage(error)}`)
+          }
+        })
+      void captureArtworkAnimation(canvas)
+        .then(async (animation) => {
+          if (!cancelled && animation !== null) {
+            await saveLineagePreview('code', seed.id, animation, 'animation')
+          }
+        })
+        .catch((error: unknown) => {
+          if (!cancelled && !requirePairing(error)) {
+            reportApplicationError(`Could not save the Seed animation: ${errorMessage(error)}`)
+          }
+        })
+    }, 900)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [canvasRevision, controlStatus, requirePairing, seed.id])
 
   useEffect(() => {
     if (controlStatus !== 'connected' && !authenticationRequired) return
@@ -409,8 +471,36 @@ export function App() {
   const handleSaveImprint = async () => {
     clearSaveFeedback()
     setSaveStatus('saving')
+    const animationPromise = captureArtworkAnimation(canvasRef.current).catch((error: unknown) => {
+      reportApplicationError(`Could not capture the Imprint animation: ${errorMessage(error)}`)
+      return null
+    })
+    const previewPromise = captureArtworkPreview(canvasRef.current).catch((error: unknown) => {
+      reportApplicationError(`Could not capture the Imprint preview: ${errorMessage(error)}`)
+      return null
+    })
     try {
-      await createImprint()
+      const imprint = await createImprint()
+      void previewPromise
+        .then(async (preview) => {
+          if (preview !== null) await saveLineagePreview('imprint', imprint.id, preview)
+        })
+        .catch((error: unknown) => {
+          if (!requirePairing(error)) {
+            reportApplicationError(`Could not save the Imprint preview: ${errorMessage(error)}`)
+          }
+        })
+      void animationPromise
+        .then(async (animation) => {
+          if (animation !== null) {
+            await saveLineagePreview('imprint', imprint.id, animation, 'animation')
+          }
+        })
+        .catch((error: unknown) => {
+          if (!requirePairing(error)) {
+            reportApplicationError(`Could not save the Imprint animation: ${errorMessage(error)}`)
+          }
+        })
       setSaveStatus('saved')
       saveFeedbackTimer.current = window.setTimeout(() => {
         setSaveStatus('idle')
@@ -476,6 +566,7 @@ export function App() {
         seed={seed}
         genes={geneValues}
         onFpsChange={import.meta.env.DEV ? setFps : undefined}
+        onCanvasReady={handleCanvasReady}
       />
       <DevelopmentOverlay fps={fps} />
       <RemoteAccessPairing

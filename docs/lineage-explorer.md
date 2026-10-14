@@ -1,9 +1,14 @@
 # Lineage Explorer
 
-Status: design recommendation complete for implementation in [#51](https://github.com/hooman3030/physis/issues/51).
-The graph and preview decisions are recorded in
-[ADR 0009](decisions/0009-lineage-explorer-graph-and-previews.md); review that
-proposed decision before implementation. See [M3 in the roadmap](roadmap.md#m3--local-network-remote-studio).
+Status: implementation is in progress for
+[#51](https://github.com/hooman3030/physis/issues/51). The route-first SVG
+graph, bounded static posters, worker-encoded GIF capture/storage, and
+interaction-triggered playback are implemented. Performance measurement on
+the presentation laptop remains outstanding; historical captures are not
+backfilled. The graph and preview recommendations are recorded in
+[ADR 0009](decisions/0009-lineage-explorer-graph-and-previews.md); review its
+proposed decision to resolve the design. See
+[M3 in the roadmap](roadmap.md#m3--local-network-remote-studio).
 
 ## Intent
 
@@ -127,9 +132,10 @@ an animation, as well as styling the interface accordingly. See
 - Keep graph layout deterministic and avoid continuous simulation.
 - Lazily load animated assets and enforce the size caps to bound transfer and
   decoded-image memory on the 4 GB presentation laptop.
-- Before enabling animations by default, measure capture time, generated file
-  sizes, and browser memory on the presentation laptop. Keep static posters
-  and placeholders as the complete usable experience.
+- Before considering preloading or autoplay beyond explicit interaction,
+  measure capture time, generated file sizes, and browser memory on the
+  presentation laptop. Keep static posters and placeholders as the complete
+  usable experience.
 - Test graph relationship types independently, explicit Presence activation,
   direct `/lineage` loading, missing/invalid previews, reduced motion, and
   keyboard/touch access.

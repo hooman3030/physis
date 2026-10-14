@@ -110,6 +110,7 @@ h4,
 h5,
 h6 {
   font-family: var(--font-display);
+  font-weight: 500;
 }
 
 body {
@@ -819,5 +820,337 @@ main[data-open-panels='both'] .archive-panel {
   main[data-open-panels='both'] .archive-panel {
     top: calc(50% + 0.5rem);
     bottom: 1rem;
+  }
+}
+
+.archive-explorer-link,
+.lineage-back-link {
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.lineage-page {
+  min-height: 100vh;
+  padding: clamp(1.25rem, 4vw, 4rem);
+  background: var(--color-canvas);
+}
+
+.lineage-header,
+.lineage-status,
+.lineage-browser,
+.lineage-retry {
+  width: min(100%, 96rem);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.lineage-header {
+  margin-bottom: 1.5rem;
+}
+
+.lineage-header h1 {
+  margin: 0.4rem 0;
+  font-size: clamp(1.7rem, 4vw, 3rem);
+  font-weight: 500;
+}
+
+.lineage-header p:not(.eyebrow) {
+  max-width: 52rem;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.lineage-back-link {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+}
+
+.lineage-status,
+.lineage-empty,
+.lineage-inspector-empty {
+  color: var(--color-muted);
+}
+
+.lineage-retry {
+  display: block;
+}
+
+.lineage-browser {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 21rem);
+  align-items: start;
+  gap: 1rem;
+}
+
+.lineage-graph-panel,
+.lineage-inspector {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.lineage-graph-panel {
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(ellipse at 50% 0, rgb(169 213 192 / 5%), transparent 65%),
+    var(--surface-control-background);
+}
+
+.archive-explorer-link:focus-visible,
+.lineage-back-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 0.2rem;
+}
+
+.lineage-graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.25rem;
+  margin: 0 0 0.75rem;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.lineage-graph-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.lineage-legend-line {
+  display: inline-block;
+  width: 1.8rem;
+  border-top: 2px solid var(--color-accent);
+}
+
+.lineage-legend-imprint-parent {
+  border-color: var(--color-muted);
+}
+
+.lineage-legend-reference {
+  border-top-style: dashed;
+  border-color: var(--color-warning);
+}
+
+.lineage-graph-scroll {
+  max-height: min(72vh, 58rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-card);
+}
+
+.lineage-graph {
+  display: block;
+  max-width: none;
+  background-image: radial-gradient(rgb(244 241 232 / 8%) 0.7px, transparent 0.7px);
+  background-size: 18px 18px;
+}
+
+.lineage-lane-band {
+  stroke: var(--border-subtle);
+  stroke-width: 1;
+}
+
+.lineage-code-lane {
+  fill: rgb(169 213 192 / 4%);
+}
+
+.lineage-imprint-lane {
+  fill: rgb(244 241 232 / 3%);
+}
+
+.lineage-lane-label {
+  fill: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+
+.lineage-graph-edge {
+  fill: none;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.lineage-graph-edge-code-parent {
+  stroke: var(--color-accent);
+}
+
+.lineage-graph-edge-imprint-parent {
+  stroke: var(--color-muted);
+}
+
+.lineage-graph-edge-code-reference {
+  stroke: var(--color-warning);
+  stroke-dasharray: 6 7;
+}
+
+.lineage-arrow-code-parent {
+  fill: var(--color-accent);
+}
+
+.lineage-arrow-imprint-parent {
+  fill: var(--color-muted);
+}
+
+.lineage-arrow-reference {
+  fill: var(--color-warning);
+}
+
+.lineage-graph-node {
+  cursor: pointer;
+  outline: none;
+}
+
+.lineage-graph-node:hover .lineage-graph-shape,
+.lineage-graph-node:focus-visible .lineage-graph-shape {
+  stroke: var(--color-text);
+  stroke-width: 3;
+}
+
+.lineage-graph-node:focus-visible .lineage-graph-selected-ring {
+  stroke: var(--color-text);
+}
+
+.lineage-graph-shape {
+  fill: var(--color-canvas);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.lineage-graph-shape-seed {
+  stroke: var(--color-accent);
+}
+
+.lineage-graph-shape-mutation {
+  fill: rgb(242 204 143 / 12%);
+  stroke: var(--color-warning);
+}
+
+.lineage-graph-shape-imprint {
+  fill: rgb(244 241 232 / 7%);
+  stroke: var(--color-muted);
+}
+
+.lineage-graph-role-ring {
+  fill: none;
+  pointer-events: none;
+  stroke-width: 1;
+}
+
+.lineage-graph-role-ring-mutation {
+  stroke: var(--color-warning);
+  stroke-dasharray: 3 3;
+}
+
+.lineage-graph-role-ring-imprint {
+  stroke: var(--color-muted);
+  stroke-dasharray: 2 4;
+}
+
+.lineage-graph-preview {
+  pointer-events: none;
+}
+
+.lineage-graph-node:hover .lineage-graph-preview,
+.lineage-graph-node:focus-visible .lineage-graph-preview {
+  filter: brightness(1.08);
+}
+
+.lineage-graph-glyph {
+  fill: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 18px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.lineage-graph-type {
+  fill: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.lineage-graph-label {
+  fill: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 11px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.lineage-graph-active-ring {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.lineage-graph-selected-ring {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-dasharray: 3 3;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.lineage-inspector {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lineage-inspector h2,
+.lineage-inspector p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.lineage-inspector .eyebrow {
+  color: var(--color-accent);
+  text-transform: capitalize;
+}
+
+.lineage-inspector button {
+  margin-top: 0.5rem;
+  padding: 0.65rem 0.8rem;
+}
+
+.lineage-inspector .lineage-unavailable {
+  color: var(--color-warning);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+@media (max-width: 58rem) {
+  .lineage-browser {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lineage-inspector {
+    position: static;
+  }
+}
+
+@media (max-width: 40rem) {
+  .lineage-page {
+    padding: 1rem;
+  }
+
+  .lineage-graph-panel {
+    padding: 0.65rem;
+  }
+
+  .lineage-graph-scroll {
+    max-height: 68vh;
   }
 }

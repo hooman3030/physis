@@ -170,6 +170,9 @@ importers:
 
   .:
     dependencies:
+      gifenc:
+        specifier: 1.0.3
+        version: 1.0.3
       p5:
         specifier: ^2.0.3
         version: 2.3.4

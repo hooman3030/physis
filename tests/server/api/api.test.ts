@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { request as httpRequest } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -8,6 +8,7 @@ import { firstLightSeed } from '../../../src/seeds/p5/first-light/seed'
 import { openArchive, type Archive } from '../../../server/archive'
 import { registerBundledSeeds } from '../../../server/bootstrap'
 import { createControlServer, type ControlServer } from '../../../server/api'
+import { encodePingPongGif } from '../../../src/ui/archive/encodePingPongGif'
 
 const REVISION = 'a1b2c3d4e5f6'
 const REMOTE_TOKEN = 'a'.repeat(64)
@@ -34,6 +35,7 @@ async function boot(
     modules,
     sourceRevision: REVISION,
     port: 0,
+    previewDirectory: join(directory, 'previews'),
     ...options,
   })
   base = (await server.start()).url
@@ -197,6 +199,80 @@ describe('imprints and lineage', () => {
     expect((await call('GET', '/code-nodes?role=other')).status).toBe(400)
     expect((await call('GET', '/code-nodes/missing')).status).toBe(404)
   })
+
+  it('stores bounded PNG posters for archived nodes', async () => {
+    await call('POST', '/presence', { kind: 'code', id: seedId })
+    const imprint = await call('POST', '/imprints', {})
+    const path = `/previews/imprint/${imprint.body.id}/poster`
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+n4p8AAAAASUVORK5CYII=',
+      'base64',
+    )
+
+    expect((await fetch(`${base}/api/v1${path}`)).status).toBe(204)
+    const upload = await fetch(`${base}/api/v1${path}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'image/png' },
+      body: png,
+    })
+    expect(upload.status).toBe(204)
+
+    const download = await fetch(`${base}/api/v1${path}`)
+    expect(download.status).toBe(200)
+    expect(download.headers.get('content-type')).toBe('image/png')
+    expect(Buffer.from(await download.arrayBuffer())).toEqual(png)
+    expect(existsSync(join(directory, 'previews', 'imprint', imprint.body.id, 'poster'))).toBe(true)
+
+    const invalid = await fetch(`${base}/api/v1${path}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'image/png' },
+      body: Buffer.from('not an image'),
+    })
+    expect(invalid.status).toBe(415)
+
+    const oversized = Buffer.from(png)
+    oversized.writeUInt32BE(257, 16)
+    const invalidDimensions = await fetch(`${base}/api/v1${path}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'image/png' },
+      body: oversized,
+    })
+    expect(invalidDimensions.status).toBe(413)
+
+    await call('POST', '/imprints', {})
+    expect((await call('DELETE', `/imprints/${imprint.body.id}`)).status).toBe(200)
+    expect(existsSync(join(directory, 'previews', 'imprint', imprint.body.id))).toBe(false)
+  })
+
+  it('stores validated GIF animations for archived nodes', async () => {
+    await call('POST', '/presence', { kind: 'code', id: seedId })
+    const frameA = new Uint8Array([255, 0, 0, 255])
+    const frameB = new Uint8Array([0, 0, 255, 255])
+    const animation = encodePingPongGif([frameA, frameB], 1, 1)
+    if (animation === null) throw new Error('Test GIF could not be encoded')
+    const path = `/previews/code/${seedId}/animation`
+
+    expect(
+      (
+        await fetch(`${base}/api/v1${path}`, {
+          method: 'PUT',
+          headers: { 'content-type': 'image/gif' },
+          body: Buffer.from(animation),
+        })
+      ).status,
+    ).toBe(204)
+    const download = await fetch(`${base}/api/v1${path}`)
+    expect(download.status).toBe(200)
+    expect(download.headers.get('content-type')).toBe('image/gif')
+    expect(Buffer.from(await download.arrayBuffer())).toEqual(Buffer.from(animation))
+
+    const invalid = await fetch(`${base}/api/v1${path}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'image/gif' },
+      body: Buffer.from('GIF89a'),
+    })
+    expect(invalid.status).toBe(415)
+  })
 })
 
 describe('persistence across restart', () => {
@@ -340,6 +416,7 @@ describe('network boundary', () => {
     expect((await call('GET', '/presence')).status).toBe(401)
     expect((await call('GET', '/health')).status).toBe(401)
     expect((await call('GET', '/imprints')).status).toBe(401)
+    expect((await call('GET', `/previews/code/${seedId}/poster`)).status).toBe(401)
     expect((await call('GET', '/presence/events')).status).toBe(401)
     expect(
       (

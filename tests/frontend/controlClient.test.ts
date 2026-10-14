@@ -6,11 +6,14 @@ import {
   deleteImprint,
   dismissPairingPin,
   getControlApiToken,
+  getLineagePreview,
   getPairingStatus,
   getPresence,
+  listCodeNodes,
   listImprints,
   requestPairingPin,
   saveControlApiToken,
+  saveLineagePreview,
   selectCode,
   selectImprint,
   setGenes,
@@ -32,6 +35,16 @@ const imprint = {
   sourceRevision: '0123456789abcdef',
   createdAt: '2026-10-14T11:00:00.000Z',
   genes: { glow: 0.75 },
+}
+
+const codeNode = {
+  id: 'first-light',
+  parentId: null,
+  role: 'seed',
+  sourceRevision: '0123456789abcdef',
+  promotedAt: '2026-10-14T11:00:00.000Z',
+  createdAt: '2026-10-14T11:00:00.000Z',
+  available: true,
 }
 
 afterEach(() => {
@@ -132,6 +145,83 @@ describe('control API client', () => {
     )
   })
 
+  it('loads and saves authenticated lineage previews while treating missing previews as normal', async () => {
+    const values = new Map<string, string>()
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    })
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(new Blob(['poster'], { type: 'image/webp' }), {
+          status: 200,
+          headers: { 'content-type': 'image/webp' },
+        }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+    saveControlApiToken('b'.repeat(64))
+    expect(getControlApiToken()).toBe('b'.repeat(64))
+
+    const preview = await getLineagePreview('imprint', 'imprint-1')
+    expect(preview?.type).toBe('image/webp')
+    await saveLineagePreview('imprint', 'imprint-1', new Blob(['poster'], { type: 'image/webp' }))
+    await expect(getLineagePreview('code', 'seed-1')).resolves.toBeNull()
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/v1/previews/imprint/imprint-1/poster',
+      '/api/v1/previews/imprint/imprint-1/poster',
+      '/api/v1/previews/code/seed-1/poster',
+    ])
+    expect(
+      fetchMock.mock.calls.map(([, init]) => new Headers(init?.headers).has('authorization')),
+    ).toEqual([true, true, true])
+    const authorization = new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get('authorization')
+    expect(authorization?.slice(0, 6)).toBe('Bearer')
+    expect(authorization?.length).toBe(71)
+    expect(authorization?.endsWith('b'.repeat(64))).toBe(true)
+    expect(fetchMock.mock.calls[1]?.[1]?.method).toBe('PUT')
+  })
+
+  it('loads and saves authenticated GIF animation assets', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(
+          new Response(new Blob(['gif'], { type: 'image/gif' }), {
+            status: 200,
+            headers: { 'content-type': 'image/gif' },
+          }),
+        )
+        .mockResolvedValueOnce(new Response(null, { status: 204 })),
+    )
+
+    const animation = await getLineagePreview('code', 'seed-1', 'animation')
+    expect(animation?.type).toBe('image/gif')
+    await saveLineagePreview(
+      'code',
+      'seed-1',
+      new Blob(['gif'], { type: 'image/gif' }),
+      'animation',
+    )
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      '/api/v1/previews/code/seed-1/animation',
+      expect.objectContaining({ headers: expect.any(Headers) }),
+    )
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/previews/code/seed-1/animation',
+      expect.objectContaining({ method: 'PUT', body: expect.any(Blob) }),
+    )
+  })
+
   it('rejects malformed installation tokens', () => {
     expect(() => saveControlApiToken('short')).toThrow('64 hexadecimal characters')
   })
@@ -214,6 +304,30 @@ describe('control API client', () => {
         body: JSON.stringify({ kind: 'imprint', id: imprint.id }),
       }),
     )
+  })
+
+  it('lists code nodes with archive roles and build availability', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(JSON.stringify([codeNode]), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(listCodeNodes()).resolves.toEqual([codeNode])
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/code-nodes',
+      expect.objectContaining({ headers: expect.any(Headers) }),
+    )
+  })
+
+  it('rejects code nodes with invalid availability', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response(JSON.stringify([{ ...codeNode, available: 'yes' }]), { status: 200 }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(listCodeNodes()).rejects.toThrow('invalid code node')
   })
 
   it('deletes an Imprint through the archive API', async () => {
