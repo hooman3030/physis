@@ -11,54 +11,55 @@ export type ParameterDeclaration = {
 }
 
 // Structurally compatible with the browser's ArtworkSeed declarations.
-export type SeedDeclaration = {
+export type ModuleDeclaration = {
   id: string
   parameters: readonly ParameterDeclaration[]
 }
 
 export type ParameterValues = Readonly<Record<string, number>>
 
-export type SeedRecord = {
+// Shared core of everything in a lineage tree.
+export interface LineageNode {
   id: string
-  sourceRevision: string
-  promotedFromMutationId: string | null
+  parentId: string | null
   createdAt: string
 }
 
-export type MutationParent = { kind: 'seed' | 'mutation'; id: string }
-
-export type MutationRecord = {
-  id: string
-  parent: MutationParent
+// A Seed is a code node that has been promoted; any other node is a Mutation.
+export interface CodeNodeRecord extends LineageNode {
+  role: 'seed' | 'mutation'
   sourceRevision: string
   validation: unknown
-  createdAt: string
+  promotedAt: string | null
 }
 
-export type ImprintRecord = {
-  id: string
-  parentImprintId: string | null
-  seedId: string
+export interface ImprintRecord extends LineageNode {
+  codeId: string
   sourceRevision: string
   parameters: ParameterValues
   randomSeed: number | null
   validation: unknown
-  createdAt: string
+}
+
+export type PresenceState = {
+  code: CodeNodeRecord | null
+  imprint: ImprintRecord | null
 }
 
 export type SaveImprintInput = {
-  seedId: string
+  codeId: string
   sourceRevision: string
   parameters: ParameterValues
   randomSeed?: number | null
   validation?: unknown
-  // Defaults to the active Imprint; null starts a new root lineage.
-  parentImprintId?: string | null
+  // Defaults to the Presence's Imprint when it runs the same code, otherwise
+  // starts a new root; null always starts a new root.
+  parentId?: string | null
 }
 
 export type ArchiveOptions = {
   path: string
-  seeds: readonly SeedDeclaration[]
+  modules: readonly ModuleDeclaration[]
   now?: () => Date
 }
 
@@ -102,8 +103,8 @@ function toImprint(row: Row): ImprintRecord {
   const id = row.id as string
   return {
     id,
-    parentImprintId: row.parent_imprint_id as string | null,
-    seedId: row.seed_id as string,
+    parentId: row.parent_id as string | null,
+    codeId: row.code_id as string,
     sourceRevision: row.source_revision as string,
     parameters: parseParameters(row.parameters as string, id),
     randomSeed: row.random_seed as number | null,
@@ -112,37 +113,30 @@ function toImprint(row: Row): ImprintRecord {
   }
 }
 
-function toMutation(row: Row): MutationRecord {
-  const parent: MutationParent =
-    row.parent_seed_id === null
-      ? { kind: 'mutation', id: row.parent_mutation_id as string }
-      : { kind: 'seed', id: row.parent_seed_id as string }
+function toCodeNode(row: Row): CodeNodeRecord {
+  const promotedAt = row.promoted_at as string | null
   return {
     id: row.id as string,
-    parent,
+    parentId: row.parent_id as string | null,
+    role: promotedAt === null ? 'mutation' : 'seed',
     sourceRevision: row.source_revision as string,
-    validation: parseJson(row.validation as string | null, `validation of mutation ${row.id}`),
+    validation: parseJson(row.validation as string | null, `validation of code node ${row.id}`),
+    promotedAt,
     createdAt: row.created_at as string,
   }
 }
 
-function toSeed(row: Row): SeedRecord {
-  return {
-    id: row.id as string,
-    sourceRevision: row.source_revision as string,
-    promotedFromMutationId: row.promoted_from_mutation_id as string | null,
-    createdAt: row.created_at as string,
-  }
-}
+const CODE_NODE_SELECT = `SELECT code_nodes.*, promotions.created_at AS promoted_at
+  FROM code_nodes LEFT JOIN promotions ON promotions.code_id = code_nodes.id`
 
 export class Archive {
   readonly #db: DatabaseSync
-  readonly #declarations: ReadonlyMap<string, SeedDeclaration>
+  readonly #declarations: ReadonlyMap<string, ModuleDeclaration>
   readonly #now: () => Date
 
-  constructor(db: DatabaseSync, seeds: readonly SeedDeclaration[], now: () => Date) {
+  constructor(db: DatabaseSync, modules: readonly ModuleDeclaration[], now: () => Date) {
     this.#db = db
-    this.#declarations = new Map(seeds.map((seed) => [seed.id, seed]))
+    this.#declarations = new Map(modules.map((module) => [module.id, module]))
     this.#now = now
   }
 
@@ -170,86 +164,92 @@ export class Archive {
     return this.#db.prepare(sql).get(...params) as Row | undefined
   }
 
-  #exists(table: 'seeds' | 'mutations' | 'imprints', id: string): boolean {
+  #exists(table: 'code_nodes' | 'imprints', id: string): boolean {
     return this.#one(`SELECT 1 AS found FROM ${table} WHERE id = ?`, id) !== undefined
   }
 
-  registerSeed(input: { id: string; sourceRevision: string }): SeedRecord {
+  #declaration(id: string): ModuleDeclaration {
+    const declaration = this.#declarations.get(id)
+    if (declaration === undefined) {
+      throw invalid(`Module ${id} has no registered parameter declarations`)
+    }
+    return declaration
+  }
+
+  #insertCodeNode(input: {
+    id: string
+    parentId: string | null
+    sourceRevision: string
+    validation?: unknown
+  }): void {
+    if (this.#exists('code_nodes', input.id)) {
+      throw new ArchiveError('already-exists', `Code node ${input.id} already exists`)
+    }
+    if (input.parentId !== null && !this.#exists('code_nodes', input.parentId)) {
+      throw new ArchiveError('not-found', `Parent code node ${input.parentId} does not exist`)
+    }
+    this.#db
+      .prepare(
+        `INSERT INTO code_nodes (id, parent_id, source_revision, validation, created_at)
+         VALUES (?, ?, ?, ?, ?)`,
+      )
+      .run(
+        input.id,
+        input.parentId,
+        input.sourceRevision,
+        input.validation === undefined ? null : JSON.stringify(input.validation),
+        this.#timestamp(),
+      )
+  }
+
+  #insertPromotion(codeId: string): void {
+    this.#db
+      .prepare('INSERT INTO promotions (code_id, created_at) VALUES (?, ?)')
+      .run(codeId, this.#timestamp())
+  }
+
+  // Registers an authored root module as a Seed.
+  registerSeed(input: { id: string; sourceRevision: string }): CodeNodeRecord {
     requireName('seed', input.id)
     requireRevision(input.sourceRevision)
-    if (!this.#declarations.has(input.id)) {
-      throw invalid(`Seed ${input.id} has no registered parameter declarations`)
-    }
+    this.#declaration(input.id)
 
     return this.#transaction(() => {
-      if (this.#exists('seeds', input.id)) {
-        throw new ArchiveError('already-exists', `Seed ${input.id} is already registered`)
-      }
-      this.#db
-        .prepare('INSERT INTO seeds (id, source_revision, created_at) VALUES (?, ?, ?)')
-        .run(input.id, input.sourceRevision, this.#timestamp())
-      return this.getSeed(input.id)
+      this.#insertCodeNode({ ...input, parentId: null })
+      this.#insertPromotion(input.id)
+      return this.getCodeNode(input.id)
     })
   }
 
+  // A child code revision; it stays a Mutation until promoted.
   recordMutation(input: {
     id: string
-    parent: MutationParent
+    parentId: string
     sourceRevision: string
     validation?: unknown
-  }): MutationRecord {
+  }): CodeNodeRecord {
     requireName('mutation', input.id)
     requireRevision(input.sourceRevision)
 
     return this.#transaction(() => {
-      if (this.#exists('mutations', input.id)) {
-        throw new ArchiveError('already-exists', `Mutation ${input.id} already exists`)
-      }
-      const parentTable = input.parent.kind === 'seed' ? 'seeds' : 'mutations'
-      if (!this.#exists(parentTable, input.parent.id)) {
-        throw new ArchiveError(
-          'not-found',
-          `Parent ${input.parent.kind} ${input.parent.id} does not exist`,
-        )
-      }
-      this.#db
-        .prepare(
-          `INSERT INTO mutations
-             (id, parent_seed_id, parent_mutation_id, source_revision, validation, created_at)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-        )
-        .run(
-          input.id,
-          input.parent.kind === 'seed' ? input.parent.id : null,
-          input.parent.kind === 'mutation' ? input.parent.id : null,
-          input.sourceRevision,
-          input.validation === undefined ? null : JSON.stringify(input.validation),
-          this.#timestamp(),
-        )
-      return this.getMutation(input.id)
+      this.#insertCodeNode(input)
+      return this.getCodeNode(input.id)
     })
   }
 
-  // A promoted Mutation becomes a Seed with the same module ID.
-  promoteMutation(mutationId: string): SeedRecord {
+  promoteMutation(id: string): CodeNodeRecord {
     return this.#transaction(() => {
-      const mutation = this.getMutation(mutationId)
-      if (!this.#declarations.has(mutationId)) {
-        throw invalid(`Mutation ${mutationId} has no registered parameter declarations`)
+      const node = this.getCodeNode(id)
+      this.#declaration(id)
+      if (node.role === 'seed') {
+        throw new ArchiveError('already-exists', `Code node ${id} is already a Seed`)
       }
-      if (this.#exists('seeds', mutationId)) {
-        throw new ArchiveError('already-exists', `Seed ${mutationId} is already registered`)
-      }
-      this.#db
-        .prepare(
-          `INSERT INTO seeds (id, source_revision, promoted_from_mutation_id, created_at)
-           VALUES (?, ?, ?, ?)`,
-        )
-        .run(mutationId, mutation.sourceRevision, mutationId, this.#timestamp())
-      return this.getSeed(mutationId)
+      this.#insertPromotion(id)
+      return this.getCodeNode(id)
     })
   }
 
+  // Saves the current parameters as a child Imprint and points the Presence at it.
   saveImprint(input: SaveImprintInput): ImprintRecord {
     requireRevision(input.sourceRevision)
     const randomSeed = input.randomSeed ?? null
@@ -258,56 +258,52 @@ export class Archive {
     }
 
     return this.#transaction(() => {
-      if (!this.#exists('seeds', input.seedId)) {
-        throw new ArchiveError('not-found', `Seed ${input.seedId} is not registered`)
-      }
-      const declaration = this.#declarations.get(input.seedId)
-      if (declaration === undefined) {
-        throw invalid(`Seed ${input.seedId} has no registered parameter declarations`)
-      }
-      validateParameters(declaration, input.parameters)
+      this.getCodeNode(input.codeId)
+      validateParameters(this.#declaration(input.codeId), input.parameters)
 
-      const parentImprintId =
-        input.parentImprintId === undefined
-          ? (this.getActiveImprint()?.id ?? null)
-          : input.parentImprintId
-      if (parentImprintId !== null && !this.#exists('imprints', parentImprintId)) {
-        throw new ArchiveError('not-found', `Parent imprint ${parentImprintId} does not exist`)
+      const presence = this.getPresence()
+      const parentId =
+        input.parentId === undefined
+          ? presence.code?.id === input.codeId
+            ? (presence.imprint?.id ?? null)
+            : null
+          : input.parentId
+      if (parentId !== null) {
+        const parent = this.getImprint(parentId)
+        if (parent.codeId !== input.codeId) {
+          throw invalid(`Parent imprint ${parentId} belongs to a different code node`)
+        }
       }
 
       const id = randomUUID()
       this.#db
         .prepare(
           `INSERT INTO imprints
-             (id, parent_imprint_id, seed_id, source_revision, parameters, random_seed,
+             (id, parent_id, code_id, source_revision, parameters, random_seed,
               validation, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
-          parentImprintId,
-          input.seedId,
+          parentId,
+          input.codeId,
           input.sourceRevision,
           JSON.stringify(input.parameters),
           randomSeed,
           input.validation === undefined ? null : JSON.stringify(input.validation),
           this.#timestamp(),
         )
-      this.#db.prepare('UPDATE presence SET active_imprint_id = ? WHERE id = 1').run(id)
+      this.#db
+        .prepare('UPDATE presence SET code_id = ?, imprint_id = ? WHERE id = 1')
+        .run(input.codeId, id)
       return this.getImprint(id)
     })
   }
 
-  getSeed(id: string): SeedRecord {
-    const row = this.#one('SELECT * FROM seeds WHERE id = ?', id)
-    if (row === undefined) throw new ArchiveError('not-found', `Seed ${id} does not exist`)
-    return toSeed(row)
-  }
-
-  getMutation(id: string): MutationRecord {
-    const row = this.#one('SELECT * FROM mutations WHERE id = ?', id)
-    if (row === undefined) throw new ArchiveError('not-found', `Mutation ${id} does not exist`)
-    return toMutation(row)
+  getCodeNode(id: string): CodeNodeRecord {
+    const row = this.#one(`${CODE_NODE_SELECT} WHERE code_nodes.id = ?`, id)
+    if (row === undefined) throw new ArchiveError('not-found', `Code node ${id} does not exist`)
+    return toCodeNode(row)
   }
 
   getImprint(id: string): ImprintRecord {
@@ -316,44 +312,84 @@ export class Archive {
     return toImprint(row)
   }
 
-  listSeeds(): SeedRecord[] {
-    return (this.#db.prepare('SELECT * FROM seeds ORDER BY created_at, id').all() as Row[]).map(
-      toSeed,
-    )
+  listCodeNodes(role?: CodeNodeRecord['role']): CodeNodeRecord[] {
+    const filter =
+      role === undefined
+        ? ''
+        : role === 'seed'
+          ? 'WHERE promotions.code_id IS NOT NULL'
+          : 'WHERE promotions.code_id IS NULL'
+    const rows = this.#db
+      .prepare(`${CODE_NODE_SELECT} ${filter} ORDER BY code_nodes.created_at, code_nodes.id`)
+      .all() as Row[]
+    return rows.map(toCodeNode)
   }
 
-  // Root-first chain of Imprints ending at the given Imprint.
-  getImprintAncestry(id: string): ImprintRecord[] {
-    this.getImprint(id)
-    const rows = this.#db
-      .prepare(
-        `WITH RECURSIVE chain(id, depth) AS (
-           SELECT id, 0 FROM imprints WHERE id = ?
-           UNION ALL
-           SELECT i.parent_imprint_id, chain.depth + 1
-           FROM imprints i JOIN chain ON i.id = chain.id
-           WHERE i.parent_imprint_id IS NOT NULL
-         )
-         SELECT imprints.* FROM chain JOIN imprints ON imprints.id = chain.id
-         ORDER BY chain.depth DESC`,
-      )
-      .all(id) as Row[]
+  listImprints(codeId?: string): ImprintRecord[] {
+    const rows = (
+      codeId === undefined
+        ? this.#db.prepare('SELECT * FROM imprints ORDER BY created_at, id').all()
+        : this.#db
+            .prepare('SELECT * FROM imprints WHERE code_id = ? ORDER BY created_at, id')
+            .all(codeId)
+    ) as Row[]
     return rows.map(toImprint)
   }
 
-  getActiveImprint(): ImprintRecord | null {
-    const row = this.#one(
-      `SELECT imprints.* FROM presence JOIN imprints ON imprints.id = presence.active_imprint_id
-       WHERE presence.id = 1`,
-    )
-    return row === undefined ? null : toImprint(row)
+  // Root-first chain from the lineage root to the given node.
+  getCodeAncestry(id: string): CodeNodeRecord[] {
+    this.getCodeNode(id)
+    return this.#ancestry('code_nodes', id).map((nodeId) => this.getCodeNode(nodeId))
   }
 
-  setActiveImprint(id: string): ImprintRecord {
+  getImprintAncestry(id: string): ImprintRecord[] {
+    this.getImprint(id)
+    return this.#ancestry('imprints', id).map((nodeId) => this.getImprint(nodeId))
+  }
+
+  #ancestry(table: 'code_nodes' | 'imprints', id: string): string[] {
+    const rows = this.#db
+      .prepare(
+        `WITH RECURSIVE chain(id, depth) AS (
+           SELECT id, 0 FROM ${table} WHERE id = ?
+           UNION ALL
+           SELECT n.parent_id, chain.depth + 1
+           FROM ${table} n JOIN chain ON n.id = chain.id
+           WHERE n.parent_id IS NOT NULL
+         )
+         SELECT id FROM chain ORDER BY depth DESC`,
+      )
+      .all(id) as Row[]
+    return rows.map((row) => row.id as string)
+  }
+
+  getPresence(): PresenceState {
+    const row = this.#one('SELECT code_id, imprint_id FROM presence WHERE id = 1')
+    const codeId = (row?.code_id ?? null) as string | null
+    const imprintId = (row?.imprint_id ?? null) as string | null
+    return {
+      code: codeId === null ? null : this.getCodeNode(codeId),
+      imprint: imprintId === null ? null : this.getImprint(imprintId),
+    }
+  }
+
+  // Selecting anything from the archive only moves the pointer; nothing is written
+  // to the immutable tables. A code node starts at its default parameters.
+  selectCode(id: string): PresenceState {
+    return this.#transaction(() => {
+      this.getCodeNode(id)
+      this.#db.prepare('UPDATE presence SET code_id = ?, imprint_id = NULL WHERE id = 1').run(id)
+      return this.getPresence()
+    })
+  }
+
+  selectImprint(id: string): PresenceState {
     return this.#transaction(() => {
       const imprint = this.getImprint(id)
-      this.#db.prepare('UPDATE presence SET active_imprint_id = ? WHERE id = 1').run(id)
-      return imprint
+      this.#db
+        .prepare('UPDATE presence SET code_id = ?, imprint_id = ? WHERE id = 1')
+        .run(imprint.codeId, id)
+      return this.getPresence()
     })
   }
 
@@ -385,10 +421,10 @@ export class Archive {
   }
 }
 
-function validateParameters(declaration: SeedDeclaration, values: ParameterValues): void {
+function validateParameters(declaration: ModuleDeclaration, values: ParameterValues): void {
   const declared = new Set(declaration.parameters.map(({ id }) => id))
   for (const key of Object.keys(values)) {
-    if (!declared.has(key)) throw invalid(`Unknown parameter ${key} for seed ${declaration.id}`)
+    if (!declared.has(key)) throw invalid(`Unknown parameter ${key} for ${declaration.id}`)
   }
   for (const { id, min, max } of declaration.parameters) {
     const value = values[id]
@@ -408,7 +444,7 @@ export function openArchive(options: ArchiveOptions): Archive {
     db.exec('PRAGMA journal_mode = WAL')
     db.exec('PRAGMA synchronous = FULL')
     migrate(db)
-    return new Archive(db, options.seeds, options.now ?? (() => new Date()))
+    return new Archive(db, options.modules, options.now ?? (() => new Date()))
   } catch (error) {
     db.close()
     throw error

@@ -53,6 +53,15 @@ flowchart LR
   can identify which implementation gave meaning to its parameters. It does
   not contain or archive that code.
 
+**Refinement (storage model).** Seed and Mutation are two roles of one kind of
+node, a code node with a parent; a Seed is a code node that has been promoted
+(authored root modules are registered promoted). Code nodes and Imprints share
+a lineage core (`id`, parent, creation time). A Presence is not a lineage node
+but a mutable pointer to a code node and an optional Imprint, so selecting any
+Seed, Mutation, or Imprint from the archive starts a Presence without writing
+archive rows. An Imprint's parent must share its code node. See
+[local-archive.md](../local-archive.md).
+
 The two lineages are related but distinct. A source-code Mutation can produce
 a new Seed, and an Imprint records which code revision it uses. Multiple
 Imprints can use the same Seed; an Imprint can also use a newly promoted Seed.
