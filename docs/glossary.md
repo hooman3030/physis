@@ -5,7 +5,9 @@
   a text value or random number.
 - **Mutation** – a child source-code revision created by changing a Seed.
   Selected Mutations may be promoted to Seeds; a Seed is a promoted code node.
-- **Imprint** – an immutable capture of an artwork's parameters (and random
+- **Gene** – a bounded, Seed-declared artistic trait that influences how the
+  artwork is rendered. A Gene has a current value in a Presence.
+- **Imprint** – an immutable capture of an artwork's Genes (and random
   seed when applicable) at a point in time. It references the Seed and source
   revision used to render it and may have a parent Imprint. It is data, not a
   screenshot.
@@ -26,13 +28,13 @@
 
 ## Naming convention
 
-Use **Seed**, **Mutation**, **Imprint**, and **Presence** consistently for
-their artwork-domain meanings above. These terms form the project's
+Use **Seed**, **Mutation**, **Imprint**, **Presence**, and **Gene** consistently
+for their artwork-domain meanings above. These terms form the project's
 biological, mystical, and neural-network-inspired metaphor: apply them to
 abstract concepts and domain-level modules or components when that improves
 the model's clarity.
 
 Do not force the metaphor onto concrete UI elements or standard technical
-terms. Names such as `input`, `slider`, `button`, `parameter`, `API`, and
+terms. Names such as `input`, `slider`, `button`, `API`, and
 `database` should stay plain. Prefer conventional names when an implementation
 detail or external interface would otherwise become ambiguous.

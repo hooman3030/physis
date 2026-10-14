@@ -19,7 +19,7 @@ its own failures through recursion and feedback.
 - **L1.** Mutations are created while the installation is running, without a
   manual rebuild or restart.
 - **L2.** A Presence can be updated live to run a new Mutation, not only
-  receive new parameters.
+  receive new Gene values.
 - **L3.** Updates may be slow; they are bounded by iteration frequency, never
   applied per animation frame.
 
@@ -35,7 +35,7 @@ its own failures through recursion and feedback.
 
 ### Control by the artist
 
-- **C1.** Save an interesting state: an Imprint of the current parameters, and
+- **C1.** Save an interesting state: an Imprint of the current Genes, and
   promotion of a Mutation to a Seed.
 - **C2.** Reset a Presence that went wrong, returning to a chosen stable Seed
   or Imprint.

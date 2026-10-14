@@ -222,18 +222,13 @@ export function createControlServer(options: ControlServerOptions): ControlServe
       return ok(presence.select(kind as SelectKind, requireString(body, 'id')))
     }
 
-    if (
-      method === 'PUT' &&
-      resource === 'presence' &&
-      id === 'parameters' &&
-      segments.length === 2
-    ) {
+    if (method === 'PUT' && resource === 'presence' && id === 'genes' && segments.length === 2) {
       const body = await readJsonObject(request)
-      const values = body.parameters
+      const values = body.genes
       if (typeof values !== 'object' || values === null || Array.isArray(values)) {
-        throw new HttpError(400, '"parameters" must be an object')
+        throw new HttpError(400, '"genes" must be an object')
       }
-      return ok(presence.setParameters(values as Record<string, unknown>))
+      return ok(presence.setGenes(values as Record<string, unknown>))
     }
 
     if (method === 'POST' && resource === 'imprints' && segments.length === 1) {

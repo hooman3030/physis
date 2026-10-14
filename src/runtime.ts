@@ -1,6 +1,6 @@
 import { mountP5Runtime } from './runtimes/p5'
 import type { P5Seed } from './seeds/p5/types'
-import type { ArtworkParameterValues, RuntimeKind } from './seeds/types'
+import type { ArtworkGeneValues, RuntimeKind } from './seeds/types'
 
 export type SeedModule = P5Seed
 
@@ -8,7 +8,7 @@ type RuntimeAdapter = {
   mount: (
     container: HTMLDivElement,
     seed: SeedModule,
-    getParameters: () => ArtworkParameterValues,
+    getGenes: () => ArtworkGeneValues,
     onFpsChange?: (fps: number) => void,
   ) => () => void
 }
@@ -20,7 +20,7 @@ const adapters: Partial<Record<RuntimeKind, RuntimeAdapter>> = {
 export function mountSeedRuntime(
   container: HTMLDivElement,
   seed: SeedModule,
-  getParameters: () => ArtworkParameterValues,
+  getGenes: () => ArtworkGeneValues,
   onFpsChange?: (fps: number) => void,
 ): () => void {
   const adapter = adapters[seed.runtime]
@@ -28,5 +28,5 @@ export function mountSeedRuntime(
     throw new Error(`No runtime adapter is registered for "${seed.runtime}"`)
   }
 
-  return adapter.mount(container, seed, getParameters, onFpsChange)
+  return adapter.mount(container, seed, getGenes, onFpsChange)
 }

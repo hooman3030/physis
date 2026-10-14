@@ -9,7 +9,7 @@ const imprint: ImprintRecord = {
   codeId: 'first-light',
   sourceRevision: '0123456789abcdef',
   createdAt: '2026-10-14T11:00:00.000Z',
-  parameters: { glow: 0.75 },
+  genes: { glow: 0.75 },
 }
 
 describe('Imprint archive', () => {

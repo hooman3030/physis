@@ -11,8 +11,8 @@ describe('seed controls', () => {
         activeSeed={defaultArtworkSeed}
         seeds={artworkSeeds}
         onSeedChange={vi.fn()}
-        parameterValues={{}}
-        onParameterChange={vi.fn()}
+        geneValues={{}}
+        onGeneChange={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="offline"
         saveStatus="idle"
@@ -28,14 +28,14 @@ describe('seed controls', () => {
     expect(markup).toContain('disabled=""')
   })
 
-  it('renders parameter sliders for the active module', () => {
+  it('renders Gene sliders for the active module', () => {
     const markup = renderToStaticMarkup(
       <SeedControls
         activeSeed={driftingFilamentsSeed}
         seeds={artworkSeeds}
         onSeedChange={vi.fn()}
-        parameterValues={{ filamentCount: 200, noiseScale: 0.002, stepLength: 2 }}
-        onParameterChange={vi.fn()}
+        geneValues={{ filamentCount: 200, noiseScale: 0.002, stepLength: 2 }}
+        onGeneChange={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="connected"
         saveStatus="idle"
@@ -44,7 +44,10 @@ describe('seed controls', () => {
 
     expect(markup).toContain('Filament count')
     expect(markup).toContain('value="200"')
-    expect(markup).toContain('Noise scale')
+    expect(markup).toContain('Genes')
+    expect(markup).toContain('Hue')
+    expect(markup).toContain('Trail length')
+    expect(markup).toContain('Flow scale')
     expect(markup).toContain('Step length')
     expect(markup).toContain('Save Imprint')
     expect(markup).toContain('class="connection-indicator-label" aria-hidden="true">API')
@@ -57,8 +60,8 @@ describe('seed controls', () => {
         activeSeed={defaultArtworkSeed}
         seeds={artworkSeeds}
         onSeedChange={vi.fn()}
-        parameterValues={{}}
-        onParameterChange={vi.fn()}
+        geneValues={{}}
+        onGeneChange={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="connected"
         saveStatus="saved"

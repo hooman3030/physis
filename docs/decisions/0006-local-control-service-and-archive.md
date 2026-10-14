@@ -6,9 +6,9 @@ Accepted.
 
 ## Context
 
-The first slice keeps the active seed and its parameters in browser
+The first slice keeps the active Seed and its Genes in browser
 `localStorage` (ADR 0005). M2 needs durable artwork state, a record of how
-source code changes over time, and a family tree of saved parameter
+source code changes over time, and a family tree of saved Gene
 configurations. The presentation laptop has 4 GB of RAM, so the archive and
 control service should add little operational overhead.
 
@@ -27,20 +27,20 @@ that an artwork use an actual neural network.
 flowchart LR
   SeedA["Seed A<br/>approved artwork code"] -->|"code change"| Mutation["Mutation<br/>source-code revision"]
   Mutation -->|"selected / promoted"| SeedB["Seed B<br/>approved artwork code"]
-  ImprintA["Imprint A<br/>saved parameter state"] -->|"save live trait changes"| ImprintB["Imprint B<br/>child state"]
+  ImprintA["Imprint A<br/>saved Gene state"] -->|"save live trait changes"| ImprintB["Imprint B<br/>child state"]
   ImprintB -. "uses code from" .-> SeedB
   Presence["Presence<br/>currently running artwork"] -->|"runs from"| ImprintB
 ```
 
 - **Seed** is an approved, reusable artwork module. It identifies authored
-  source code; it is not a running artwork or a saved parameter set.
+  source code; it is not a running artwork or a saved Gene set.
 - **Mutation** is a child source-code revision produced by changing a Seed's
   code. Mutations form their own parent/child lineage. A selected Mutation
   can be promoted to a new Seed; experimental Mutations need not be promoted.
-- **Imprint** is a capture of an artwork's parameters (and random seed when
+- **Imprint** is a capture of an artwork's Genes (and random seed when
   applicable) at a point in time. Its captured values and provenance are
   immutable. It references the Seed and source revision whose code interprets
-  those values. Saving live parameter changes creates a child Imprint of the
+  those values. Saving live Gene changes creates a child Imprint of the
   prior saved Imprint; that child is the next node in the trait lineage, like
   an offspring state. An inactive Imprint can be deleted; its direct children
   are reparented to its former parent so the remaining lineage stays connected.
@@ -52,7 +52,7 @@ flowchart LR
   requiring a new browser process for every save.
 - **Source revision** is the identifier for the code in a Seed or Mutation,
   such as a Git commit or build ID. It provides provenance so a saved Imprint
-  can identify which implementation gave meaning to its parameters. It does
+  can identify which implementation gave meaning to its Genes. It does
   not contain or archive that code.
 
 **Refinement (storage model).** Seed and Mutation are two roles of one kind of
@@ -93,12 +93,12 @@ in [ADR 0007](0007-live-mutation-code-and-sandbox.md).
   Store parent IDs for lineage and foreign-key references for the code
   revision used by each Imprint.
 - Keep source revisions and Imprint content immutable. The active Presence
-  points to its current Imprint. Saving changed parameters creates a child
+  points to its current Imprint. Saving changed Genes creates a child
   Imprint and updates the active reference in one transaction; transient
   slider movement does not create archive entries. Deleting an inactive
   Imprint reparents its children and removes the Imprint in one transaction;
   the active Imprint cannot be deleted.
-- Validate Seed IDs and parameter values against the registered Seed's
+- Validate Seed IDs and Gene values against the registered Seed's
   declarations before committing an Imprint. A write is durable only after
   its SQLite transaction commits. Failed writes must surface an error and
   must not be represented as saved.
@@ -114,10 +114,10 @@ in [ADR 0007](0007-live-mutation-code-and-sandbox.md).
 
 ## Consequences
 
-- Source-code evolution and parameter-state evolution can be browsed
+- Source-code evolution and Gene-state evolution can be browsed
   independently or together without conflating code changes with live trait
   changes.
-- Immutable Imprint content preserves saved parameter states; deleting an
+- Immutable Imprint content preserves saved Gene states; deleting an
   inactive Imprint preserves the remaining ancestry by reparenting its
   children. The Presence can move to a child Imprint without interrupting
   rendering.
@@ -125,7 +125,7 @@ in [ADR 0007](0007-live-mutation-code-and-sandbox.md).
   historical code is bundled. Reproducing old output requires that code to
   remain available.
 - SQLite provides transactional state and lineage without a separate
-  database service. M2 Imprints contain parameter data, not rendered images,
+  database service. M2 Imprints contain Gene data, not rendered images,
   so no image-asset directory is required for this model.
 - Loopback binding avoids exposing an unauthenticated control surface on the
   LAN in M2. M3 must decide authentication and any LAN binding before remote
@@ -144,7 +144,7 @@ in [ADR 0007](0007-live-mutation-code-and-sandbox.md).
 - **A separate database server:** rejected for M2 because it adds a service
   and resource burden without a need for multi-host database access.
 - **A screenshot as the saved state:** rejected because an Imprint must
-  capture editable parameters and ancestry, not only rendered pixels.
+  capture editable Genes and ancestry, not only rendered pixels.
 - **Make rendering depend on API availability:** rejected because a service
   outage must not blank or stop the artwork.
 

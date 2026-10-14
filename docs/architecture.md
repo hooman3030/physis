@@ -46,7 +46,7 @@ authored Seed + prompt
                          new Seed
 ```
 
-An Imprint records the parameters used by a Presence and can have a parent
+An Imprint records the Genes used by a Presence and can have a parent
 Imprint, forming a trait lineage. A Mutation records a source-code change and
 can have a parent Seed or Mutation, forming a separate code lineage. An
 Imprint references the Seed and source revision it uses. The control plane
@@ -84,7 +84,7 @@ Code evolution should be a bounded proposal:
    Seed.
 7. Record the result and its lineage.
 
-Saving changed live parameters creates a child Imprint. The active Presence
+Saving changed live Genes creates a child Imprint. The active Presence
 can continue rendering while it advances to the saved child Imprint.
 
 AI-generated artwork code must not be allowed to rewrite the backend, execute
@@ -100,14 +100,14 @@ should record at least:
 - **Mutation:** stable identity, parent Seed or Mutation, source revision, and
   validation/promotion metadata.
 - **Imprint:** stable identity, parent Imprint, Seed and source revision used,
-  parameters, random seed when applicable, creation time, and validation
+  Gene values, random seed when applicable, creation time, and validation
   metadata.
 - **Presence:** the active Imprint and runtime status; it can resume from its
   last-known-good local settings if the control service is unavailable.
 
-Imprints capture parameter state, not screenshots. A visual capture, if
+Imprints capture Gene state, not screenshots. A visual capture, if
 needed later, is a separate image asset linked to a Presence or Imprint and
-does not replace the Imprint's parameter data. Selecting an Imprint as the
+does not replace the Imprint's Gene data. Selecting an Imprint as the
 starting state for further work creates a child Imprint and preserves its
 ancestors.
 

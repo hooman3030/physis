@@ -456,18 +456,18 @@ label {
   color: var(--color-muted);
 }
 
-.parameter-control {
+.gene-control {
   margin-top: 0.65rem;
 }
 
-.parameter-heading {
+.gene-heading {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
 }
 
-.parameter-heading output {
+.gene-heading output {
   color: var(--color-accent);
   font-variant-numeric: tabular-nums;
 }

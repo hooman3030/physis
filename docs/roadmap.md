@@ -19,7 +19,7 @@ Issues: [#1](https://github.com/hooman3030/physis/issues/1),
 ## M1 — First Slice
 
 Deliver the browser-only artwork slice: registered seeds, hidden reusable
-controls, and parameter editing with persistence. No backend or AI is required.
+controls, and Gene editing with persistence. No backend or AI is required.
 
 **Exit outcome:** the first slice works in the browser, and its performance
 has been measured on the presentation laptop. The laptop check is currently

@@ -1,12 +1,12 @@
 import type { P5Seed } from '../../seeds/p5/types'
-import type { ArtworkParameterValues } from '../../seeds/types'
+import type { ArtworkGeneValues } from '../../seeds/types'
 
 type SeedControlsProps = {
   activeSeed: P5Seed
   seeds: readonly P5Seed[]
   onSeedChange: (seed: P5Seed) => void
-  parameterValues: ArtworkParameterValues
-  onParameterChange: (id: string, value: number) => void
+  geneValues: ArtworkGeneValues
+  onGeneChange: (id: string, value: number) => void
   onSaveImprint: () => void
   controlStatus: 'connecting' | 'connected' | 'offline'
   saveStatus: 'idle' | 'saving' | 'saved'
@@ -18,8 +18,8 @@ export function SeedControls({
   activeSeed,
   seeds,
   onSeedChange,
-  parameterValues,
-  onParameterChange,
+  geneValues,
+  onGeneChange,
   onSaveImprint,
   controlStatus,
   saveStatus,
@@ -85,33 +85,34 @@ export function SeedControls({
           </option>
         ))}
       </select>
-      {activeSeed.parameters.map((parameter) => {
-        const value = parameterValues[parameter.id] ?? parameter.defaultValue
-        const inputId = `parameter-${parameter.id}`
+      <h3>Genes</h3>
+      {activeSeed.genes.map((gene) => {
+        const value = geneValues[gene.id] ?? gene.defaultValue
+        const inputId = `gene-${gene.id}`
         const progress = Math.min(
           100,
-          Math.max(0, ((value - parameter.min) / (parameter.max - parameter.min)) * 100),
+          Math.max(0, ((value - gene.min) / (gene.max - gene.min)) * 100),
         )
 
         return (
-          <div className="parameter-control" key={parameter.id}>
-            <div className="parameter-heading">
-              <label htmlFor={inputId}>{parameter.label}</label>
+          <div className="gene-control" key={gene.id}>
+            <div className="gene-heading">
+              <label htmlFor={inputId}>{gene.label}</label>
               <output htmlFor={inputId}>{Number(value.toFixed(4))}</output>
             </div>
             <input
               id={inputId}
               className="range-control"
               type="range"
-              min={parameter.min}
-              max={parameter.max}
-              step={parameter.step}
+              min={gene.min}
+              max={gene.max}
+              step={gene.step}
               value={value}
               style={{
                 background: `linear-gradient(90deg, var(--color-accent) ${progress}%, var(--track-background) ${progress}%) center / 100% var(--range-track-height) no-repeat`,
               }}
               disabled={controlsDisabled}
-              onChange={(event) => onParameterChange(parameter.id, Number(event.target.value))}
+              onChange={(event) => onGeneChange(gene.id, Number(event.target.value))}
             />
           </div>
         )

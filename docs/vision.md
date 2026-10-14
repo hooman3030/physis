@@ -22,7 +22,7 @@ rendering loop.
 3. **Authored seeds remain meaningful.** AI may propose changes, but the
    artist defines the initial seeds, constraints, prompts, and selection of
    notable results.
-4. **History is part of the artwork.** Preserve source, parameters, prompts,
+4. **History is part of the artwork.** Preserve source, Genes, prompts,
    random seeds, Imprints, and parent relationships.
 5. **Resource use is deliberate.** The presentation laptop has 4 GB RAM and
    Intel HD Graphics 520, so the runtime should avoid unnecessary services and

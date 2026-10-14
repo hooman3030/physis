@@ -4,7 +4,7 @@ export const firstLightSeed: P5Seed = {
   id: 'first-light',
   label: 'First light',
   runtime: 'p5',
-  parameters: [],
+  genes: [],
   createSketch: (instance) => {
     instance.setup = () => {
       instance.createCanvas(instance.windowWidth, instance.windowHeight)

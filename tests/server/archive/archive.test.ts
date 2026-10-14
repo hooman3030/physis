@@ -18,13 +18,13 @@ const REV_B = '0123456789abcdef0123456789abcdef01234567'
 const mutantDeclaration: ModuleDeclaration = {
   id: 'drifting-m1',
   label: 'Drifting Mutation',
-  parameters: driftingFilamentsSeed.parameters,
+  genes: driftingFilamentsSeed.genes,
   runtime: 'p5',
 }
 const declarations: ModuleDeclaration[] = [driftingFilamentsSeed, firstLightSeed, mutantDeclaration]
 
-function defaults(seed: { parameters: readonly { id: string; defaultValue: number }[] }) {
-  return Object.fromEntries(seed.parameters.map(({ id, defaultValue }) => [id, defaultValue]))
+function defaults(seed: { genes: readonly { id: string; defaultValue: number }[] }) {
+  return Object.fromEntries(seed.genes.map(({ id, defaultValue }) => [id, defaultValue]))
 }
 
 let directory: string
@@ -55,12 +55,12 @@ function expectCode(action: () => unknown, code: string) {
 }
 
 const seedId = driftingFilamentsSeed.id
-const params = () => defaults(driftingFilamentsSeed)
+const genes = () => defaults(driftingFilamentsSeed)
 const save = (overrides: Record<string, unknown> = {}) =>
   archive.saveImprint({
     codeId: seedId,
     sourceRevision: REV_A,
-    parameters: params(),
+    genes: genes(),
     ...overrides,
   })
 
@@ -103,16 +103,16 @@ describe('imprints', () => {
   })
 
   it('rejects invalid input and leaves no partial state', () => {
-    const valid = params()
+    const valid = genes()
     const [firstKey] = Object.keys(valid)
-    const withParameters = (parameters: Record<string, number>, codeId = seedId) =>
-      archive.saveImprint({ codeId, sourceRevision: REV_A, parameters })
+    const withGenes = (values: Record<string, number>, codeId = seedId) =>
+      archive.saveImprint({ codeId, sourceRevision: REV_A, genes: values })
 
-    expectCode(() => withParameters({ ...valid, [firstKey]: Number.NaN }), 'invalid-input')
-    expectCode(() => withParameters({ ...valid, [firstKey]: 1e9 }), 'invalid-input')
-    expectCode(() => withParameters({ ...valid, bogus: 1 }), 'invalid-input')
-    expectCode(() => withParameters({}), 'invalid-input')
-    expectCode(() => withParameters(valid, 'unknown'), 'not-found')
+    expectCode(() => withGenes({ ...valid, [firstKey]: Number.NaN }), 'invalid-input')
+    expectCode(() => withGenes({ ...valid, [firstKey]: 1e9 }), 'invalid-input')
+    expectCode(() => withGenes({ ...valid, bogus: 1 }), 'invalid-input')
+    expectCode(() => withGenes({}), 'invalid-input')
+    expectCode(() => withGenes(valid, 'unknown'), 'not-found')
     expectCode(() => save({ sourceRevision: 'nothex' }), 'invalid-input')
     expectCode(() => save({ parentId: 'missing' }), 'not-found')
     expect(archive.getPresence()).toEqual({ code: null, imprint: null })
@@ -121,7 +121,7 @@ describe('imprints', () => {
 
   it('rejects a parent imprint that belongs to different code', () => {
     const other = archive.registerSeed({ id: firstLightSeed.id, sourceRevision: REV_A })
-    const parent = archive.saveImprint({ codeId: other.id, sourceRevision: REV_A, parameters: {} })
+    const parent = archive.saveImprint({ codeId: other.id, sourceRevision: REV_A, genes: {} })
 
     expectCode(() => save({ parentId: parent.id }), 'invalid-input')
   })
@@ -153,7 +153,7 @@ describe('presence', () => {
     expect(archive.listImprints()).toHaveLength(before)
   })
 
-  it('selecting an imprint switches to its code and saved parameters', () => {
+  it('selecting an imprint switches to its code and saved Genes', () => {
     const imprint = save()
     archive.registerSeed({ id: firstLightSeed.id, sourceRevision: REV_A })
     archive.selectCode(firstLightSeed.id)
@@ -174,7 +174,7 @@ describe('presence', () => {
     const other = archive.saveImprint({
       codeId: firstLightSeed.id,
       sourceRevision: REV_A,
-      parameters: {},
+      genes: {},
     })
     expect(other.parentId).toBeNull()
 
@@ -234,7 +234,7 @@ describe('code nodes', () => {
     const imprint = archive.saveImprint({
       codeId: 'drifting-m1',
       sourceRevision: REV_B,
-      parameters: params(),
+      genes: genes(),
     })
     expect(imprint.codeId).toBe('drifting-m1')
   })
@@ -267,7 +267,7 @@ describe('immutability and integrity', () => {
       (sql: string, ...args: string[]) =>
       () =>
         db.prepare(sql).run(...args)
-    expect(attempt('UPDATE imprints SET parameters = ? WHERE id = ?', '{}', saved.id)).toThrow(
+    expect(attempt('UPDATE imprints SET genes = ? WHERE id = ?', '{}', saved.id)).toThrow(
       /immutable/,
     )
     expect(attempt('UPDATE imprints SET parent_id = NULL WHERE id = ?', saved.id)).not.toThrow()
@@ -288,6 +288,7 @@ describe('immutability and integrity', () => {
     const db = new DatabaseSync(path)
     db.exec(`
       DROP TRIGGER imprints_content_immutable_update;
+      ALTER TABLE imprints RENAME COLUMN genes TO parameters;
       CREATE TRIGGER imprints_immutable_update BEFORE UPDATE ON imprints
         BEGIN SELECT RAISE(ABORT, 'imprints are immutable'); END;
       CREATE TRIGGER imprints_immutable_delete BEFORE DELETE ON imprints
@@ -305,14 +306,34 @@ describe('immutability and integrity', () => {
     expect(archive.verify()).toEqual([])
   })
 
-  it('reports a healthy archive and detects corrupt stored parameters', () => {
+  it('migrates version-two Imprint parameters to Genes without losing values', () => {
+    const saved = save()
+    archive.close()
+
+    const db = new DatabaseSync(join(directory, 'archive.sqlite'))
+    db.exec(`
+      DROP TRIGGER imprints_content_immutable_update;
+      ALTER TABLE imprints RENAME COLUMN genes TO parameters;
+      CREATE TRIGGER imprints_content_immutable_update BEFORE UPDATE ON imprints
+        WHEN NEW.parameters IS NOT OLD.parameters
+        BEGIN SELECT RAISE(ABORT, 'Imprint content is immutable'); END;
+      PRAGMA user_version = 2;
+    `)
+    db.close()
+
+    archive = open()
+    expect(archive.getImprint(saved.id).genes).toEqual(saved.genes)
+    expect(archive.verify()).toEqual([])
+  })
+
+  it('reports a healthy archive and detects corrupt stored Genes', () => {
     const saved = save()
     expect(archive.verify()).toEqual([])
     archive.close()
 
     const db = new DatabaseSync(join(directory, 'archive.sqlite'))
     db.exec('DROP TRIGGER imprints_content_immutable_update')
-    db.prepare('UPDATE imprints SET parameters = ? WHERE id = ?').run('not json', saved.id)
+    db.prepare('UPDATE imprints SET genes = ? WHERE id = ?').run('not json', saved.id)
     db.close()
     archive = open()
 

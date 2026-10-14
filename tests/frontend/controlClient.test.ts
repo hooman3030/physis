@@ -13,7 +13,7 @@ import {
   saveControlApiToken,
   selectCode,
   selectImprint,
-  setParameters,
+  setGenes,
   subscribeToPresence,
 } from '../../src/controlClient'
 
@@ -21,8 +21,8 @@ const snapshot = {
   revision: 3,
   code: { id: 'first-light' },
   imprint: null,
-  module: { id: 'first-light', label: 'First Light', parameters: [], runtime: 'p5' },
-  parameters: {},
+  module: { id: 'first-light', label: 'First Light', genes: [], runtime: 'p5' },
+  genes: {},
 }
 
 const imprint = {
@@ -31,7 +31,7 @@ const imprint = {
   codeId: 'first-light',
   sourceRevision: '0123456789abcdef',
   createdAt: '2026-10-14T11:00:00.000Z',
-  parameters: { glow: 0.75 },
+  genes: { glow: 0.75 },
 }
 
 afterEach(() => {
@@ -151,7 +151,7 @@ describe('control API client', () => {
     await expect(getPresence()).rejects.toThrow('invalid module declaration')
   })
 
-  it('sends module, parameter, and Imprint changes using the API contract', async () => {
+  it('sends module, Gene, and Imprint changes using the API contract', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (_input, init) => {
       if (init?.method === 'POST' && String(_input).endsWith('/imprints')) {
         return new Response(JSON.stringify({ id: 'imprint-1' }), { status: 201 })
@@ -161,7 +161,7 @@ describe('control API client', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await selectCode('drifting-filaments')
-    await setParameters({ filamentCount: 120 })
+    await setGenes({ filamentCount: 120 })
     await expect(createImprint()).resolves.toEqual({ id: 'imprint-1' })
 
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -174,10 +174,10 @@ describe('control API client', () => {
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      '/api/v1/presence/parameters',
+      '/api/v1/presence/genes',
       expect.objectContaining({
         method: 'PUT',
-        body: JSON.stringify({ parameters: { filamentCount: 120 } }),
+        body: JSON.stringify({ genes: { filamentCount: 120 } }),
       }),
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -191,7 +191,7 @@ describe('control API client', () => {
     const selected = {
       ...snapshot,
       imprint: { id: imprint.id },
-      parameters: imprint.parameters,
+      genes: imprint.genes,
     }
     const fetchMock = vi
       .fn<typeof fetch>()
@@ -240,7 +240,7 @@ describe('control API client', () => {
       ),
     )
 
-    await expect(setParameters({ filamentCount: 120 })).rejects.toEqual(
+    await expect(setGenes({ filamentCount: 120 })).rejects.toEqual(
       new ControlApiError(409, 'No artwork is selected'),
     )
   })

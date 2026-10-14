@@ -1,9 +1,4 @@
-import type {
-  ArtworkParameter,
-  ArtworkParameterValues,
-  RuntimeKind,
-  SeedDeclaration,
-} from './seeds/types'
+import type { ArtworkGene, ArtworkGeneValues, RuntimeKind, SeedDeclaration } from './seeds/types'
 
 const API_BASE_URL = '/api/v1'
 const TOKEN_STORAGE_KEY = 'physis:installation-token:v1'
@@ -13,7 +8,7 @@ export type PresenceSnapshot = {
   code: { id: string } | null
   imprint: { id: string } | null
   module: SeedDeclaration | null
-  parameters: ArtworkParameterValues | null
+  genes: ArtworkGeneValues | null
 }
 
 export type ImprintRecord = {
@@ -22,7 +17,7 @@ export type ImprintRecord = {
   codeId: string
   sourceRevision: string
   createdAt: string
-  parameters: ArtworkParameterValues
+  genes: ArtworkGeneValues
 }
 
 export class ControlApiError extends Error {
@@ -80,7 +75,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function parseParameter(value: unknown): ArtworkParameter {
+function parseGene(value: unknown): ArtworkGene {
   if (
     !isRecord(value) ||
     typeof value.id !== 'string' ||
@@ -91,7 +86,7 @@ function parseParameter(value: unknown): ArtworkParameter {
     typeof value.step !== 'number' ||
     ![value.defaultValue, value.min, value.max, value.step].every(Number.isFinite)
   ) {
-    throw new Error('Control API returned an invalid parameter declaration')
+    throw new Error('Control API returned an invalid Gene declaration')
   }
 
   return {
@@ -124,7 +119,7 @@ function parseModule(value: unknown): PresenceSnapshot['module'] {
     typeof value.id !== 'string' ||
     typeof value.label !== 'string' ||
     !isRuntimeKind(value.runtime) ||
-    !Array.isArray(value.parameters)
+    !Array.isArray(value.genes)
   ) {
     throw new Error('Control API returned an invalid module declaration')
   }
@@ -132,23 +127,23 @@ function parseModule(value: unknown): PresenceSnapshot['module'] {
   return {
     id: value.id,
     label: value.label,
-    parameters: value.parameters.map(parseParameter),
+    genes: value.genes.map(parseGene),
     runtime: value.runtime,
   }
 }
 
-function parseParameterValues(value: unknown): ArtworkParameterValues | null {
+function parseGeneValues(value: unknown): ArtworkGeneValues | null {
   if (value === null) return null
-  if (!isRecord(value)) throw new Error('Control API returned invalid parameter values')
+  if (!isRecord(value)) throw new Error('Control API returned invalid Gene values')
 
-  const parameters: Record<string, number> = {}
-  for (const [id, parameter] of Object.entries(value)) {
-    if (typeof parameter !== 'number' || !Number.isFinite(parameter)) {
-      throw new Error(`Control API returned an invalid value for parameter ${id}`)
+  const genes: Record<string, number> = {}
+  for (const [id, gene] of Object.entries(value)) {
+    if (typeof gene !== 'number' || !Number.isFinite(gene)) {
+      throw new Error(`Control API returned an invalid value for Gene ${id}`)
     }
-    parameters[id] = parameter
+    genes[id] = gene
   }
-  return parameters
+  return genes
 }
 
 function parseImprint(value: unknown): ImprintRecord {
@@ -162,8 +157,8 @@ function parseImprint(value: unknown): ImprintRecord {
   ) {
     throw new Error('Control API returned an invalid Imprint')
   }
-  const parameters = parseParameterValues(value.parameters)
-  if (parameters === null) throw new Error('Control API returned invalid Imprint parameters')
+  const genes = parseGeneValues(value.genes)
+  if (genes === null) throw new Error('Control API returned invalid Imprint Genes')
 
   return {
     id: value.id,
@@ -171,7 +166,7 @@ function parseImprint(value: unknown): ImprintRecord {
     codeId: value.codeId,
     sourceRevision: value.sourceRevision,
     createdAt: value.createdAt,
-    parameters,
+    genes,
   }
 }
 
@@ -189,7 +184,7 @@ function parsePresenceSnapshot(value: unknown): PresenceSnapshot {
     code: parseIdentity(value.code, 'code node'),
     imprint: parseIdentity(value.imprint, 'Imprint'),
     module: parseModule(value.module),
-    parameters: parseParameterValues(value.parameters),
+    genes: parseGeneValues(value.genes),
   }
 }
 
@@ -301,10 +296,10 @@ export async function listImprints(): Promise<readonly ImprintRecord[]> {
   return result.map(parseImprint)
 }
 
-export async function setParameters(parameters: ArtworkParameterValues): Promise<void> {
-  await request('/presence/parameters', {
+export async function setGenes(genes: ArtworkGeneValues): Promise<void> {
+  await request('/presence/genes', {
     method: 'PUT',
-    body: JSON.stringify({ parameters }),
+    body: JSON.stringify({ genes }),
   })
 }
 

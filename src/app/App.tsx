@@ -13,7 +13,7 @@ import {
   saveControlApiToken,
   selectCode,
   selectImprint,
-  setParameters as updateApiParameters,
+  setGenes as updateApiGenes,
   subscribeToPresence,
   type ImprintRecord,
   type PairingStatus,
@@ -21,7 +21,7 @@ import {
 } from '../controlClient'
 import {
   loadSettings,
-  sanitizeParameterValues,
+  sanitizeGeneValues,
   saveSettings,
   type ArtworkSettings,
 } from '../persistence'
@@ -68,7 +68,7 @@ export function App() {
   const revisionRef = useRef(-1)
   const saveFeedbackTimer = useRef<number | null>(null)
   const { seed } = settings
-  const parameterValues = settings.parametersBySeed[seed.id]
+  const geneValues = settings.genesBySeed[seed.id]
 
   settingsRef.current = settings
   statusRef.current = controlStatus
@@ -113,9 +113,9 @@ export function App() {
     setSettings((current) => ({
       ...current,
       seed: activeSeed,
-      parametersBySeed: {
-        ...current.parametersBySeed,
-        [activeSeed.id]: sanitizeParameterValues(activeSeed, snapshot.parameters),
+      genesBySeed: {
+        ...current.genesBySeed,
+        [activeSeed.id]: sanitizeGeneValues(activeSeed, snapshot.genes),
       },
     }))
   }, [])
@@ -366,19 +366,19 @@ export function App() {
     }
   }
 
-  const handleParameterChange = (id: string, value: number) => {
+  const handleGeneChange = (id: string, value: number) => {
     setSettings((current) => ({
       ...current,
-      parametersBySeed: {
-        ...current.parametersBySeed,
-        [current.seed.id]: { ...current.parametersBySeed[current.seed.id], [id]: value },
+      genesBySeed: {
+        ...current.genesBySeed,
+        [current.seed.id]: { ...current.genesBySeed[current.seed.id], [id]: value },
       },
     }))
     clearSaveFeedback()
     if (statusRef.current === 'connected') {
-      void updateApiParameters({ [id]: value }).catch((error: unknown) => {
+      void updateApiGenes({ [id]: value }).catch((error: unknown) => {
         if (!requirePairing(error)) {
-          reportApplicationError(`Parameter update failed: ${errorMessage(error)}`)
+          reportApplicationError(`Gene update failed: ${errorMessage(error)}`)
         }
         if (!(error instanceof ControlApiError)) {
           statusRef.current = 'offline'
@@ -456,7 +456,7 @@ export function App() {
       <ArtworkCanvas
         key={seed.id}
         seed={seed}
-        parameters={parameterValues}
+        genes={geneValues}
         onFpsChange={import.meta.env.DEV ? setFps : undefined}
       />
       <DevelopmentOverlay fps={fps} />
@@ -493,8 +493,8 @@ export function App() {
         activeSeed={seed}
         seeds={artworkSeeds}
         onSeedChange={handleSeedChange}
-        parameterValues={parameterValues}
-        onParameterChange={handleParameterChange}
+        geneValues={geneValues}
+        onGeneChange={handleGeneChange}
         onSaveImprint={handleSaveImprint}
         controlStatus={controlStatus}
         saveStatus={saveStatus}

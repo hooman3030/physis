@@ -22,5 +22,5 @@ new one-off colors, type sizes, radii, or surface treatments.
   the appropriate tokenized shape.
 - Use `.control-base` for the common border, padding, and type treatment when
   styling a custom control.
-- Parameter sliders span the full width of their control.
+- Gene sliders span the full width of their control.
 - Use `.range-control` for the shared slider track and thumb treatment.
