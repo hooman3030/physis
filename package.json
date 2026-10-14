@@ -11,7 +11,7 @@
     "check:fix": "vp check --fix",
     "test": "vp test",
     "test:watch": "vp test --watch",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit"
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.server.json --noEmit"
   },
   "dependencies": {
     "p5": "^2.0.3",
@@ -19,6 +19,7 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@types/node": "^26.6.5",
     "@types/p5": "^1.7.6",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
