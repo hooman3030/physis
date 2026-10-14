@@ -15,6 +15,7 @@ const ARCHIVE_STATUS: Record<ArchiveErrorCode, number> = {
   'invalid-input': 400,
   'not-found': 404,
   'already-exists': 409,
+  conflict: 409,
   'unsupported-schema': 500,
   corrupt: 500,
 }

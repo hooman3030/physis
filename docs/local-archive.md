@@ -42,8 +42,10 @@ parent must belong to the same code node, so a lineage never crosses code.
 
 ## Guarantees
 
-- Code nodes, promotions, and Imprints are immutable; database triggers reject
-  `UPDATE` and `DELETE`. Only the Presence pointer changes.
+- Code nodes and promotions are immutable. Imprint content and provenance are
+  immutable, but Imprints may be deleted when they are not active. Deleting an
+  Imprint reparents its direct children to its former parent in one transaction,
+  preserving the remaining lineage.
 - Every save creates an Imprint and moves the Presence to it in one
   transaction. The default parent is the Presence's Imprint when it runs the
   same code, otherwise the save starts a new root. Failed saves leave no change.
@@ -89,6 +91,8 @@ Routes under `/api/v1`:
 - `GET /imprints[?codeId=]`, `/imprints/:id`, `/imprints/:id/ancestry`
 - `POST /imprints` with optional `{parentId, randomSeed}` archives the current
   parameters; the server stamps `sourceRevision` and a `sourceDirty` flag
+- `DELETE /imprints/:id` deletes an inactive Imprint and reparents its children
+  to its former parent; deleting the active Imprint returns a conflict
 
 Live tweaks are never archived until imprinted, and are lost on restart. The
 service refuses non-loopback hosts, checks the `Host` and `Origin` headers, and

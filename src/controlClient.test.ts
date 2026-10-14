@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ControlApiError,
   createImprint,
+  deleteImprint,
   getPresence,
   listImprints,
   selectCode,
@@ -110,6 +111,19 @@ describe('control API client', () => {
         method: 'POST',
         body: JSON.stringify({ kind: 'imprint', id: imprint.id }),
       }),
+    )
+  })
+
+  it('deletes an Imprint through the archive API', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(JSON.stringify({ id: 'imprint-1' }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(deleteImprint('imprint-1')).resolves.toBeUndefined()
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://127.0.0.1:4317/api/v1/imprints/imprint-1',
+      expect.objectContaining({ method: 'DELETE' }),
     )
   })
 

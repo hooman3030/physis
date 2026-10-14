@@ -158,6 +158,26 @@ describe('imprints and lineage', () => {
     expect((await call('POST', '/imprints', { parentId: 'missing' })).status).toBe(404)
   })
 
+  it('deletes inactive Imprints and reparents descendants while protecting the active Imprint', async () => {
+    await call('POST', '/presence', { kind: 'code', id: seedId })
+    const root = await call('POST', '/imprints', {})
+    const deleted = await call('POST', '/imprints', {})
+    const child = await call('POST', '/imprints', {})
+    const branch = await call('POST', '/imprints', { parentId: deleted.body.id })
+
+    expect((await call('DELETE', `/imprints/${branch.body.id}`)).status).toBe(409)
+
+    const removal = await call('DELETE', `/imprints/${deleted.body.id}`)
+    expect(removal).toMatchObject({ status: 200, body: { id: deleted.body.id } })
+    expect((await call('GET', `/imprints/${deleted.body.id}`)).status).toBe(404)
+    expect((await call('GET', `/imprints/${child.body.id}`)).body.parentId).toBe(root.body.id)
+    expect((await call('GET', `/imprints/${branch.body.id}`)).body.parentId).toBe(root.body.id)
+    expect(
+      (await call('GET', `/imprints/${child.body.id}/ancestry`)).body.map((i: any) => i.id),
+    ).toEqual([root.body.id, child.body.id])
+    expect((await call('DELETE', '/imprints/missing')).status).toBe(404)
+  })
+
   it('lists and reads code nodes with availability', async () => {
     const seeds = await call('GET', '/code-nodes?role=seed')
     expect(seeds.body.map((node: any) => node.id).sort()).toEqual(
@@ -262,11 +282,15 @@ describe('network boundary', () => {
       'http://127.0.0.1:5173',
     )
 
-    const preflight = await fetch(`${base}/api/v1/presence`, {
+    const preflight = await fetch(`${base}/api/v1/imprints/example`, {
       method: 'OPTIONS',
-      headers: { origin: 'http://127.0.0.1:5173' },
+      headers: {
+        origin: 'http://127.0.0.1:5173',
+        'access-control-request-method': 'DELETE',
+      },
     })
     expect(preflight.status).toBe(204)
+    expect(preflight.headers.get('access-control-allow-methods')).toContain('DELETE')
   })
 
   it('rejects an unexpected Host header (DNS rebinding)', async () => {

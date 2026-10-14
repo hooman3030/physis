@@ -3,6 +3,7 @@ import type { ArtworkParameterValues, ArtworkSeed } from './seeds/types'
 const STORAGE_KEY = 'physis:settings:v1'
 
 type SettingsStorage = Pick<Storage, 'getItem' | 'setItem'>
+type ErrorReporter = (message: string) => void
 
 export type ArtworkSettings = {
   seed: ArtworkSeed
@@ -29,10 +30,11 @@ export function sanitizeParameterValues(seed: ArtworkSeed, raw: unknown): Artwor
   )
 }
 
-function getBrowserStorage(): SettingsStorage | null {
+function getBrowserStorage(reportError: ErrorReporter): SettingsStorage | null {
   try {
     return globalThis.localStorage ?? null
-  } catch {
+  } catch (error) {
+    reportError(`Browser storage is unavailable: ${errorMessage(error)}`)
     return null
   }
 }
@@ -40,18 +42,34 @@ function getBrowserStorage(): SettingsStorage | null {
 export function loadSettings(
   seeds: readonly ArtworkSeed[],
   defaultSeed: ArtworkSeed,
-  storage: SettingsStorage | null = getBrowserStorage(),
+  reportError: ErrorReporter,
+  storage: SettingsStorage | null = getBrowserStorage(reportError),
 ): ArtworkSettings {
   let stored: unknown
+  let text: string | null = null
   try {
-    const text = storage?.getItem(STORAGE_KEY)
-    stored = text ? JSON.parse(text) : undefined
-  } catch {
+    text = storage?.getItem(STORAGE_KEY) ?? null
+  } catch (error) {
+    reportError(`Could not read saved artwork settings: ${errorMessage(error)}`)
+  }
+
+  if (text !== null && text !== '') {
+    try {
+      stored = JSON.parse(text)
+    } catch (error) {
+      reportError(`Saved artwork settings could not be parsed: ${errorMessage(error)}`)
+    }
+  }
+
+  if (
+    stored !== undefined &&
+    (typeof stored !== 'object' || stored === null || Array.isArray(stored))
+  ) {
+    reportError('Saved artwork settings have an invalid format; defaults will be used.')
     stored = undefined
   }
 
-  const record =
-    typeof stored === 'object' && stored !== null ? (stored as Record<string, unknown>) : {}
+  const record = stored === undefined ? {} : (stored as Record<string, unknown>)
   const storedParameters =
     typeof record.parameters === 'object' && record.parameters !== null
       ? (record.parameters as Record<string, unknown>)
@@ -67,14 +85,19 @@ export function loadSettings(
 
 export function saveSettings(
   settings: ArtworkSettings,
-  storage: SettingsStorage | null = getBrowserStorage(),
+  reportError: ErrorReporter,
+  storage: SettingsStorage | null = getBrowserStorage(reportError),
 ): void {
   try {
     storage?.setItem(
       STORAGE_KEY,
       JSON.stringify({ seedId: settings.seed.id, parameters: settings.parametersBySeed }),
     )
-  } catch {
-    // Persistence is optional; the artwork must keep working without it.
+  } catch (error) {
+    reportError(`Could not save artwork settings: ${errorMessage(error)}`)
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }

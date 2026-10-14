@@ -2,6 +2,7 @@ export type ArchiveErrorCode =
   | 'invalid-input'
   | 'not-found'
   | 'already-exists'
+  | 'conflict'
   | 'unsupported-schema'
   | 'corrupt'
 

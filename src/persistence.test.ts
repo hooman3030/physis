@@ -15,6 +15,8 @@ function memoryStorage(initial?: string) {
   }
 }
 
+const ignoreError = () => {}
+
 describe('parameter sanitizing', () => {
   it('keeps valid values', () => {
     expect(
@@ -62,10 +64,11 @@ describe('settings storage', () => {
           'drifting-filaments': { filamentCount: 240, noiseScale: 0.003, stepLength: 3 },
         },
       },
+      ignoreError,
       storage,
     )
 
-    const settings = loadSettings(seeds, firstLightSeed, storage)
+    const settings = loadSettings(seeds, firstLightSeed, ignoreError, storage)
     expect(settings.seed).toBe(driftingFilamentsSeed)
     expect(settings.parametersBySeed['drifting-filaments']).toEqual({
       filamentCount: 240,
@@ -81,7 +84,7 @@ describe('settings storage', () => {
       memoryStorage('42'),
       null,
     ]) {
-      const settings = loadSettings(seeds, firstLightSeed, storage)
+      const settings = loadSettings(seeds, firstLightSeed, ignoreError, storage)
       expect(settings.seed).toBe(firstLightSeed)
       expect(settings.parametersBySeed['drifting-filaments']).toEqual({
         filamentCount: 160,
@@ -93,19 +96,47 @@ describe('settings storage', () => {
 
   it('falls back to the default seed when the stored seed no longer exists', () => {
     const storage = memoryStorage(JSON.stringify({ seedId: 'removed-seed', parameters: {} }))
-    expect(loadSettings(seeds, firstLightSeed, storage).seed).toBe(firstLightSeed)
+    expect(loadSettings(seeds, firstLightSeed, ignoreError, storage).seed).toBe(firstLightSeed)
   })
 
-  it('does not throw when saving fails', () => {
+  it('reports corrupt settings and continues with defaults', () => {
+    const errors: string[] = []
+    const settings = loadSettings(
+      seeds,
+      firstLightSeed,
+      (message) => errors.push(message),
+      memoryStorage('{not json'),
+    )
+
+    expect(settings.seed).toBe(firstLightSeed)
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toContain('Saved artwork settings could not be parsed')
+  })
+
+  it('reports storage read and write failures without stopping rendering', () => {
+    const errors: string[] = []
     const failing = {
-      getItem: () => null,
+      getItem: () => {
+        throw new Error('read denied')
+      },
       setItem: () => {
         throw new Error('quota exceeded')
       },
     }
 
     expect(() =>
-      saveSettings({ seed: firstLightSeed, parametersBySeed: {} }, failing),
+      loadSettings(seeds, firstLightSeed, (message) => errors.push(message), failing),
     ).not.toThrow()
+    expect(() =>
+      saveSettings(
+        { seed: firstLightSeed, parametersBySeed: {} },
+        (message) => errors.push(message),
+        failing,
+      ),
+    ).not.toThrow()
+    expect(errors).toEqual([
+      'Could not read saved artwork settings: read denied',
+      'Could not save artwork settings: quota exceeded',
+    ])
   })
 })

@@ -3,6 +3,7 @@ import { ArtworkCanvas } from './ArtworkCanvas'
 import {
   ControlApiError,
   createImprint,
+  deleteImprint,
   getPresence,
   listImprints,
   selectCode,
@@ -18,6 +19,7 @@ import {
   saveSettings,
   type ArtworkSettings,
 } from './persistence'
+import { reportApplicationError } from './errorNotifications'
 import { ImprintArchive } from './ImprintArchive'
 import { SeedControls } from './SeedControls'
 import { artworkSeeds, defaultArtworkSeed } from './seeds/registry'
@@ -31,21 +33,26 @@ function errorMessage(error: unknown): string {
 }
 
 export function App() {
-  const [settings, setSettings] = useState<ArtworkSettings>(() =>
-    loadSettings(artworkSeeds, defaultArtworkSeed),
-  )
+  const [initialSettings] = useState(() => {
+    const errors: string[] = []
+    const settings = loadSettings(artworkSeeds, defaultArtworkSeed, (message) =>
+      errors.push(message),
+    )
+    return { settings, errors }
+  })
+  const [settings, setSettings] = useState<ArtworkSettings>(initialSettings.settings)
   const [controlsOpen, setControlsOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [controlStatus, setControlStatus] = useState<ControlStatus>('connecting')
-  const [controlError, setControlError] = useState<string | null>(null)
-  const [operationMessage, setOperationMessage] = useState<string | null>(null)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [imprints, setImprints] = useState<readonly ImprintRecord[]>([])
   const [activeImprintId, setActiveImprintId] = useState<string | null>(null)
   const [archiveLoading, setArchiveLoading] = useState(false)
-  const [archiveError, setArchiveError] = useState<string | null>(null)
+  const [archiveLoadFailed, setArchiveLoadFailed] = useState(false)
   const settingsRef = useRef(settings)
   const statusRef = useRef(controlStatus)
   const revisionRef = useRef(-1)
+  const saveFeedbackTimer = useRef<number | null>(null)
   const { seed } = settings
   const parameterValues = settings.parametersBySeed[seed.id]
 
@@ -53,8 +60,21 @@ export function App() {
   statusRef.current = controlStatus
 
   useEffect(() => {
-    saveSettings(settings)
+    for (const message of initialSettings.errors) reportApplicationError(message)
+  }, [initialSettings])
+
+  useEffect(() => {
+    saveSettings(settings, reportApplicationError)
   }, [settings])
+
+  useEffect(
+    () => () => {
+      if (saveFeedbackTimer.current !== null) {
+        window.clearTimeout(saveFeedbackTimer.current)
+      }
+    },
+    [],
+  )
 
   const applyPresence = useCallback((snapshot: PresenceSnapshot, force = false) => {
     if (!force && snapshot.revision < revisionRef.current) return
@@ -64,11 +84,12 @@ export function App() {
     if (snapshot.code === null) return
     const activeSeed = artworkSeeds.find((candidate) => candidate.id === snapshot.code?.id)
     if (activeSeed === undefined || snapshot.module?.id !== activeSeed.id) {
-      setControlError(`Active module ${snapshot.code.id} is unavailable in this frontend build.`)
+      reportApplicationError(
+        `Active module ${snapshot.code.id} is unavailable in this frontend build.`,
+      )
       return
     }
 
-    setControlError(null)
     setSettings((current) => ({
       ...current,
       seed: activeSeed,
@@ -81,17 +102,19 @@ export function App() {
 
   const refreshImprints = useCallback(async () => {
     if (statusRef.current !== 'connected') {
-      setArchiveError('The local control API is unavailable.')
+      setArchiveLoadFailed(true)
+      reportApplicationError('The local control API is unavailable.')
       return
     }
 
     setArchiveLoading(true)
-    setArchiveError(null)
+    setArchiveLoadFailed(false)
     try {
       const records = await listImprints()
       setImprints([...records].sort((left, right) => right.createdAt.localeCompare(left.createdAt)))
     } catch (error) {
-      setArchiveError(`Could not load Imprints: ${errorMessage(error)}`)
+      setArchiveLoadFailed(true)
+      reportApplicationError(`Could not load Imprints: ${errorMessage(error)}`)
       if (!(error instanceof ControlApiError)) {
         statusRef.current = 'offline'
         setControlStatus('offline')
@@ -131,20 +154,17 @@ export function App() {
         if (closeEvents === null) {
           closeEvents = subscribeToPresence(
             (nextSnapshot) => applyPresence(nextSnapshot),
-            () => {
-              setStatus('connected')
-              setControlError(null)
-            },
+            () => setStatus('connected'),
             (error) => {
               setStatus('offline')
-              setControlError(error.message)
+              reportApplicationError(error.message)
             },
           )
         }
       } catch (error) {
         if (!disposed) {
           setStatus('offline')
-          setControlError(`Control API unavailable: ${errorMessage(error)}`)
+          reportApplicationError(`Control API unavailable: ${errorMessage(error)}`)
         }
       } finally {
         connecting = false
@@ -207,14 +227,22 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  const clearSaveFeedback = () => {
+    if (saveFeedbackTimer.current !== null) {
+      window.clearTimeout(saveFeedbackTimer.current)
+      saveFeedbackTimer.current = null
+    }
+    setSaveStatus('idle')
+  }
+
   const handleSeedChange = (nextSeed: ArtworkSeed) => {
     setSettings((current) => ({ ...current, seed: nextSeed }))
-    setOperationMessage(null)
+    clearSaveFeedback()
     if (statusRef.current === 'connected') {
       void selectCode(nextSeed.id)
         .then((snapshot) => applyPresence(snapshot))
         .catch((error: unknown) => {
-          setControlError(`Module selection failed: ${errorMessage(error)}`)
+          reportApplicationError(`Module selection failed: ${errorMessage(error)}`)
           if (!(error instanceof ControlApiError)) {
             statusRef.current = 'offline'
             setControlStatus('offline')
@@ -231,10 +259,10 @@ export function App() {
         [current.seed.id]: { ...current.parametersBySeed[current.seed.id], [id]: value },
       },
     }))
-    setOperationMessage(null)
+    clearSaveFeedback()
     if (statusRef.current === 'connected') {
       void updateApiParameters({ [id]: value }).catch((error: unknown) => {
-        setControlError(`Parameter update failed: ${errorMessage(error)}`)
+        reportApplicationError(`Parameter update failed: ${errorMessage(error)}`)
         if (!(error instanceof ControlApiError)) {
           statusRef.current = 'offline'
           setControlStatus('offline')
@@ -244,14 +272,43 @@ export function App() {
   }
 
   const handleSaveImprint = async () => {
-    setOperationMessage(null)
-    setControlError(null)
+    clearSaveFeedback()
+    setSaveStatus('saving')
     try {
-      const imprint = await createImprint()
-      setOperationMessage(`Saved Imprint ${imprint.id}`)
+      await createImprint()
+      setSaveStatus('saved')
+      saveFeedbackTimer.current = window.setTimeout(() => {
+        setSaveStatus('idle')
+        saveFeedbackTimer.current = null
+      }, 1800)
       if (archiveOpen) void refreshImprints()
     } catch (error) {
-      setControlError(`Imprint save failed: ${errorMessage(error)}`)
+      setSaveStatus('idle')
+      reportApplicationError(`Imprint save failed: ${errorMessage(error)}`)
+      if (!(error instanceof ControlApiError)) {
+        statusRef.current = 'offline'
+        setControlStatus('offline')
+      }
+    }
+  }
+
+  const handleDeleteImprint = async (imprint: ImprintRecord) => {
+    if (activeImprintId === imprint.id) return
+    const createdAt = new Date(imprint.createdAt)
+    const label = Number.isNaN(createdAt.getTime()) ? imprint.createdAt : createdAt.toLocaleString()
+    if (
+      !window.confirm(
+        `Delete the Imprint from ${label}? Its descendants will be kept and attached to its parent.`,
+      )
+    ) {
+      return
+    }
+
+    try {
+      await deleteImprint(imprint.id)
+      setImprints((current) => current.filter((candidate) => candidate.id !== imprint.id))
+    } catch (error) {
+      reportApplicationError(`Could not delete Imprint ${imprint.id}: ${errorMessage(error)}`)
       if (!(error instanceof ControlApiError)) {
         statusRef.current = 'offline'
         setControlStatus('offline')
@@ -260,11 +317,10 @@ export function App() {
   }
 
   const handleSelectImprint = async (imprint: ImprintRecord) => {
-    setArchiveError(null)
     try {
       applyPresence(await selectImprint(imprint.id))
     } catch (error) {
-      setArchiveError(`Could not select Imprint ${imprint.id}: ${errorMessage(error)}`)
+      reportApplicationError(`Could not select Imprint ${imprint.id}: ${errorMessage(error)}`)
       if (!(error instanceof ControlApiError)) {
         statusRef.current = 'offline'
         setControlStatus('offline')
@@ -305,8 +361,7 @@ export function App() {
         onParameterChange={handleParameterChange}
         onSaveImprint={handleSaveImprint}
         controlStatus={controlStatus}
-        controlError={controlError}
-        operationMessage={operationMessage}
+        saveStatus={saveStatus}
         controlsDisabled={controlStatus === 'connecting'}
         hidden={!controlsOpen}
       />
@@ -315,9 +370,9 @@ export function App() {
         activeImprintId={activeImprintId}
         connected={controlStatus === 'connected'}
         loading={archiveLoading}
-        error={archiveError}
-        onRefresh={() => void refreshImprints()}
+        loadFailed={archiveLoadFailed}
         onSelect={handleSelectImprint}
+        onDelete={handleDeleteImprint}
         hidden={!archiveOpen}
       />
     </main>

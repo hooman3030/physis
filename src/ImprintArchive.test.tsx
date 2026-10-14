@@ -13,25 +13,30 @@ const imprint: ImprintRecord = {
 }
 
 describe('Imprint archive', () => {
-  it('renders saved Imprints and marks the active entry', () => {
+  it('renders compact Imprint entries with dates and marks the active entry', () => {
     const markup = renderToStaticMarkup(
       <ImprintArchive
         imprints={[imprint]}
         activeImprintId={imprint.id}
         connected
         loading={false}
-        error={null}
-        onRefresh={vi.fn()}
+        loadFailed={false}
         onSelect={vi.fn()}
+        onDelete={vi.fn()}
       />,
     )
 
     expect(markup).toContain('1 saved Imprint')
-    expect(markup).toContain('12345678')
     expect(markup).toContain('first-light')
-    expect(markup).toContain('Root Imprint')
-    expect(markup).toContain('glow: 0.75')
+    expect(markup).toContain('dateTime="2026-10-14T11:00:00.000Z"')
+    expect(markup).not.toContain('glow: 0.75')
     expect(markup).toContain('aria-pressed="true"')
+    expect(markup).not.toContain('imprint-active')
+    expect(markup).not.toContain('>Active<')
+    expect(markup).toContain('Select another Imprint before deleting this one')
+    expect(markup).not.toContain('Parent ')
+    expect(markup).not.toContain('revision ')
+    expect(markup).not.toContain('Refresh')
   })
 
   it('explains when the API is unavailable and disables archive actions', () => {
@@ -41,9 +46,9 @@ describe('Imprint archive', () => {
         activeImprintId={null}
         connected={false}
         loading={false}
-        error={null}
-        onRefresh={vi.fn()}
+        loadFailed={false}
         onSelect={vi.fn()}
+        onDelete={vi.fn()}
       />,
     )
 
