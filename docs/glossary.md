@@ -11,9 +11,9 @@
   screenshot.
 - **Presence** – an artwork currently running in the browser, using a
   particular Seed/source revision and active Imprint.
-- **Source revision** – an identifier, such as a Git commit or build ID, for
-  Seed or Mutation code. It identifies code but does not archive the code
-  itself.
+- **Source revision** – a Git commit hash identifying the build that
+  contained a Seed or Mutation's code. It is provenance only; Seed modules
+  are immutable, so each Seed ID always resolves to its original code.
 - **Artwork runtime** – the browser page that renders the current stable work.
 - **Evolution** – a bounded, validated change to an artwork seed or its
   implementation between iterations.
