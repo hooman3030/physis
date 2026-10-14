@@ -2,8 +2,10 @@
 
 ## Project status
 
-Physis is in the planning and repository-setup phase. Do not add application
-implementation unless the task explicitly requests it.
+Physis is actively implemented across the browser artwork runtime, local
+control service, and archive. Continue implementation when the task or linked
+issue calls for it; do not treat the historical planning notes as a ban on
+application code.
 
 ## Source of truth
 
@@ -27,6 +29,8 @@ Follow `docs/agentic-workflow.md` (see ADR 0002).
 
 - Work in small, single-purpose steps; for non-trivial work propose a short
   plan and wait for approval before editing.
+- For TypeScript and TSX changes, follow
+  `.github/instructions/typescript-architecture.instructions.md`.
 - Keep output human-reviewable: focused diffs on a branch, never on `main`.
 - After any chat that yields a lasting decision, changed understanding, or new
   agent rule, update `docs/`, `docs/decisions/`, and `AGENTS.md` or

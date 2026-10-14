@@ -14,4 +14,6 @@
 
 - [ ] Diff contains only the intended change
 - [ ] Docs, decisions, or instructions updated if affected
+- [ ] Touched code was checked for duplication, boundary violations, and
+      directly related refactoring opportunities
 - [ ] No secrets or generated artifacts committed

@@ -35,6 +35,16 @@ tasks; this workflow grows from that habit into agent work gradually.
    reconciled (below).
 8. **Integrate** – commit, push, PR, and merge only when the human authorizes.
 
+During execution and review, distinguish two kinds of quality work:
+
+- **Required quality:** formatting, linting, type safety, tests, and builds are
+  automated by the documented CI checks.
+- **Design quality:** duplication, cohesion, boundary violations, and
+  refactoring opportunities require contextual review. Agents inspect touched
+  code and human reviewers decide whether a refactor belongs in the current
+  change or should become a separate issue. Avoid fixed file-size or
+  complexity thresholds unless the project develops a measured need for them.
+
 ## Keeping documentation current
 
 After every chat that produces a lasting insight, the agent updates the repo
