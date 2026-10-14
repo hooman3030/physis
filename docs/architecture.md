@@ -111,11 +111,27 @@ ancestors.
 
 ## Remote studio
 
-The laptop can serve a dashboard on its local network address. It should
-support prompt submission, queue inspection, pause/resume, Seed and Imprint
-selection, lineage browsing, and logs. Control operations require
-authentication even on the trusted network. Provider keys remain on the
-laptop and are never sent to the dashboard.
+The laptop can serve a dashboard on a trusted private-network address, with
+Wi-Fi as the normal access path. Private-network Ethernet clients are also
+allowed if excluding them would require special interface or firewall
+configuration. Remote access is opt-in, restricted by the host firewall to
+the trusted local network, and must not be exposed to the public internet.
+
+When remote access is enabled, every API route, including archive reads and
+Presence events, requires an installation-wide bearer token. A user enters
+the token once per browser; the browser stores it in `localStorage` and sends
+it in an Authorization header, never in a URL. Presence events use
+authenticated fetch streaming rather than native `EventSource`. The
+installation token is stored outside source control and can be rotated.
+Provider keys remain on the laptop and are never sent to the dashboard.
+
+The baseline uses HTTP only on the trusted private network, so another device
+able to observe that network could capture the token. Guest, public, and
+untrusted Wi-Fi are out of scope. Use a private VPN or add transport
+encryption before enabling untrusted or off-site access. Host and Origin
+checks remain defense in depth; the M2 loopback-only service remains
+unauthenticated for local development. See
+[ADR 0008](decisions/0008-remote-studio-network-and-authentication.md).
 
 ## Candidate technology direction
 

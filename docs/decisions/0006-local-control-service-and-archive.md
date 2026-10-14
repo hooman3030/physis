@@ -147,8 +147,9 @@ in [ADR 0007](0007-live-mutation-code-and-sandbox.md).
 - API shape (decided in #11): plain `node:http`, JSON under `/api/v1`, and
   Server-Sent Events for Presence change notification. There is one Presence.
   See `docs/local-archive.md`.
-- Define LAN authentication and exposure in #12; keep the M2 service
-  loopback-only.
+- Remote network access and authentication are decided in
+  [ADR 0008](0008-remote-studio-network-and-authentication.md); keep the M2
+  service loopback-only until the remote configuration is implemented.
 - Specify retention, pruning, and backup frequency before unattended
   operation.
 - Decide how Mutations are generated and registered once evolution is

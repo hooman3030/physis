@@ -13,6 +13,7 @@ long-term architecture.
 - [ADR 0005: Artwork-first display with reusable controls](0005-artwork-display-and-controls.md)
 - [ADR 0006: Local control service and artwork lineage](0006-local-control-service-and-archive.md)
 - [ADR 0007: Live Mutation code storage and sandboxed execution](0007-live-mutation-code-and-sandbox.md)
+- [ADR 0008: Remote studio network and authentication boundary](0008-remote-studio-network-and-authentication.md)
 
 Use the following headings for future records:
 
