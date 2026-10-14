@@ -5,9 +5,10 @@ import type { ArtworkParameterValues } from './seeds/types'
 type ArtworkCanvasProps = {
   seed: SeedModule
   parameters: ArtworkParameterValues
+  onFpsChange?: (fps: number | null) => void
 }
 
-export function ArtworkCanvas({ seed, parameters }: ArtworkCanvasProps) {
+export function ArtworkCanvas({ seed, parameters, onFpsChange }: ArtworkCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const parametersRef = useRef(parameters)
 
@@ -18,8 +19,9 @@ export function ArtworkCanvas({ seed, parameters }: ArtworkCanvasProps) {
   useEffect(() => {
     if (!containerRef.current) return
 
-    return mountSeedRuntime(containerRef.current, seed, () => parametersRef.current)
-  }, [seed])
+    onFpsChange?.(null)
+    return mountSeedRuntime(containerRef.current, seed, () => parametersRef.current, onFpsChange)
+  }, [seed, onFpsChange])
 
   return <div ref={containerRef} className="artwork-canvas" aria-label={`Artwork: ${seed.label}`} />
 }

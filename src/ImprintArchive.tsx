@@ -29,7 +29,7 @@ export function ImprintArchive({
   return (
     <section
       id="imprint-archive"
-      className="studio-panel archive-panel"
+      className="studio-panel archive-panel surface shape-panel"
       aria-label="Imprint archive"
       hidden={hidden}
     >
@@ -60,7 +60,7 @@ export function ImprintArchive({
             return (
               <li
                 key={imprint.id}
-                className={`imprint-entry${active ? ' imprint-entry-active' : ''}`}
+                className={`imprint-entry surface shape-card${active ? ' imprint-entry-active' : ''}`}
               >
                 <button
                   type="button"

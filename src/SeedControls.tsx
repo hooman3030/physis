@@ -26,14 +26,25 @@ export function SeedControls({
   controlsDisabled = false,
   hidden = false,
 }: SeedControlsProps) {
+  const connectionLabel = {
+    connected: 'API',
+    connecting: 'Connecting',
+    offline: 'Offline',
+  }[controlStatus]
+
   return (
     <section
       id="artwork-controls"
-      className="studio-panel"
+      className="studio-panel surface shape-panel"
       aria-label="Artwork controls"
       hidden={hidden}
     >
-      <p className="eyebrow">physis ⍩‣➣"(⌯_ .∙✧ ✵・• ∙. ∙・⏜ ◎ ⏝◦ ○ ∙ </p>
+      <div className="controls-heading">
+        <div className="controls-header">
+          <p className="eyebrow">controls</p>
+        </div>
+        <h2>Seeds</h2>
+      </div>
       <span
         className="connection-indicator"
         data-status={controlStatus}
@@ -54,6 +65,9 @@ export function SeedControls({
         }
       >
         <span className="connection-indicator-dot" aria-hidden="true" />
+        <span className="connection-indicator-label" aria-hidden="true">
+          {connectionLabel}
+        </span>
       </span>
       <label htmlFor="seed">Choose a seed module</label>
       <select
@@ -74,6 +88,10 @@ export function SeedControls({
       {activeSeed.parameters.map((parameter) => {
         const value = parameterValues[parameter.id] ?? parameter.defaultValue
         const inputId = `parameter-${parameter.id}`
+        const progress = Math.min(
+          100,
+          Math.max(0, ((value - parameter.min) / (parameter.max - parameter.min)) * 100),
+        )
 
         return (
           <div className="parameter-control" key={parameter.id}>
@@ -83,11 +101,15 @@ export function SeedControls({
             </div>
             <input
               id={inputId}
+              className="range-control"
               type="range"
               min={parameter.min}
               max={parameter.max}
               step={parameter.step}
               value={value}
+              style={{
+                background: `linear-gradient(90deg, var(--color-accent) ${progress}%, var(--track-background) ${progress}%) center / 100% var(--range-track-height) no-repeat`,
+              }}
               disabled={controlsDisabled}
               onChange={(event) => onParameterChange(parameter.id, Number(event.target.value))}
             />
