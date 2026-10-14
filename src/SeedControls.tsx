@@ -40,17 +40,17 @@ export function SeedControls({
         role="status"
         aria-label={
           controlStatus === 'connected'
-            ? 'Connected to local control API'
+            ? 'Connected to installation'
             : controlStatus === 'connecting'
-              ? 'Connecting to local control API'
-              : 'Local control API unavailable'
+              ? 'Connecting to installation'
+              : 'Installation control API unavailable'
         }
         title={
           controlStatus === 'connected'
-            ? 'Connected to local control API'
+            ? 'Connected to installation'
             : controlStatus === 'connecting'
-              ? 'Connecting to local control API'
-              : 'Local control API unavailable'
+              ? 'Connecting to installation'
+              : 'Installation control API unavailable'
         }
       >
         <span className="connection-indicator-dot" aria-hidden="true" />

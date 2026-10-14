@@ -20,7 +20,7 @@ describe('seed controls', () => {
     )
 
     expect(markup).toContain(defaultArtworkSeed.label)
-    expect(markup).toContain('Local control API unavailable')
+    expect(markup).toContain('aria-label="Installation control API unavailable"')
     expect(markup).toContain('class="connection-indicator"')
     expect(markup).not.toContain('Active module:')
     expect(markup).not.toContain('browser-only controls are active')

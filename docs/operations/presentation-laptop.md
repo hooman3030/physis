@@ -7,6 +7,11 @@ runtime it should eventually start the artwork and open it in a fullscreen
 browser, while keeping a lightweight local control API available to trusted
 devices.
 
+In remote mode, the Node service serves the built presentation bundle and
+control API from one private-network origin. The fullscreen display and
+remote devices use the same responsive browser app; artwork continues
+rendering in already-open tabs if the API or network becomes unavailable.
+
 This document records the operational context, not an installation procedure.
 The exact Linux setup remains a prerequisite task.
 
@@ -46,6 +51,10 @@ internet. Do not use guest, public, or untrusted Wi-Fi because the baseline
 HTTP connection does not encrypt the token. If off-site access becomes
 necessary, use a private VPN or add transport encryption first. See
 [ADR 0008](../decisions/0008-remote-studio-network-and-authentication.md).
+
+When a phone requests access, show a short-lived pairing PIN on the
+installation display and enter it on the phone. The browser remembers its
+credential; the installation secret itself stays on the laptop.
 
 ## Safety notes
 

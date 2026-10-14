@@ -120,13 +120,15 @@ The Node service serves the built browser bundle and control API from the same
 origin. The fullscreen presentation and remote studio reuse the responsive
 bundle, while each browser renders its own artwork canvas.
 
-When remote access is enabled, every API route, including archive reads and
-Presence events, requires an installation-wide bearer token. A user enters
-the token once per browser; the browser stores it in `localStorage` and sends
-it in an Authorization header, never in a URL. Presence events use
-authenticated fetch streaming rather than native `EventSource`. The
-installation token is stored outside source control and can be rotated.
-Provider keys remain on the laptop and are never sent to the dashboard.
+When remote access is enabled, control and archive routes, including Presence
+events, require an installation-wide bearer token. A phone requests pairing;
+a short-lived, one-time PIN appears only on the installation display, and the
+phone exchanges it for a remembered browser credential. PIN guesses are
+rate-limited, and the installation token remains in machine-local storage,
+never in source control or a URL. Presence events use authenticated fetch
+streaming rather than native `EventSource`. The local installation display is
+recognized by its source address and does not need pairing. Provider keys
+remain on the laptop and are never sent to the dashboard.
 
 The baseline uses HTTP only on the trusted private network, so another device
 able to observe that network could capture the token. Guest, public, and

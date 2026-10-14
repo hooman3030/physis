@@ -1,10 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ControlApiError,
+  completePairing,
   createImprint,
   deleteImprint,
+  dismissPairingPin,
+  getControlApiToken,
+  getPairingStatus,
   getPresence,
   listImprints,
+  requestPairingPin,
+  saveControlApiToken,
   selectCode,
   selectImprint,
   setParameters,
@@ -33,6 +39,34 @@ afterEach(() => {
 })
 
 describe('control API client', () => {
+  it('requests a PIN, checks the installation display, and completes pairing', async () => {
+    const token = 'a'.repeat(64)
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ expiresAt: 301_000 }), { status: 202 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ pin: '012345', expiresAt: 301_000 }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ token }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ dismissed: true }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(requestPairingPin()).resolves.toBe(301_000)
+    await expect(getPairingStatus()).resolves.toEqual({
+      pin: '012345',
+      expiresAt: 301_000,
+    })
+    await expect(completePairing('012345')).resolves.toBe(token)
+    await expect(dismissPairingPin()).resolves.toBeUndefined()
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/v1/pairing/request',
+      '/api/v1/pairing/status',
+      '/api/v1/pairing/complete',
+      '/api/v1/pairing/dismiss',
+    ])
+    expect(fetchMock.mock.calls[2]?.[1]?.body).toBe(JSON.stringify({ pin: '012345' }))
+  })
+
   it('loads and validates the current Presence', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify(snapshot), {
@@ -44,9 +78,62 @@ describe('control API client', () => {
 
     await expect(getPresence()).resolves.toEqual(snapshot)
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://127.0.0.1:4317/api/v1/presence',
-      expect.objectContaining({ headers: { accept: 'application/json' } }),
+      '/api/v1/presence',
+      expect.objectContaining({ headers: expect.any(Headers) }),
     )
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('accept')).toBe(
+      'application/json',
+    )
+  })
+
+  it('reports the HTTP status when the API proxy returns non-JSON', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockResolvedValue(
+        new Response('<html>Bad Gateway</html>', {
+          status: 502,
+          statusText: 'Bad Gateway',
+          headers: { 'content-type': 'text/html' },
+        }),
+      ),
+    )
+
+    await expect(getPresence()).rejects.toMatchObject({
+      name: 'ControlApiError',
+      status: 502,
+      message: 'Control API returned HTTP 502 Bad Gateway with a non-JSON response',
+    })
+  })
+
+  it('stores the installation token and sends it in the Authorization header', async () => {
+    const values = new Map<string, string>()
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    })
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(JSON.stringify(snapshot), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const token = 'a'.repeat(64)
+
+    saveControlApiToken(token)
+    expect(getControlApiToken()).toBe(token)
+    await getPresence()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/presence',
+      expect.objectContaining({ headers: expect.any(Headers) }),
+    )
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('authorization')).toBe(
+      `Bearer ${token}`,
+    )
+  })
+
+  it('rejects malformed installation tokens', () => {
+    expect(() => saveControlApiToken('short')).toThrow('64 hexadecimal characters')
   })
 
   it('rejects Presence modules with an unknown runtime', async () => {
@@ -79,7 +166,7 @@ describe('control API client', () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      'http://127.0.0.1:4317/api/v1/presence',
+      '/api/v1/presence',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ kind: 'code', id: 'drifting-filaments' }),
@@ -87,7 +174,7 @@ describe('control API client', () => {
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      'http://127.0.0.1:4317/api/v1/presence/parameters',
+      '/api/v1/presence/parameters',
       expect.objectContaining({
         method: 'PUT',
         body: JSON.stringify({ parameters: { filamentCount: 120 } }),
@@ -95,7 +182,7 @@ describe('control API client', () => {
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,
-      'http://127.0.0.1:4317/api/v1/imprints',
+      '/api/v1/imprints',
       expect.objectContaining({ method: 'POST', body: '{}' }),
     )
   })
@@ -116,12 +203,12 @@ describe('control API client', () => {
     await expect(selectImprint(imprint.id)).resolves.toEqual(selected)
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      'http://127.0.0.1:4317/api/v1/imprints',
-      expect.objectContaining({ headers: { accept: 'application/json' } }),
+      '/api/v1/imprints',
+      expect.objectContaining({ headers: expect.any(Headers) }),
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      'http://127.0.0.1:4317/api/v1/presence',
+      '/api/v1/presence',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ kind: 'imprint', id: imprint.id }),
@@ -137,7 +224,7 @@ describe('control API client', () => {
 
     await expect(deleteImprint('imprint-1')).resolves.toBeUndefined()
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://127.0.0.1:4317/api/v1/imprints/imprint-1',
+      '/api/v1/imprints/imprint-1',
       expect.objectContaining({ method: 'DELETE' }),
     )
   })
@@ -158,39 +245,48 @@ describe('control API client', () => {
     )
   })
 
-  it('subscribes to Presence events and closes the event stream', () => {
-    class MockEventSource extends EventTarget {
-      static instance: MockEventSource
-      onopen: ((event: Event) => void) | null = null
-      onerror: ((event: Event) => void) | null = null
-      readonly url: string
-      closed = false
-
-      constructor(url: string) {
-        super()
-        this.url = url
-        MockEventSource.instance = this
-      }
-
-      close() {
-        this.closed = true
-      }
-    }
-    vi.stubGlobal('EventSource', MockEventSource)
+  it('subscribes to authenticated Presence events and closes the stream', async () => {
+    const values = new Map<string, string>()
+    const token = 'b'.repeat(64)
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    })
+    saveControlApiToken(token)
+    let streamController!: ReadableStreamDefaultController<Uint8Array>
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          streamController = controller
+        },
+      })
+      return new Response(body, {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' },
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
     const onPresence = vi.fn()
     const onOpen = vi.fn()
     const onError = vi.fn()
 
     const close = subscribeToPresence(onPresence, onOpen, onError)
-    const events = MockEventSource.instance
-    events.dispatchEvent(new MessageEvent('presence', { data: JSON.stringify(snapshot) }))
-    events.onopen?.(new Event('open'))
+    await vi.waitFor(() => expect(onOpen).toHaveBeenCalledOnce())
+    streamController.enqueue(
+      new TextEncoder().encode(`event: presence\ndata: ${JSON.stringify(snapshot)}\n\n`),
+    )
+    await vi.waitFor(() => expect(onPresence).toHaveBeenCalledWith(snapshot))
     close()
 
-    expect(events.url).toBe('http://127.0.0.1:4317/api/v1/presence/events')
-    expect(onPresence).toHaveBeenCalledWith(snapshot)
-    expect(onOpen).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/presence/events',
+      expect.objectContaining({ headers: expect.any(Headers) }),
+    )
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('authorization')).toBe(
+      `Bearer ${token}`,
+    )
     expect(onError).not.toHaveBeenCalled()
-    expect(events.closed).toBe(true)
   })
 })
