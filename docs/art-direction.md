@@ -28,6 +28,17 @@ to consider each Gene independently, relationships between Genes, or both.
 Saving an Imprint is intended to signal that the result is worth keeping, but
 whether all saved Imprints carry equal weight also remains open.
 
+### Visualizing bias on Gene sliders
+
+The artist would like Gene sliders to show where saved Imprints support values,
+as a heatmap or gradient across the slider range. For example, if many saved
+Imprints have background brightness at 0, that region could use a highlight
+color while less-supported values use darker or secondary colors. Keep this
+cue distinct from the current Presence value and slider thumb. The research
+should determine how to represent sparse evidence, benevolent versus hostile
+bias, and relationships between Genes without implying unsupported
+independent per-Gene preferences.
+
 This bias should eventually apply both to World-driven drift and to the Gene
 randomize action. The randomize action should retain an unbiased option so its
 current behavior remains available.
