@@ -190,7 +190,7 @@ label {
   position: fixed;
   z-index: 4;
   top: 1rem;
-  right: 1rem;
+  right: 2rem;
   display: grid;
   width: min(34rem, calc(100vw - 2rem));
   justify-items: end;
@@ -208,7 +208,8 @@ label {
   border: 1px solid rgb(255 173 173 / 60%);
   border-radius: 0.75rem;
   color: #f4f1e8;
-  background: rgb(13 17 23 / 96%);
+  background: rgba(41, 7, 61, 0.46);
+  backdrop-filter: blur(4px) saturate(180%);
   box-shadow: 0 0.5rem 2rem rgb(0 0 0 / 35%);
   font-size: 0.875rem;
   line-height: 1.5;
