@@ -1,5 +1,3 @@
-import type p5 from 'p5'
-
 export type ArtworkParameter = {
   id: string
   label: string
@@ -11,9 +9,11 @@ export type ArtworkParameter = {
 
 export type ArtworkParameterValues = Readonly<Record<string, number>>
 
-export type ArtworkSeed = {
+export type RuntimeKind = 'p5' | 'canvas2d' | 'three' | 'shader'
+
+export type SeedDeclaration = {
   id: string
   label: string
   parameters: readonly ArtworkParameter[]
-  createSketch: (instance: p5, getParameters: () => ArtworkParameterValues) => void
+  runtime: RuntimeKind
 }

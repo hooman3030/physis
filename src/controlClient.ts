@@ -1,4 +1,9 @@
-import type { ArtworkParameter, ArtworkParameterValues } from './seeds/types'
+import type {
+  ArtworkParameter,
+  ArtworkParameterValues,
+  RuntimeKind,
+  SeedDeclaration,
+} from './seeds/types'
 
 const API_BASE_URL = 'http://127.0.0.1:4317/api/v1'
 
@@ -6,11 +11,7 @@ export type PresenceSnapshot = {
   revision: number
   code: { id: string } | null
   imprint: { id: string } | null
-  module: {
-    id: string
-    label?: string
-    parameters: readonly ArtworkParameter[]
-  } | null
+  module: SeedDeclaration | null
   parameters: ArtworkParameterValues | null
 }
 
@@ -61,6 +62,10 @@ function parseParameter(value: unknown): ArtworkParameter {
   }
 }
 
+function isRuntimeKind(value: unknown): value is RuntimeKind {
+  return value === 'p5' || value === 'canvas2d' || value === 'three' || value === 'shader'
+}
+
 function parseIdentity(value: unknown, field: string): { id: string } | null {
   if (value === null) return null
   if (!isRecord(value) || typeof value.id !== 'string') {
@@ -75,7 +80,8 @@ function parseModule(value: unknown): PresenceSnapshot['module'] {
   if (
     !isRecord(value) ||
     typeof value.id !== 'string' ||
-    (value.label !== undefined && typeof value.label !== 'string') ||
+    typeof value.label !== 'string' ||
+    !isRuntimeKind(value.runtime) ||
     !Array.isArray(value.parameters)
   ) {
     throw new Error('Control API returned an invalid module declaration')
@@ -83,8 +89,9 @@ function parseModule(value: unknown): PresenceSnapshot['module'] {
 
   return {
     id: value.id,
-    ...(typeof value.label === 'string' ? { label: value.label } : {}),
+    label: value.label,
     parameters: value.parameters.map(parseParameter),
+    runtime: value.runtime,
   }
 }
 

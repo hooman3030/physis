@@ -65,6 +65,7 @@ describe('presence', () => {
     expect(body.code.id).toBe(seedId)
     expect(body.imprint).toBeNull()
     expect(body.parameters[firstParameter.id]).toBe(firstParameter.defaultValue)
+    expect(body.module.runtime).toBe('p5')
     expect(body.module.parameters).toHaveLength(driftingFilamentsSeed.parameters.length)
   })
 

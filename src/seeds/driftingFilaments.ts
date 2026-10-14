@@ -1,10 +1,11 @@
-import type { ArtworkSeed } from './types'
+import type { P5Seed } from './p5'
 
 type Filament = { x: number; y: number; hue: number }
 
-export const driftingFilamentsSeed: ArtworkSeed = {
+export const driftingFilamentsSeed: P5Seed = {
   id: 'drifting-filaments',
   label: 'Drifting filaments',
+  runtime: 'p5',
   parameters: [
     {
       id: 'filamentCount',

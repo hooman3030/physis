@@ -12,7 +12,9 @@ const REV_B = '0123456789abcdef0123456789abcdef01234567'
 
 const mutantDeclaration: ModuleDeclaration = {
   id: 'drifting-m1',
+  label: 'Drifting Mutation',
   parameters: driftingFilamentsSeed.parameters,
+  runtime: 'p5',
 }
 const declarations: ModuleDeclaration[] = [driftingFilamentsSeed, firstLightSeed, mutantDeclaration]
 

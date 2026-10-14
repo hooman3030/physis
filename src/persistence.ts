@@ -1,22 +1,25 @@
-import type { ArtworkParameterValues, ArtworkSeed } from './seeds/types'
+import type { ArtworkParameterValues, SeedDeclaration } from './seeds/types'
 
 const STORAGE_KEY = 'physis:settings:v1'
 
 type SettingsStorage = Pick<Storage, 'getItem' | 'setItem'>
 type ErrorReporter = (message: string) => void
 
-export type ArtworkSettings = {
-  seed: ArtworkSeed
+export type ArtworkSettings<TSeed extends SeedDeclaration = SeedDeclaration> = {
+  seed: TSeed
   parametersBySeed: Readonly<Record<string, ArtworkParameterValues>>
 }
 
-export function getDefaultParameterValues(seed: ArtworkSeed): ArtworkParameterValues {
+export function getDefaultParameterValues(seed: SeedDeclaration): ArtworkParameterValues {
   return Object.fromEntries(seed.parameters.map(({ id, defaultValue }) => [id, defaultValue]))
 }
 
 // Stored values may be stale or hand-edited, so every value is re-validated
 // against the seed's current parameter declarations.
-export function sanitizeParameterValues(seed: ArtworkSeed, raw: unknown): ArtworkParameterValues {
+export function sanitizeParameterValues(
+  seed: SeedDeclaration,
+  raw: unknown,
+): ArtworkParameterValues {
   const stored = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {}
 
   return Object.fromEntries(
@@ -39,12 +42,12 @@ function getBrowserStorage(reportError: ErrorReporter): SettingsStorage | null {
   }
 }
 
-export function loadSettings(
-  seeds: readonly ArtworkSeed[],
-  defaultSeed: ArtworkSeed,
+export function loadSettings<TSeed extends SeedDeclaration>(
+  seeds: readonly TSeed[],
+  defaultSeed: TSeed,
   reportError: ErrorReporter,
   storage: SettingsStorage | null = getBrowserStorage(reportError),
-): ArtworkSettings {
+): ArtworkSettings<TSeed> {
   let stored: unknown
   let text: string | null = null
   try {
