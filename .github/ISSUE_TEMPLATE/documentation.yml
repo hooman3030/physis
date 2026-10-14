@@ -1,6 +1,6 @@
 name: Documentation
 description: Capture a durable explanation, decision, or documentation gap.
-title: "[Docs] "
+title: '[Docs] '
 labels:
   - documentation
 body:

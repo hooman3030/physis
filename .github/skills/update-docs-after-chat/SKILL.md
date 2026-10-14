@@ -3,6 +3,7 @@ name: update-docs-after-chat
 description: Capture lasting outcomes of the current chat in the repo.
 disable-model-invocation: true
 ---
+
 Review this chat and record only what is durable:
 
 - architectural or process choices -> ADR in `docs/decisions/` (update index);

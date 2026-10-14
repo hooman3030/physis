@@ -1,6 +1,6 @@
 ---
-description: "Use when managing Git branches, commits, rebases, pushes, pull requests, merge requests, merges, GitHub Issues, milestones, or Projects for physis."
-name: "Physis Git Management"
+description: 'Use when managing Git branches, commits, rebases, pushes, pull requests, merge requests, merges, GitHub Issues, milestones, or Projects for physis.'
+name: 'Physis Git Management'
 ---
 
 # Git and GitHub workflow
