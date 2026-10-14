@@ -73,6 +73,13 @@ without interrupting fullscreen rendering.
    ([#15](https://github.com/hooman3030/physis/issues/15)).
 3. Add Presence pause/resume controls
    ([#34](https://github.com/hooman3030/physis/issues/34)).
+4. Specify the archive Lineage Explorer graph and preview model
+   ([#50](https://github.com/hooman3030/physis/issues/50)).
+5. Build the Lineage Explorer after its design is resolved
+   ([#51](https://github.com/hooman3030/physis/issues/51)).
+
+See [Lineage Explorer](lineage-explorer.md) for the artist-requested
+experience and the design questions to resolve before implementation.
 
 [GitHub milestone M3](https://github.com/hooman3030/physis/milestone/6)
 
