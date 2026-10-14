@@ -64,10 +64,83 @@ in Git, bundled at build time. That cannot produce code at runtime.
 - **Run runtime code in the main page (`eval`/dynamic import).** Rejected: no
   isolation from storage, the control API, or the network.
 
+## Resolved questions
+
+- **Swap or restart:** a Presence restarts on new code with a short crossfade.
+  The candidate runs on its own canvas, and the display fades to it once the
+  checks pass. Seeds are not required to expose state; an optional state
+  handover contract can come later.
+- **Probe:** the host page runs the health probe, never the code under test.
+  The sandbox runtime wrapper posts downscaled frames (for example 32x32 per
+  second) and the host computes brightness, coverage, variance, and
+  frame-to-frame change.
+- **Limits:** start with the sandboxed iframe plus a heartbeat watchdog. A
+  stalled heartbeat or collapsed frame rate removes the iframe and counts as a
+  failed check. A runaway synchronous loop can still freeze the tab; move to
+  Worker plus `OffscreenCanvas` only if that happens.
+- **Renderer-agnostic:** the sandbox contract must not be p5-specific. Runtime
+  code targets a small renderer interface (parameters in, canvas and frames
+  out), with p5, raw Canvas 2D, and later Three.js and raw shaders as
+  interchangeable runtimes behind it. Each module declares its runtime.
+- **Process view:** hidden but toggleable on the laptop panel; primarily
+  viewed in the remote studio (M3).
+
+## Runtime interface
+
+A runtime is an adapter that turns module source and parameters into pixels.
+The sandbox wrapper, not the module author, owns the canvas, the frame loop,
+and the host messaging; the module supplies only drawing logic.
+
+```ts
+type RuntimeKind = 'p5' | 'canvas2d' | 'three' | 'shader'
+
+interface ArtworkRuntime {
+  mount(canvas: HTMLCanvasElement, source: string): void
+  setParameters(values: Readonly<Record<string, number>>): void
+  resize(width: number, height: number): void
+  dispose(): void
+}
+```
+
+- The wrapper drives timing: it calls the runtime's frame step, measures frame
+  rate for the heartbeat, and posts downscaled frames to the host.
+- Each runtime defines what `source` means: a p5 sketch function body, a Canvas
+  2D `draw(ctx, time, params)` function, a Three.js scene factory, or a
+  fragment shader with parameter uniforms. Adding a runtime means adding an
+  adapter; the host, probe, archive, and watchdog do not change.
+- Parameter declarations (`id`, `label`, `defaultValue`, `min`, `max`, `step`)
+  are runtime-independent and remain the contract the archive validates.
+- Libraries (p5, Three.js) are bundled with the sandbox page and served from
+  the app's own origin, so the sandbox needs no network. Each iframe loads only
+  the runtime named by its module.
+- Frame sampling: the wrapper downscales the canvas into a small 2D canvas
+  with `drawImage` in the same task as rendering, which also works for WebGL
+  contexts and avoids a full `readPixels`. Its cost on the Intel HD 520 is
+  unverified and must be measured on the laptop (#4) before M4 relies on it.
+
+## Consequences for the Seed type
+
+`ArtworkSeed` in `src/seeds/types.ts` is p5-specific: `createSketch` takes a
+`p5` instance, and `ArtworkCanvas` mounts p5 directly. That fits bundled p5
+modules but not this ADR. Required changes, to be done as a separate task
+before M4 and not inside #10:
+
+- Split the declaration from the implementation. A runtime-independent
+  `SeedDeclaration` (`id`, `label`, `parameters`, `runtime`) is what the archive
+  and the control API consume; this is already how the archive is typed, so #10
+  is unaffected.
+- Add a `runtime: RuntimeKind` field and move `createSketch` into a
+  p5-specific implementation type. Existing seeds keep working as `p5` modules.
+- Replace direct p5 mounting in `ArtworkCanvas` with a runtime adapter, so
+  bundled and runtime modules go through the same path and the same
+  checks.
+- Keep `src/seeds/types.ts` free of runtime imports so the server can keep
+  importing declarations without pulling in browser libraries.
+
 ## Open questions
 
-- Should a Presence swap seamlessly to a new module or restart it?
-- Which pixel-statistics probe feeds the health checks, and who runs it: the
-  sandbox or the host page?
-- Whether sandbox resource limits (CPU time, memory) can be enforced reliably in
-  the browser on the laptop; this may need a worker-based variant.
+- Which model produces the proposals, and what request budget applies? Tracked
+  in #13.
+- Whether the Canvas 2D and shader source formats need a restricted API surface
+  (for example, no `fetch` or DOM access) beyond the sandbox itself. Decide in
+  #20.

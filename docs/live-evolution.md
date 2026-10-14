@@ -92,14 +92,15 @@ These need an ADR before implementation. Do not build around them silently.
 
 ## Open questions
 
-- Should a live Mutation replace the running sketch seamlessly, or does the
-  Presence restart on the new code?
+Answers so far are recorded in
+[ADR 0007](decisions/0007-live-mutation-code-and-sandbox.md): restart with
+crossfade, host-run probe, iframe with heartbeat watchdog, renderer-agnostic
+runtime interface (defined in the ADR), and a process view that is hidden but toggleable on the
+laptop and primarily in the remote studio. Still open:
+
 - Which model produces the proposals, and what does the 4 GB laptop need to
   stay responsive while the observer view is open?
-- Where is the process viewed: in the artwork's control panel, or in the future
-  remote studio?
-- How are checks measured: pixel statistics from the canvas, or an in-sketch
-  probe?
+- Restricted API surface per runtime (decided in #20).
 
 ## Roadmap placement
 
