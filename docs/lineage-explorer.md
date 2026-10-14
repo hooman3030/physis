@@ -6,8 +6,7 @@ graph, bounded static posters, worker-encoded GIF capture/storage, and
 interaction-triggered playback are implemented. Performance measurement on
 the presentation laptop remains outstanding; historical captures are not
 backfilled. The graph and preview recommendations are recorded in
-[ADR 0009](decisions/0009-lineage-explorer-graph-and-previews.md); review its
-proposed decision to resolve the design. See
+[ADR 0009](decisions/0009-lineage-explorer-graph-and-previews.md). See
 [M3 in the roadmap](roadmap.md#m3--local-network-remote-studio).
 
 ## Intent
@@ -19,24 +18,25 @@ does not change how the archive stores lineage or how the artwork renders.
 
 ## Graph model and layout
 
-Show three explicitly different relationships:
+Render one organic, force-directed SVG graph with a single kind of solid,
+directed parent edge:
 
-- **Code parent:** a Seed or Mutation points to its parent Seed or Mutation.
-- **Imprint parent:** an Imprint points to its parent Imprint.
-- **Code reference:** an Imprint refers to the Seed or Mutation whose code and
-  source revision it records.
+- A Seed or Mutation points to its parent Seed or Mutation.
+- An Imprint with an Imprint parent points to that parent.
+- Each root Imprint points to the code node it was created from.
 
-Keep code nodes and Imprints in separate, labeled lanes. Render parent edges
-as solid directed lines and Imprint-to-code references as dashed lines with a
-distinct legend. Never draw a reference as an ancestry edge. Presence is
-current runtime state, not an archived node, and is not shown.
+Do not draw additional Imprint-to-code reference edges for Imprints that
+already have an Imprint parent. The archive's `codeId` remains provenance and
+is still available in the inspector.
 
-Use a deterministic, layered SVG layout rather than a force-directed
-simulation. Arrange each lineage from parent to child, with stable sibling
-ordering by creation time and ID. This avoids a continuously running layout,
-keeps positions understandable between visits, and needs no graph-rendering
-dependency. Reflow or stack the two lanes on narrow screens; keep node details
-available in a responsive inspector and a keyboard-accessible node list.
+Use `d3-force` for link, repulsion, centering, and collision forces while
+keeping React and SVG responsible for rendering, accessible node controls,
+and preview images. Start from deterministic positions, let the simulation
+settle, then stop it. Users can drag nodes, pan the graph, and zoom the
+viewport; arrow keys also move a focused node. Save node positions locally in
+the browser and provide a reset control. Use small wheel-zoom increments.
+Never persist layout in the archive. Presence is current runtime state, not
+an archived node, and is indicated without changing the graph relationships.
 
 The existing archive API already exposes code nodes, Imprints, their parents,
 and each Imprint's `codeId`. The browser client will need validated list
@@ -45,24 +45,30 @@ to build the graph.
 
 ## Route and interaction
 
-Open the explorer at `/lineage`; keep `/` as the artwork route. Start with a
-standalone page, not an overlay. Keep the graph view independent of the route
-shell so the same view can later be hosted in a modal without changing the
-graph model.
+Open the explorer at `/lineage`; keep `/` as the artwork route. The graph
+fills the viewport, with the back link and heading floating over its upper-left corner.
+Use the selected node's poster as a softly blurred backdrop with a black
+overlay that fades from 90% opacity at the top to transparent at one-third of
+the viewport height; use a dark fallback when the node has no poster. Do not
+show a detail inspector or explanatory graph copy. Crossfade poster changes
+over 450 ms, except when reduced motion is requested. Keep the graph view
+independent of the route shell so the same view can later be hosted in a modal
+without changing the graph model.
 
-Activating a node focuses it and opens its details; it does not immediately
-change the active Presence. Provide a separate, explicit **Use in Presence**
-action that reuses the existing code or Imprint selection API. Show the
-action only when the control API is connected and the code node is available
-in the running build. An unavailable Seed or Mutation remains inspectable but
-cannot be activated. This avoids changing the artwork as a side effect of
-graph exploration.
+Selecting a node focuses it, marks it with the dotted selection ring, changes
+the backdrop, and activates it in the Presence when the control API is
+connected and its code is available. Do not issue another activation request
+when the selected node is already active. On initial load, select the active
+Imprint if it exists in the archive; when there is no active Imprint, leave
+the graph unselected. An unavailable Seed or Mutation can still be selected,
+but cannot be activated.
 
-Keyboard users can reach and activate every node and relationship; touch
-users get the same details and explicit action without hover. Node type,
-active state, and edge type must remain understandable without color alone.
-Respect `prefers-reduced-motion`; graph navigation and selection must not
-depend on animation.
+Keyboard and touch users can select every node, which automatically activates
+available nodes without relying on hover. Node type, active state, and parent
+direction must remain understandable without color alone. Respect
+`prefers-reduced-motion`; calculate a settled layout without visible motion
+when it is enabled. Graph navigation and selection must not depend on
+animation.
 
 ## Preview capture and storage
 
@@ -126,16 +132,21 @@ an animation, as well as styling the interface accordingly. See
 
 - Keep the installation local-first. Preview reads and writes use the same
   authenticated `/api/v1` boundary as archive data; do not expose preview
-  files as unauthenticated static assets or add a public dependency.
+  files as unauthenticated static assets or rely on a public runtime service.
 - Preview failure, missing files, or disabled animation never blocks the
   graph, the archive, or the artwork runtime.
-- Keep graph layout deterministic and avoid continuous simulation.
+- Keep initial placement deterministic and stop force simulation after
+  settling; do not run a continuous simulation while the graph is idle.
+- Keep user-moved positions local to the browser and provide a reset control.
+- Keep the selected-node backdrop decorative and dark enough for graph
+  controls and node labels to remain legible.
 - Lazily load animated assets and enforce the size caps to bound transfer and
   decoded-image memory on the 4 GB presentation laptop.
 - Before considering preloading or autoplay beyond explicit interaction,
   measure capture time, generated file sizes, and browser memory on the
   presentation laptop. Keep static posters and placeholders as the complete
   usable experience.
-- Test graph relationship types independently, explicit Presence activation,
-  direct `/lineage` loading, missing/invalid previews, reduced motion, and
+- Test root and descendant parent edges, force-layout stability, saved
+  positions, dragging, pan/zoom, explicit Presence activation, direct
+  `/lineage` loading, missing/invalid previews, reduced motion, and
   keyboard/touch access.

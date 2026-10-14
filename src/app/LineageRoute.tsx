@@ -17,7 +17,11 @@ import {
   type PresenceSnapshot,
 } from '../controlClient'
 import { reportApplicationError } from '../errorNotifications'
-import { LineageExplorer, type LineageSelection } from '../ui/archive/LineageExplorer'
+import {
+  getInitialLineageSelection,
+  LineageExplorer,
+  type LineageSelection,
+} from '../ui/archive/LineageExplorer'
 import { RemoteAccessPairing } from '../ui/overlays/RemoteAccessPairing'
 
 type ControlStatus = 'connecting' | 'connected' | 'offline'
@@ -50,6 +54,10 @@ export function LineageRoute() {
         setPresence(nextPresence)
         setCodeNodes(nextCodeNodes)
         setImprints(nextImprints)
+        const initialSelection = getInitialLineageSelection(nextPresence, nextImprints)
+        if (initialSelection !== null) {
+          setSelection((current) => current ?? initialSelection)
+        }
         setAuthenticationRequired(false)
         setControlStatus('connected')
       })

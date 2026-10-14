@@ -832,70 +832,150 @@ main[data-open-panels='both'] .archive-panel {
 }
 
 .lineage-page {
-  min-height: 100vh;
-  padding: clamp(1.25rem, 4vw, 4rem);
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--color-canvas);
 }
 
-.lineage-header,
 .lineage-status,
-.lineage-browser,
 .lineage-retry {
-  width: min(100%, 96rem);
+  width: 100%;
   margin-right: auto;
   margin-left: auto;
 }
 
 .lineage-header {
-  margin-bottom: 1.5rem;
+  position: absolute;
+  z-index: 3;
+  top: 1.5rem;
+  left: clamp(1rem, 2.5vw, 2rem);
+  display: flex;
+  width: auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
 }
 
 .lineage-header h1 {
-  margin: 0.4rem 0;
-  font-size: clamp(1.7rem, 4vw, 3rem);
+  margin-top: 1.25rem;
+  font-size: clamp(1.35rem, 2.6vw, 1.8rem);
   font-weight: 500;
-}
-
-.lineage-header p:not(.eyebrow) {
-  max-width: 52rem;
-  color: var(--color-muted);
-  line-height: 1.5;
 }
 
 .lineage-back-link {
   display: inline-block;
-  margin-bottom: 1.5rem;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.lineage-back-link::before {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: 0.45rem;
+  border-top: 0.32em solid transparent;
+  border-right: 0.42em solid currentColor;
+  border-bottom: 0.32em solid transparent;
+  content: '';
+  vertical-align: 0.02em;
 }
 
 .lineage-status,
-.lineage-empty,
-.lineage-inspector-empty {
+.lineage-empty {
   color: var(--color-muted);
+}
+
+.lineage-status {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0.6rem 1rem;
 }
 
 .lineage-retry {
   display: block;
+  width: auto;
+  align-self: flex-start;
+  margin: 0 1rem 0.6rem;
 }
 
 .lineage-browser {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(16rem, 21rem);
-  align-items: start;
-  gap: 1rem;
-}
-
-.lineage-graph-panel,
-.lineage-inspector {
+  position: relative;
+  display: flex;
   min-width: 0;
-  padding: 1rem;
-  border: 1px solid var(--border-subtle);
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .lineage-graph-panel {
-  border-radius: var(--radius-card);
-  background:
-    radial-gradient(ellipse at 50% 0, rgb(169 213 192 / 5%), transparent 65%),
-    var(--surface-control-background);
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--color-canvas);
+}
+
+.lineage-graph-backdrop {
+  position: absolute;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  inset: 0rem;
+}
+
+.lineage-graph-backdrop-poster {
+  position: absolute;
+  transform: scale(1.08);
+  background-position: center;
+  background-size: cover;
+  filter: blur(12px) saturate(60%) contrast(150%) brightness(40%);
+  opacity: 0.82;
+  inset: -2.5rem;
+}
+
+.lineage-graph-backdrop-poster-incoming {
+  animation: lineage-backdrop-fade-in 1200ms ease both;
+}
+
+.lineage-graph-backdrop-poster-outgoing {
+  animation: lineage-backdrop-fade-out 1200ms ease both;
+}
+
+@keyframes lineage-backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.82;
+  }
+}
+
+@keyframes lineage-backdrop-fade-out {
+  from {
+    opacity: 0.82;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.lineage-graph-backdrop-overlay {
+  position: absolute;
+  background: linear-gradient(to bottom, rgb(0 0 0 / 90%) 0, rgb(0 0 0 / 30%) 33vh);
+  inset: 0;
+}
+
+.lineage-graph-toolbar {
+  position: absolute;
+  z-index: 2;
+  top: 0.75rem;
+  right: 0.75rem;
 }
 
 .archive-explorer-link:focus-visible,
@@ -904,105 +984,70 @@ main[data-open-panels='both'] .archive-panel {
   outline-offset: 0.2rem;
 }
 
-.lineage-graph-legend {
+.lineage-graph-buttons {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 0.6rem 1.25rem;
-  margin: 0 0 0.75rem;
-  color: var(--color-muted);
+  gap: 0.35rem;
+}
+
+.lineage-graph-buttons button {
+  font-family: inherit;
   font-size: var(--text-sm);
 }
 
-.lineage-graph-legend > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.lineage-legend-line {
-  display: inline-block;
-  width: 1.8rem;
-  border-top: 2px solid var(--color-accent);
-}
-
-.lineage-legend-imprint-parent {
-  border-color: var(--color-muted);
-}
-
-.lineage-legend-reference {
-  border-top-style: dashed;
-  border-color: var(--color-warning);
-}
-
-.lineage-graph-scroll {
-  max-height: min(72vh, 58rem);
-  overflow: auto;
-  overscroll-behavior: contain;
-  border-radius: var(--radius-card);
+.lineage-graph-viewport {
+  position: absolute;
+  z-index: 1;
+  overflow: hidden;
+  inset: 0;
 }
 
 .lineage-graph {
+  position: absolute;
+  inset: 0;
   display: block;
+  width: 100%;
+  height: 100%;
   max-width: none;
   background-image: radial-gradient(rgb(244 241 232 / 8%) 0.7px, transparent 0.7px);
-  background-size: 18px 18px;
+  background-size: 22px 22px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
 }
 
-.lineage-lane-band {
-  stroke: var(--border-subtle);
-  stroke-width: 1;
+.lineage-graph:active {
+  cursor: grabbing;
 }
 
-.lineage-code-lane {
-  fill: rgb(169 213 192 / 4%);
-}
-
-.lineage-imprint-lane {
-  fill: rgb(244 241 232 / 3%);
-}
-
-.lineage-lane-label {
-  fill: var(--color-muted);
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+.lineage-graph-background {
+  fill: transparent;
+  pointer-events: all;
 }
 
 .lineage-graph-edge {
-  fill: none;
-  stroke-width: 2;
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
 
-.lineage-graph-edge-code-parent {
-  stroke: var(--color-accent);
-}
-
-.lineage-graph-edge-imprint-parent {
-  stroke: var(--color-muted);
-}
-
-.lineage-graph-edge-code-reference {
-  stroke: var(--color-warning);
-  stroke-dasharray: 6 7;
-}
-
-.lineage-arrow-code-parent {
+.lineage-arrow-parent {
   fill: var(--color-accent);
 }
 
-.lineage-arrow-imprint-parent {
-  fill: var(--color-muted);
-}
-
-.lineage-arrow-reference {
-  fill: var(--color-warning);
-}
-
 .lineage-graph-node {
-  cursor: pointer;
+  cursor: grab;
+  filter: drop-shadow(0 5px 8px rgb(0 0 0 / 72%));
   outline: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lineage-graph-node:active {
+  cursor: grabbing;
 }
 
 .lineage-graph-node:hover .lineage-graph-shape,
@@ -1033,22 +1078,6 @@ main[data-open-panels='both'] .archive-panel {
 .lineage-graph-shape-imprint {
   fill: rgb(244 241 232 / 7%);
   stroke: var(--color-muted);
-}
-
-.lineage-graph-role-ring {
-  fill: none;
-  pointer-events: none;
-  stroke-width: 1;
-}
-
-.lineage-graph-role-ring-mutation {
-  stroke: var(--color-warning);
-  stroke-dasharray: 3 3;
-}
-
-.lineage-graph-role-ring-imprint {
-  stroke: var(--color-muted);
-  stroke-dasharray: 2 4;
 }
 
 .lineage-graph-preview {
@@ -1101,56 +1130,29 @@ main[data-open-panels='both'] .archive-panel {
   vector-effect: non-scaling-stroke;
 }
 
-.lineage-inspector {
-  position: sticky;
-  top: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.lineage-inspector h2,
-.lineage-inspector p {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.lineage-inspector .eyebrow {
-  color: var(--color-accent);
-  text-transform: capitalize;
-}
-
-.lineage-inspector button {
-  margin-top: 0.5rem;
-  padding: 0.65rem 0.8rem;
-}
-
-.lineage-inspector .lineage-unavailable {
-  color: var(--color-warning);
-  font-size: var(--text-sm);
-  line-height: 1.45;
-}
-
-@media (max-width: 58rem) {
-  .lineage-browser {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .lineage-inspector {
-    position: static;
-  }
-}
-
 @media (max-width: 40rem) {
-  .lineage-page {
-    padding: 1rem;
+  .lineage-header {
+    top: 0.75rem;
+    left: 0.75rem;
   }
 
-  .lineage-graph-panel {
-    padding: 0.65rem;
+  .lineage-header h1 {
+    font-size: 1.1rem;
   }
 
-  .lineage-graph-scroll {
-    max-height: 68vh;
+  .lineage-graph-toolbar {
+    top: 0.45rem;
+    right: 0.45rem;
+  }
+
+  .lineage-graph-buttons {
+    gap: 0.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lineage-graph-backdrop-poster-incoming,
+  .lineage-graph-backdrop-poster-outgoing {
+    animation: none;
   }
 }
