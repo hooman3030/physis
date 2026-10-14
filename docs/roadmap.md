@@ -92,6 +92,11 @@ approved resource and request limits.
 4. Add the optional hosted-AI provider adapter
    ([#19](https://github.com/hooman3030/physis/issues/19)).
 
+Live, observable mutation with automated health checks and self-correcting
+feedback loops is specified in [live-evolution.md](live-evolution.md). Its
+requirements conflict with the Git-only Mutation storage in ADR 0006 and need
+a new ADR first.
+
 [GitHub milestone M4](https://github.com/hooman3030/physis/milestone/5)
 
 ## M5 — Unattended Installation
