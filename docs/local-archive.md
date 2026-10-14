@@ -92,5 +92,6 @@ Routes under `/api/v1`:
 
 Live tweaks are never archived until imprinted, and are lost on restart. The
 service refuses non-loopback hosts, checks the `Host` and `Origin` headers, and
-requires `application/json` on writes. There is no authentication in M2; LAN
-access and auth belong to #12.
+requires `application/json` on writes. There is no authentication in M2; the
+service remains loopback-only until remote access is implemented according to
+[ADR 0008](decisions/0008-remote-studio-network-and-authentication.md).

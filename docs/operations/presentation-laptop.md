@@ -35,12 +35,17 @@ When implementation starts, the installation should eventually provide:
 - fullscreen/kiosk display mode;
 - recovery to the last stable artwork after a process failure;
 - local persistence for Seeds, Mutations, and Imprints;
-- a local-network control surface;
+- an opt-in control surface on the trusted private network (Wi-Fi preferred;
+  wired clients allowed if excluding them adds operational complexity);
 - a way to pause evolution before maintenance;
 - visible logs or diagnostics for failures.
 
-Do not expose the control API directly to the public internet. If off-site
-access becomes necessary, prefer a private VPN.
+The remote control API must require a persistent installation token, remain
+behind the host firewall, and never be exposed directly to the public
+internet. Do not use guest, public, or untrusted Wi-Fi because the baseline
+HTTP connection does not encrypt the token. If off-site access becomes
+necessary, use a private VPN or add transport encryption first. See
+[ADR 0008](../decisions/0008-remote-studio-network-and-authentication.md).
 
 ## Safety notes
 

@@ -58,8 +58,10 @@ their lineage intact.
 ## M3 — Local-Network Remote Studio
 
 Provide a phone- and desktop-friendly dashboard for observing and controlling
-the installation on the trusted local network. Reuse the existing control
-surface where practical. Do not expose control APIs to the public internet.
+the installation on a trusted private network (Wi-Fi preferred, with private
+Ethernet allowed if excluding it adds operational complexity). Reuse the
+existing control surface where practical. Do not expose control APIs to the
+public internet.
 
 **Exit outcome:** an authenticated local-network client can inspect the active
 work, browse archive state, change supported controls, and see diagnostics
