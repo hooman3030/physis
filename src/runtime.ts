@@ -1,5 +1,5 @@
 import { mountP5Runtime } from './runtimes/p5'
-import type { P5Seed } from './seeds/p5'
+import type { P5Seed } from './seeds/p5/types'
 import type { ArtworkParameterValues, RuntimeKind } from './seeds/types'
 
 export type SeedModule = P5Seed

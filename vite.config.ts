@@ -19,7 +19,11 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'server/**/*.test.ts'],
+    include: [
+      'tests/frontend/**/*.test.ts',
+      'tests/frontend/**/*.test.tsx',
+      'tests/server/**/*.test.ts',
+    ],
     environment: 'node',
   },
   lint: {

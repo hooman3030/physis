@@ -1,6 +1,6 @@
 import p5 from 'p5'
 import type { ArtworkParameterValues } from '../seeds/types'
-import type { P5Seed } from '../seeds/p5'
+import type { P5Seed } from '../seeds/p5/types'
 
 export function mountP5Runtime(
   container: HTMLDivElement,

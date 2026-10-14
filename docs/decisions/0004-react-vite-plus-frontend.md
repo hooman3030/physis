@@ -28,12 +28,29 @@ Keep the first app at the repository root. A later local API can become a
 workspace package when it is needed; the first slice does not justify that
 boundary yet.
 
+Organize the browser app with application composition in `src/app/` and React
+components and styles in purpose-based subdirectories of `src/ui/`. Keep
+artwork/domain modules and non-UI services outside `ui/`. Put tests in a
+top-level `tests/` tree, grouped by frontend area or server area, and configure
+Vitest to discover them there. This is a source-layout choice, not a new
+package or workspace boundary.
+
+Keep runtime-independent Seed declarations and the registry in `src/seeds/`.
+Store bundled Seed implementations under a runtime-specific directory, with
+each Seed in its own identity-named folder (for example,
+`src/seeds/p5/first-light/seed.ts`). Put runtime-specific Seed types beside
+that runtime's implementations, and add runtime directories when those
+implementations exist rather than creating empty scaffolding.
+
 ## Consequences
 
 - The project has one toolchain for development, checks, tests, and builds.
 - VS Code and terminal/CI workflows use the same formatter and linter.
 - The p5 lifecycle is owned by a React component while sketch logic remains
   independent of React's render cycle.
+- Application composition, presentation components, domain modules, and tests
+  have distinct, discoverable locations without splitting the root app into
+  packages.
 - The initial browser bundle is intentionally simple; bundle splitting can be
   considered when the artwork grows.
 

@@ -15,6 +15,8 @@ application code.
   read-only historical reference, not current requirements; curated `docs/`
   wins on conflict.
 - Record durable architectural choices in `docs/decisions/`.
+- Follow [docs/project-structure.md](docs/project-structure.md) for source and
+  test placement; keep new files within clear domain boundaries.
 - Use GitHub Issues for actionable work rather than turning every idea into a
   document.
 - Follow the domain naming convention in `docs/glossary.md`: use Seed,

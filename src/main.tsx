@@ -1,7 +1,7 @@
 import { Component, StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { App } from './App'
-import { ErrorToastHost } from './ErrorToastHost'
+import { App } from './app/App'
+import { ErrorToastHost } from './ui/notifications/ErrorToastHost'
 import { reportApplicationError } from './errorNotifications'
 
 class ApplicationErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
