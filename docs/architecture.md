@@ -68,6 +68,8 @@ in-art control panel is available by keyboard shortcut or edge target for
 development and direct interaction. Keep its control components independent
 of their host so the same controls can be embedded in a future remote studio.
 The artwork remains fullscreen when the panel is closed.
+The shared typography, shape, and surface tokens are documented in the
+[UI design system](ui-design-system.md).
 
 ## Evolution and safety
 
