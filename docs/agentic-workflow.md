@@ -40,12 +40,12 @@ tasks; this workflow grows from that habit into agent work gradually.
 After every chat that produces a lasting insight, the agent updates the repo
 in the same working session:
 
-| What came out of the chat | Where it goes |
-| --- | --- |
-| A durable architectural or process choice | New or updated ADR in `docs/decisions/` |
-| Changed understanding, scope, or design | The relevant file in `docs/` |
-| A new rule for how agents should behave | `AGENTS.md` or `.github/instructions/` |
-| Actionable work or open questions | GitHub Issue, created and kept current by the agent |
+| What came out of the chat                 | Where it goes                                       |
+| ----------------------------------------- | --------------------------------------------------- |
+| A durable architectural or process choice | New or updated ADR in `docs/decisions/`             |
+| Changed understanding, scope, or design   | The relevant file in `docs/`                        |
+| A new rule for how agents should behave   | `AGENTS.md` or `.github/instructions/`              |
+| Actionable work or open questions         | GitHub Issue, created and kept current by the agent |
 
 Chats that produce nothing durable need no changes. Doc updates are made as
 their own small change, left uncommitted until the human has reviewed and

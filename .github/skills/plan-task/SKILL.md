@@ -3,6 +3,7 @@ name: plan-task
 description: Plan a physis task before any edits.
 disable-model-invocation: true
 ---
+
 Plan the task below without editing files.
 
 1. Read `AGENTS.md`, the relevant `docs/` pages, and ADRs.

@@ -1,6 +1,6 @@
 name: Research
 description: Investigate an unresolved technical or operational question.
-title: "[Research] "
+title: '[Research] '
 labels:
   - research
 body:

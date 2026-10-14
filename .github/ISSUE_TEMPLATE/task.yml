@@ -1,6 +1,6 @@
 name: Task
 description: Track a concrete, actionable piece of project work.
-title: "[Task] "
+title: '[Task] '
 labels:
   - task
 body:
