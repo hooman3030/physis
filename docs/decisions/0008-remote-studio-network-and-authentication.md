@@ -30,6 +30,9 @@ that network.
   local network. Do not configure router port forwarding or expose the
   control API to the public internet. Keep the existing loopback-only mode
   available for local use.
+- In remote mode, the Node service serves the built browser bundle and control
+  API from the same origin. The presentation display and remote studio reuse
+  this bundle; each browser renders artwork locally.
 - When remote access is enabled, require one installation-wide bearer token
   for every API route, including archive reads and Presence events. Generate
   the token with a cryptographically secure random generator, keep it in
@@ -64,6 +67,9 @@ that network.
   individual users or devices. Rotation revokes every paired browser at once.
 - The implementation must authenticate event streams without placing
   credentials in URLs and must keep remote access opt-in.
+- An API or network interruption does not stop artwork already rendering in
+  an open browser tab. A fresh page load still requires the Node service to
+  serve the bundle.
 - This boundary depends on a trusted private network and host firewall rather
   than providing confidentiality against other clients on that network.
 - Authentication, firewall configuration, and remote binding are follow-up

@@ -116,6 +116,9 @@ Wi-Fi as the normal access path. Private-network Ethernet clients are also
 allowed if excluding them would require special interface or firewall
 configuration. Remote access is opt-in, restricted by the host firewall to
 the trusted local network, and must not be exposed to the public internet.
+The Node service serves the built browser bundle and control API from the same
+origin. The fullscreen presentation and remote studio reuse the responsive
+bundle, while each browser renders its own artwork canvas.
 
 When remote access is enabled, every API route, including archive reads and
 Presence events, requires an installation-wide bearer token. A user enters

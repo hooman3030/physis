@@ -71,6 +71,8 @@ without interrupting fullscreen rendering.
    ([#12](https://github.com/hooman3030/physis/issues/12)).
 2. Build the remote studio
    ([#15](https://github.com/hooman3030/physis/issues/15)).
+3. Add Presence pause/resume controls
+   ([#34](https://github.com/hooman3030/physis/issues/34)).
 
 [GitHub milestone M3](https://github.com/hooman3030/physis/milestone/6)
 
