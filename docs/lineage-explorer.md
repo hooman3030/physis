@@ -1,84 +1,152 @@
 # Lineage Explorer
 
-Status: artist-requested direction; graph and preview design need research
-before implementation. See [M3 in the roadmap](roadmap.md#m3--local-network-remote-studio),
-[#50](https://github.com/hooman3030/physis/issues/50), and
-[#51](https://github.com/hooman3030/physis/issues/51).
+Status: implementation is in progress for
+[#51](https://github.com/hooman3030/physis/issues/51). The route-first SVG
+graph, bounded static posters, worker-encoded GIF capture/storage, and
+interaction-triggered playback are implemented. Performance measurement on
+the presentation laptop remains outstanding; historical captures are not
+backfilled. The graph and preview recommendations are recorded in
+[ADR 0009](decisions/0009-lineage-explorer-graph-and-previews.md). See
+[M3 in the roadmap](roadmap.md#m3--local-network-remote-studio).
 
 ## Intent
 
-Provide an at-a-glance, navigable view of the artwork archive inspired by
+Provide an optional, navigable view of the artwork archive inspired by
 Obsidian's node view. Seeds, Mutations, and Imprints appear as circular nodes
-whose visual is a saved screenshot of that entity. The view should make the
-artwork's different kinds of lineage understandable without changing how the
-archive stores or renders it.
+with saved visual previews. The explorer browses the existing archive; it
+does not change how the archive stores lineage or how the artwork renders.
 
-## Graph model
+## Graph model and layout
 
-The explorer must preserve the archive's two distinct lineages and their
-cross-reference:
+Render one organic, force-directed SVG graph with a single kind of solid,
+directed parent edge:
 
-- **Code lineage:** a Seed or Mutation node links to its parent Seed or
-  Mutation.
-- **Imprint lineage:** an Imprint links to its parent Imprint.
-- **Code reference:** each Imprint links to the Seed or Mutation whose code
-  and source revision it records.
+- A Seed or Mutation points to its parent Seed or Mutation.
+- An Imprint with an Imprint parent points to that parent.
+- Each root Imprint points to the code node it was created from.
 
-These links must be visually distinguishable. The code and Imprint
-relationships must not be flattened into one ancestry chain. Presence is the
-currently running work, not an archived lineage node, and is not included as
-a node in this view.
+Do not draw additional Imprint-to-code reference edges for Imprints that
+already have an Imprint parent. The archive's `codeId` remains provenance and
+is still available in the inspector.
 
-The explorer is a browser for the existing archive, not a new archive model.
-Selecting or activating nodes should follow the behavior determined by the
-design issue, reusing the existing archive selection behavior where suitable.
+Use `d3-force` for link, repulsion, centering, and collision forces while
+keeping React and SVG responsible for rendering, accessible node controls,
+and preview images. Start from deterministic positions, let the simulation
+settle, then stop it. Users can drag nodes, pan the graph, and zoom the
+viewport; arrow keys also move a focused node. Save node positions locally in
+the browser and provide a reset control. Use small wheel-zoom increments.
+Never persist layout in the archive. Presence is current runtime state, not
+an archived node, and is indicated without changing the graph relationships.
 
-## Visual and interaction direction
+The existing archive API already exposes code nodes, Imprints, their parents,
+and each Imprint's `codeId`. The browser client will need validated list
+methods for code nodes and Imprints. Do not change archive lineage semantics
+to build the graph.
 
-- Present each Seed, Mutation, and Imprint as a circular node with its saved
-  screenshot as the primary visual.
-- On hover, play a short ping-pong animation of the entity, preferably as a
-  GIF or an equivalent lightweight animated preview. The saved screenshot is
-  the static poster and fallback.
-- Preserve clear node-type and relationship cues so the graph remains
-  understandable when previews are still, missing, or not animated.
-- Keep the explorer optional; it must not permanently cover the fullscreen
-  artwork.
-- Provide a usable non-hover path for touch and keyboard input, and respect
-  reduced-motion preferences.
+## Route and interaction
 
-## Constraints
+Open the explorer at `/lineage`; keep `/` as the artwork route. The graph
+fills the viewport, with the back link and heading floating over its upper-left corner.
+Use the selected node's poster as a softly blurred backdrop with a black
+overlay that fades from 90% opacity at the top to transparent at one-third of
+the viewport height; use a dark fallback when the node has no poster. Do not
+show a detail inspector or explanatory graph copy. Crossfade poster changes
+over 450 ms, except when reduced motion is requested. Keep the graph view
+independent of the route shell so the same view can later be hosted in a modal
+without changing the graph model.
 
-- Keep archive metadata and visual assets separate: a screenshot is not an
-  Imprint and never replaces its immutable Gene data or provenance.
-- Keep the feature local-first and lightweight. Any remote access must reuse
-  the existing local-network authentication boundary; do not introduce a
-  public service or public asset dependency.
-- Loading, capturing, or failing to load previews must not block the explorer
-  or the artwork runtime.
-- Existing archive/API lineage semantics remain authoritative. Any required
-  archive, API, or asset-storage change must be justified by the design work
-  and documented before implementation.
+Selecting a node focuses it, marks it with the dotted selection ring, changes
+the backdrop, and activates it in the Presence when the control API is
+connected and its code is available. Do not issue another activation request
+when the selected node is already active. On initial load, select the active
+Imprint if it exists in the archive; when there is no active Imprint, leave
+the graph unselected. An unavailable Seed or Mutation can still be selected,
+but cannot be activated.
 
-## Open design questions
+Keyboard and touch users can select every node, which automatically activates
+available nodes without relying on hover. Node type, active state, and parent
+direction must remain understandable without color alone. Respect
+`prefers-reduced-motion`; calculate a settled layout without visible motion
+when it is enabled. Graph navigation and selection must not depend on
+animation.
 
-[#50](https://github.com/hooman3030/physis/issues/50) will recommend an
-approach for:
+## Preview capture and storage
 
-- how to render both lineages and the Imprint-to-code reference as one
-  navigable graph without implying false ancestry;
-- what node activation does and how the graph is navigated at different
-  screen sizes;
-- how screenshots are generated for historical and newly saved entities,
-  including what runtime state can reliably be reproduced;
-- whether the hover animation is a GIF or another format, how its frames are
-  captured, and how previews are stored, bounded, and refreshed;
-- fallback behavior when a screenshot or animation is unavailable, and
-  performance, reduced-motion, and keyboard/touch interaction requirements.
+A preview is a replaceable visual asset, not Imprint data or provenance.
+Capture the currently rendered artwork canvas opportunistically:
 
-## Planned work
+- Capture a Seed or Mutation after it is available and has rendered
+  successfully in a Presence.
+- Capture an Imprint when it is saved, using the canvas for the state being
+  saved.
+- Do not block artwork rendering, Imprint saving, or graph navigation on
+  capture, encoding, or upload. Report capture failures through the existing
+  error path and keep the entity usable.
+- Do not claim to recreate old captures. Existing records without previews,
+  and code unavailable in the current build, show a type-specific placeholder.
+  A preview of a later rendering is not proof of the exact historical pixels.
 
-1. Specify the graph, preview-capture and storage model, and interactions
-   ([#50](https://github.com/hooman3030/physis/issues/50)).
-2. Build the explorer and preview behavior after the design is resolved
-   ([#51](https://github.com/hooman3030/physis/issues/51)).
+Encode a static poster as WebP from the canvas, with PNG as a fallback if the
+requested WebP encoding is unsupported. Keep the longest edge at or below
+256 pixels and target at most 128 KiB per poster. See
+[HTMLCanvasElement.toBlob()](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob)
+and [MDN's WebP format notes](https://developer.mozilla.org/en-US/docs/Web/Media/Formats/Image_types#webp).
+
+Store preview files separately from SQLite metadata, under a local sibling
+directory such as `data/previews/{kind}/{id}/`. Use fixed file names and
+validated entity IDs; never accept a filesystem path from the client. Serve
+and accept preview assets only through authenticated same-origin API routes.
+Validate entity existence, media signatures, dimensions, and byte limits;
+write uploads atomically. Deleting an Imprint removes its preview files
+best-effort, while code-node previews follow the immutable code-node lifetime.
+
+Preview assets are supplementary to the authoritative SQLite archive. A
+database-only backup remains restorable but does not preserve its previews;
+copy the preview directory as well when a backup is intended to preserve the
+visual archive. Missing files always produce the placeholder, not a failed
+archive load.
+
+## Optional hover animation
+
+Use a separate animated GIF only when an animation has been captured and
+encoded successfully. Store the forward frames followed by their reverse to
+make a ping-pong cycle. GIF has native browser playback and directly
+represents the requested sequence; keep the static WebP poster as the normal
+and failure view. Generate frames from the local canvas in a worker, not from
+a remote service or a per-frame rendering loop.
+
+Initial implementation budgets:
+
+- at most 128 by 128 pixels;
+- at most 24 frames, sampled at up to 8 frames per second;
+- at most 512 KiB per animation.
+
+These are caps, not targets: skip animation when capture or encoding would
+exceed them. Load an animation only on pointer hover, keyboard focus, or an
+explicit touch action; show the poster otherwise, and show at most one
+animation at a time. Check `prefers-reduced-motion` before loading or playing
+an animation, as well as styling the interface accordingly. See
+[MDN's reduced-motion guidance](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Media_queries/Using_for_accessibility).
+
+## Constraints and implementation checks
+
+- Keep the installation local-first. Preview reads and writes use the same
+  authenticated `/api/v1` boundary as archive data; do not expose preview
+  files as unauthenticated static assets or rely on a public runtime service.
+- Preview failure, missing files, or disabled animation never blocks the
+  graph, the archive, or the artwork runtime.
+- Keep initial placement deterministic and stop force simulation after
+  settling; do not run a continuous simulation while the graph is idle.
+- Keep user-moved positions local to the browser and provide a reset control.
+- Keep the selected-node backdrop decorative and dark enough for graph
+  controls and node labels to remain legible.
+- Lazily load animated assets and enforce the size caps to bound transfer and
+  decoded-image memory on the 4 GB presentation laptop.
+- Before considering preloading or autoplay beyond explicit interaction,
+  measure capture time, generated file sizes, and browser memory on the
+  presentation laptop. Keep static posters and placeholders as the complete
+  usable experience.
+- Test root and descendant parent edges, force-layout stability, saved
+  positions, dragging, pan/zoom, explicit Presence activation, direct
+  `/lineage` loading, missing/invalid previews, reduced motion, and
+  keyboard/touch access.

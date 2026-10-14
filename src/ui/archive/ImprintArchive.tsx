@@ -38,6 +38,9 @@ export function ImprintArchive({
           <p className="eyebrow">Archive</p>
           <h2>Imprints</h2>
         </div>
+        <a className="archive-explorer-link" href="/lineage">
+          Explore lineage
+        </a>
       </div>
       <p className="control-status" role="status">
         {connected

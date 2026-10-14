@@ -110,6 +110,7 @@ h4,
 h5,
 h6 {
   font-family: var(--font-display);
+  font-weight: 500;
 }
 
 body {
@@ -819,5 +820,339 @@ main[data-open-panels='both'] .archive-panel {
   main[data-open-panels='both'] .archive-panel {
     top: calc(50% + 0.5rem);
     bottom: 1rem;
+  }
+}
+
+.archive-explorer-link,
+.lineage-back-link {
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.lineage-page {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-canvas);
+}
+
+.lineage-status,
+.lineage-retry {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.lineage-header {
+  position: absolute;
+  z-index: 3;
+  top: 1.5rem;
+  left: clamp(1rem, 2.5vw, 2rem);
+  display: flex;
+  width: auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.lineage-header h1 {
+  margin-top: 1.25rem;
+  font-size: clamp(1.35rem, 2.6vw, 1.8rem);
+  font-weight: 500;
+}
+
+.lineage-back-link {
+  display: inline-block;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.lineage-back-link::before {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: 0.45rem;
+  border-top: 0.32em solid transparent;
+  border-right: 0.42em solid currentColor;
+  border-bottom: 0.32em solid transparent;
+  content: '';
+  vertical-align: 0.02em;
+}
+
+.lineage-status,
+.lineage-empty {
+  color: var(--color-muted);
+}
+
+.lineage-status {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0.6rem 1rem;
+}
+
+.lineage-retry {
+  display: block;
+  width: auto;
+  align-self: flex-start;
+  margin: 0 1rem 0.6rem;
+}
+
+.lineage-browser {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.lineage-graph-panel {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--color-canvas);
+}
+
+.lineage-graph-backdrop {
+  position: absolute;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  inset: 0rem;
+}
+
+.lineage-graph-backdrop-poster {
+  position: absolute;
+  transform: scale(1.08);
+  background-position: center;
+  background-size: cover;
+  filter: blur(12px) saturate(60%) contrast(150%) brightness(40%);
+  opacity: 0.82;
+  inset: -2.5rem;
+}
+
+.lineage-graph-backdrop-poster-incoming {
+  animation: lineage-backdrop-fade-in 1200ms ease both;
+}
+
+.lineage-graph-backdrop-poster-outgoing {
+  animation: lineage-backdrop-fade-out 1200ms ease both;
+}
+
+@keyframes lineage-backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.82;
+  }
+}
+
+@keyframes lineage-backdrop-fade-out {
+  from {
+    opacity: 0.82;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.lineage-graph-backdrop-overlay {
+  position: absolute;
+  background: linear-gradient(to bottom, rgb(0 0 0 / 90%) 0, rgb(0 0 0 / 30%) 33vh);
+  inset: 0;
+}
+
+.lineage-graph-toolbar {
+  position: absolute;
+  z-index: 2;
+  top: 0.75rem;
+  right: 0.75rem;
+}
+
+.archive-explorer-link:focus-visible,
+.lineage-back-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 0.2rem;
+}
+
+.lineage-graph-buttons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.lineage-graph-buttons button {
+  font-family: inherit;
+  font-size: var(--text-sm);
+}
+
+.lineage-graph-viewport {
+  position: absolute;
+  z-index: 1;
+  overflow: hidden;
+  inset: 0;
+}
+
+.lineage-graph {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  background-image: radial-gradient(rgb(244 241 232 / 8%) 0.7px, transparent 0.7px);
+  background-size: 22px 22px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.lineage-graph:active {
+  cursor: grabbing;
+}
+
+.lineage-graph-background {
+  fill: transparent;
+  pointer-events: all;
+}
+
+.lineage-graph-edge {
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.lineage-arrow-parent {
+  fill: var(--color-accent);
+}
+
+.lineage-graph-node {
+  cursor: grab;
+  filter: drop-shadow(0 5px 8px rgb(0 0 0 / 72%));
+  outline: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lineage-graph-node:active {
+  cursor: grabbing;
+}
+
+.lineage-graph-node:hover .lineage-graph-shape,
+.lineage-graph-node:focus-visible .lineage-graph-shape {
+  stroke: var(--color-text);
+  stroke-width: 3;
+}
+
+.lineage-graph-node:focus-visible .lineage-graph-selected-ring {
+  stroke: var(--color-text);
+}
+
+.lineage-graph-shape {
+  fill: var(--color-canvas);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.lineage-graph-shape-seed {
+  stroke: var(--color-accent);
+}
+
+.lineage-graph-shape-mutation {
+  fill: rgb(242 204 143 / 12%);
+  stroke: var(--color-warning);
+}
+
+.lineage-graph-shape-imprint {
+  fill: rgb(244 241 232 / 7%);
+  stroke: var(--color-muted);
+}
+
+.lineage-graph-preview {
+  pointer-events: none;
+}
+
+.lineage-graph-node:hover .lineage-graph-preview,
+.lineage-graph-node:focus-visible .lineage-graph-preview {
+  filter: brightness(1.08);
+}
+
+.lineage-graph-glyph {
+  fill: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 18px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.lineage-graph-type {
+  fill: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.lineage-graph-label {
+  fill: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 11px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.lineage-graph-active-ring {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.lineage-graph-selected-ring {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-dasharray: 3 3;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+@media (max-width: 40rem) {
+  .lineage-header {
+    top: 0.75rem;
+    left: 0.75rem;
+  }
+
+  .lineage-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .lineage-graph-toolbar {
+    top: 0.45rem;
+    right: 0.45rem;
+  }
+
+  .lineage-graph-buttons {
+    gap: 0.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lineage-graph-backdrop-poster-incoming,
+  .lineage-graph-backdrop-poster-outgoing {
+    animation: none;
   }
 }

@@ -27,6 +27,8 @@ describe('Imprint archive', () => {
     )
 
     expect(markup).toContain('1 saved Imprint')
+    expect(markup).toContain('href="/lineage"')
+    expect(markup).toContain('Explore lineage')
     expect(markup).toContain('first-light')
     expect(markup).toContain('dateTime="2026-10-14T11:00:00.000Z"')
     expect(markup).not.toContain('glow: 0.75')

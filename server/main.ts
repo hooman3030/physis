@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { artworkSeeds } from '../src/seeds/registry'
 import { createControlServer } from './api'
 import { openArchive } from './archive'
@@ -43,6 +43,7 @@ async function main(): Promise<void> {
     port: Number(process.env.PHYSIS_PORT ?? 4317),
     remoteAccessToken,
     staticDirectory,
+    previewDirectory: join(dirname(archivePath), 'previews'),
     allowedOrigins,
   })
   const { url } = await server.start()

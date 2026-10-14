@@ -20,6 +20,16 @@ export type ImprintRecord = {
   genes: ArtworkGeneValues
 }
 
+export type CodeNodeRecord = {
+  id: string
+  parentId: string | null
+  role: 'seed' | 'mutation'
+  sourceRevision: string
+  promotedAt: string | null
+  createdAt: string
+  available: boolean
+}
+
 export class ControlApiError extends Error {
   readonly status: number
 
@@ -73,6 +83,12 @@ export type PairingStatus = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function addAuthorizationHeader(headers: Headers): Headers {
+  const token = getControlApiToken()
+  if (token !== null) headers.set('authorization', `Bearer ${token}`)
+  return headers
 }
 
 function parseGene(value: unknown): ArtworkGene {
@@ -167,6 +183,31 @@ function parseImprint(value: unknown): ImprintRecord {
     sourceRevision: value.sourceRevision,
     createdAt: value.createdAt,
     genes,
+  }
+}
+
+function parseCodeNode(value: unknown): CodeNodeRecord {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'string' ||
+    (value.parentId !== null && typeof value.parentId !== 'string') ||
+    (value.role !== 'seed' && value.role !== 'mutation') ||
+    typeof value.sourceRevision !== 'string' ||
+    (value.promotedAt !== null && typeof value.promotedAt !== 'string') ||
+    typeof value.createdAt !== 'string' ||
+    typeof value.available !== 'boolean'
+  ) {
+    throw new Error('Control API returned an invalid code node')
+  }
+
+  return {
+    id: value.id,
+    parentId: value.parentId,
+    role: value.role,
+    sourceRevision: value.sourceRevision,
+    promotedAt: value.promotedAt,
+    createdAt: value.createdAt,
+    available: value.available,
   }
 }
 
@@ -296,6 +337,12 @@ export async function listImprints(): Promise<readonly ImprintRecord[]> {
   return result.map(parseImprint)
 }
 
+export async function listCodeNodes(): Promise<readonly CodeNodeRecord[]> {
+  const result = await request('/code-nodes')
+  if (!Array.isArray(result)) throw new Error('Control API returned an invalid code-node list')
+  return result.map(parseCodeNode)
+}
+
 export async function setGenes(genes: ArtworkGeneValues): Promise<void> {
   await request('/presence/genes', {
     method: 'PUT',
@@ -309,6 +356,81 @@ export async function createImprint(): Promise<{ id: string }> {
     throw new Error('Control API returned an invalid Imprint')
   }
   return { id: result.id }
+}
+
+export type PreviewKind = 'code' | 'imprint'
+export type PreviewAsset = 'poster' | 'animation'
+
+async function throwPreviewApiError(response: Response): Promise<never> {
+  const responseText = await response.text()
+  let message = response.statusText || `Request failed (${response.status})`
+  try {
+    const body: unknown = JSON.parse(responseText)
+    if (isRecord(body) && typeof body.error === 'string') message = body.error
+  } catch {
+    if (responseText === '') message = `Control API returned HTTP ${response.status}`
+  }
+  throw new ControlApiError(response.status, message)
+}
+
+function previewHeaders(accept: string, contentType?: string): Headers {
+  const headers = new Headers({ accept })
+  if (contentType !== undefined) headers.set('content-type', contentType)
+  const token = getControlApiToken()
+  if (token !== null) headers.set('authorization', `******`)
+  return headers
+}
+
+export async function getLineagePreview(
+  kind: PreviewKind,
+  id: string,
+  asset: PreviewAsset = 'poster',
+): Promise<Blob | null> {
+  const path = `/previews/${kind}/${encodeURIComponent(id)}/${asset}`
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: addAuthorizationHeader(
+      previewHeaders(asset === 'poster' ? 'image/webp,image/png' : 'image/gif'),
+    ),
+  })
+  if (response.status === 204 || response.status === 404) return null
+  if (!response.ok) await throwPreviewApiError(response)
+
+  const contentType = response.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase()
+  const validContentType =
+    asset === 'poster'
+      ? contentType === 'image/png' || contentType === 'image/webp'
+      : contentType === 'image/gif'
+  if (!validContentType) {
+    throw new Error('Control API returned an invalid preview content type')
+  }
+  return response.blob()
+}
+
+export async function saveLineagePreview(
+  kind: PreviewKind,
+  id: string,
+  preview: Blob,
+  asset: PreviewAsset = 'poster',
+): Promise<void> {
+  const validContentType =
+    asset === 'poster'
+      ? preview.type === 'image/png' || preview.type === 'image/webp'
+      : preview.type === 'image/gif'
+  const maxBytes = asset === 'poster' ? 128 * 1024 : 512 * 1024
+  if (!validContentType || preview.size === 0 || preview.size > maxBytes) {
+    throw new Error(
+      asset === 'poster'
+        ? 'Preview must be a non-empty PNG or WebP image no larger than 128 KiB'
+        : 'Animation must be a non-empty GIF no larger than 512 KiB',
+    )
+  }
+  const path = `/previews/${kind}/${encodeURIComponent(id)}/${asset}`
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'PUT',
+    headers: addAuthorizationHeader(previewHeaders('application/json', preview.type)),
+    body: preview,
+  })
+  if (!response.ok) await throwPreviewApiError(response)
 }
 
 export async function deleteImprint(id: string): Promise<void> {
