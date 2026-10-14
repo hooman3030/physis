@@ -8,8 +8,7 @@ type SeedControlsProps = {
   onParameterChange: (id: string, value: number) => void
   onSaveImprint: () => void
   controlStatus: 'connecting' | 'connected' | 'offline'
-  controlError: string | null
-  operationMessage: string | null
+  saveStatus: 'idle' | 'saving' | 'saved'
   controlsDisabled?: boolean
   hidden?: boolean
 }
@@ -22,8 +21,7 @@ export function SeedControls({
   onParameterChange,
   onSaveImprint,
   controlStatus,
-  controlError,
-  operationMessage,
+  saveStatus,
   controlsDisabled = false,
   hidden = false,
 }: SeedControlsProps) {
@@ -35,26 +33,27 @@ export function SeedControls({
       hidden={hidden}
     >
       <p className="eyebrow">physis ⍩‣➣"(⌯_ .∙✧ ✵・• ∙. ∙・⏜ ◎ ⏝◦ ○ ∙ </p>
-      <p className="control-status" role="status">
-        {controlStatus === 'connected'
-          ? 'Connected to local control API'
-          : controlStatus === 'connecting'
-            ? 'Connecting to local control API…'
-            : 'Local control API unavailable; browser-only controls are active.'}
-      </p>
-      {controlError !== null && (
-        <p className="control-error" role="alert">
-          {controlError}
-        </p>
-      )}
-      {operationMessage !== null && (
-        <p className="control-status" role="status">
-          {operationMessage}
-        </p>
-      )}
-      <p className="seed-label">
-        Active module: <code>{activeSeed.id}</code>
-      </p>
+      <span
+        className="connection-indicator"
+        data-status={controlStatus}
+        role="status"
+        aria-label={
+          controlStatus === 'connected'
+            ? 'Connected to local control API'
+            : controlStatus === 'connecting'
+              ? 'Connecting to local control API'
+              : 'Local control API unavailable'
+        }
+        title={
+          controlStatus === 'connected'
+            ? 'Connected to local control API'
+            : controlStatus === 'connecting'
+              ? 'Connecting to local control API'
+              : 'Local control API unavailable'
+        }
+      >
+        <span className="connection-indicator-dot" aria-hidden="true" />
+      </span>
       <label htmlFor="seed">Choose a seed module</label>
       <select
         id="seed"
@@ -97,10 +96,12 @@ export function SeedControls({
       <button
         type="button"
         className="save-imprint"
-        disabled={controlsDisabled || controlStatus !== 'connected'}
+        disabled={controlsDisabled || controlStatus !== 'connected' || saveStatus === 'saving'}
         onClick={onSaveImprint}
       >
-        Save Imprint
+        <span className={`save-feedback save-feedback-${saveStatus}`} aria-live="polite">
+          {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save Imprint'}
+        </span>
       </button>
     </section>
   )

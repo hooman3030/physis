@@ -27,12 +27,22 @@ The active seed ID identifies a program module, not a guarantee of identical
 pixels across runs. The first-slice controls expose the active module ID and
 label and allow switching among registered modules.
 
+Keep the controls compact, with slimmer parameter sliders. Archive cards show
+the module and creation time without parameter values. When both panels are
+open, keep at least a 1rem gap between them on wider screens; at viewport
+widths of 40rem or less, stack the panels into separate scrollable regions.
+
 The browser client connects to the loopback control API when it is available,
 uses its Presence as the active state, and receives updates through the
 Presence event stream. If the API is unavailable, the artwork continues to
 render and the controls operate locally; saving an Imprint requires the API.
 The Imprint archive lists saved Imprints from the API and selecting one
 restores its code and parameters into the active Presence.
+
+User-facing control, archive, browser-storage, and unexpected runtime errors
+are reported through persistent, dismissible toasts. Errors remain visible
+until dismissed. A browser-storage failure is reported but does not prevent the
+artwork from continuing with its in-memory or default settings.
 
 ## Consequences
 

@@ -312,6 +312,20 @@ export class Archive {
     return toImprint(row)
   }
 
+  deleteImprint(id: string): void {
+    this.#transaction(() => {
+      const imprint = this.getImprint(id)
+      if (this.getPresence().imprint?.id === id) {
+        throw new ArchiveError('conflict', 'The active Imprint cannot be deleted')
+      }
+
+      this.#db
+        .prepare('UPDATE imprints SET parent_id = ? WHERE parent_id = ?')
+        .run(imprint.parentId, id)
+      this.#db.prepare('DELETE FROM imprints WHERE id = ?').run(id)
+    })
+  }
+
   listCodeNodes(role?: CodeNodeRecord['role']): CodeNodeRecord[] {
     const filter =
       role === undefined

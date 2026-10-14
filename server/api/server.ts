@@ -70,7 +70,7 @@ export function createControlServer(options: ControlServerOptions): ControlServe
     if (origin === undefined || origin === `http://${request.headers.host}`) return {}
     return {
       'access-control-allow-origin': origin,
-      'access-control-allow-methods': 'GET, POST, PUT, OPTIONS',
+      'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'access-control-allow-headers': 'content-type',
       vary: 'origin',
     }
@@ -176,6 +176,16 @@ export function createControlServer(options: ControlServerOptions): ControlServe
         randomSeed: optionalInteger(body, 'randomSeed'),
       })
       return { status: 201, body: imprint }
+    }
+
+    if (
+      method === 'DELETE' &&
+      resource === 'imprints' &&
+      id !== undefined &&
+      segments.length === 2
+    ) {
+      archive.deleteImprint(id)
+      return ok({ id })
     }
 
     const known = ['health', 'presence', 'code-nodes', 'imprints']

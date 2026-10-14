@@ -5,7 +5,7 @@ import { driftingFilamentsSeed } from './seeds/driftingFilaments'
 import { artworkSeeds, defaultArtworkSeed } from './seeds/registry'
 
 describe('seed controls', () => {
-  it('shows the active module identity and registered alternatives', () => {
+  it('shows the module selector and registered alternatives without duplicate active-module info', () => {
     const markup = renderToStaticMarkup(
       <SeedControls
         activeSeed={defaultArtworkSeed}
@@ -15,15 +15,15 @@ describe('seed controls', () => {
         onParameterChange={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="offline"
-        controlError={null}
-        operationMessage={null}
+        saveStatus="idle"
       />,
     )
 
-    expect(markup).toContain(defaultArtworkSeed.id)
     expect(markup).toContain(defaultArtworkSeed.label)
-    expect(markup).toContain('drifting-filaments')
-    expect(markup).toContain('browser-only controls are active')
+    expect(markup).toContain('Local control API unavailable')
+    expect(markup).toContain('class="connection-indicator"')
+    expect(markup).not.toContain('Active module:')
+    expect(markup).not.toContain('browser-only controls are active')
     expect(markup).toContain('disabled=""')
   })
 
@@ -37,8 +37,7 @@ describe('seed controls', () => {
         onParameterChange={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="connected"
-        controlError={null}
-        operationMessage={null}
+        saveStatus="idle"
       />,
     )
 
@@ -48,5 +47,23 @@ describe('seed controls', () => {
     expect(markup).toContain('Step length')
     expect(markup).toContain('Save Imprint')
     expect(markup).not.toContain('disabled=""')
+  })
+
+  it('shows temporary save feedback inside the save button', () => {
+    const markup = renderToStaticMarkup(
+      <SeedControls
+        activeSeed={defaultArtworkSeed}
+        seeds={artworkSeeds}
+        onSeedChange={vi.fn()}
+        parameterValues={{}}
+        onParameterChange={vi.fn()}
+        onSaveImprint={vi.fn()}
+        controlStatus="connected"
+        saveStatus="saved"
+      />,
+    )
+
+    expect(markup).toContain('class="save-feedback save-feedback-saved"')
+    expect(markup).toContain('aria-live="polite">Saved')
   })
 })

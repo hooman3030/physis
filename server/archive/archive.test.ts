@@ -118,6 +118,22 @@ describe('imprints', () => {
 
     expectCode(() => save({ parentId: parent.id }), 'invalid-input')
   })
+
+  it('deletes inactive Imprints and reparents their children to the former parent', () => {
+    const root = save()
+    const deleted = save()
+    const child = save()
+    const branch = save({ parentId: deleted.id })
+
+    expectCode(() => archive.deleteImprint(branch.id), 'conflict')
+    archive.deleteImprint(deleted.id)
+
+    expectCode(() => archive.getImprint(deleted.id), 'not-found')
+    expect(archive.getImprint(child.id).parentId).toBe(root.id)
+    expect(archive.getImprint(branch.id).parentId).toBe(root.id)
+    expect(archive.getImprintAncestry(child.id).map(({ id }) => id)).toEqual([root.id, child.id])
+    expect(archive.getPresence().imprint?.id).toBe(branch.id)
+  })
 })
 
 describe('presence', () => {
@@ -234,8 +250,9 @@ describe('code nodes', () => {
 })
 
 describe('immutability and integrity', () => {
-  it('blocks updating or deleting archived rows but not the presence pointer', () => {
+  it('keeps Imprint content immutable while allowing lineage repair and deletion', () => {
     const saved = save()
+    archive.selectCode(seedId)
     archive.close()
 
     const db = new DatabaseSync(join(directory, 'archive.sqlite'))
@@ -246,13 +263,39 @@ describe('immutability and integrity', () => {
     expect(attempt('UPDATE imprints SET parameters = ? WHERE id = ?', '{}', saved.id)).toThrow(
       /immutable/,
     )
-    expect(attempt('DELETE FROM imprints WHERE id = ?', saved.id)).toThrow(/immutable/)
+    expect(attempt('UPDATE imprints SET parent_id = NULL WHERE id = ?', saved.id)).not.toThrow()
+    expect(attempt('DELETE FROM imprints WHERE id = ?', saved.id)).not.toThrow()
     expect(attempt('UPDATE code_nodes SET source_revision = ?', REV_B)).toThrow(/immutable/)
     expect(attempt('DELETE FROM code_nodes')).toThrow(/immutable/)
     expect(attempt('DELETE FROM promotions')).toThrow(/immutable/)
-    expect(attempt('UPDATE presence SET imprint_id = NULL')).not.toThrow()
     db.close()
     archive = open()
+  })
+
+  it('migrates version-one Imprints to support deletion', () => {
+    const root = save()
+    const child = save()
+    const path = join(directory, 'archive.sqlite')
+    archive.close()
+
+    const db = new DatabaseSync(path)
+    db.exec(`
+      DROP TRIGGER imprints_content_immutable_update;
+      CREATE TRIGGER imprints_immutable_update BEFORE UPDATE ON imprints
+        BEGIN SELECT RAISE(ABORT, 'imprints are immutable'); END;
+      CREATE TRIGGER imprints_immutable_delete BEFORE DELETE ON imprints
+        BEGIN SELECT RAISE(ABORT, 'imprints are immutable'); END;
+      PRAGMA user_version = 1;
+    `)
+    db.close()
+
+    archive = open()
+    archive.selectCode(seedId)
+    archive.deleteImprint(root.id)
+
+    expect(archive.getImprint(child.id).parentId).toBeNull()
+    expect(archive.listImprints().map(({ id }) => id)).toEqual([child.id])
+    expect(archive.verify()).toEqual([])
   })
 
   it('reports a healthy archive and detects corrupt stored parameters', () => {
@@ -261,7 +304,7 @@ describe('immutability and integrity', () => {
     archive.close()
 
     const db = new DatabaseSync(join(directory, 'archive.sqlite'))
-    db.exec('DROP TRIGGER imprints_immutable_update')
+    db.exec('DROP TRIGGER imprints_content_immutable_update')
     db.prepare('UPDATE imprints SET parameters = ? WHERE id = ?').run('not json', saved.id)
     db.close()
     archive = open()

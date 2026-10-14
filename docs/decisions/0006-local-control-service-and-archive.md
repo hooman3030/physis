@@ -37,12 +37,14 @@ flowchart LR
 - **Mutation** is a child source-code revision produced by changing a Seed's
   code. Mutations form their own parent/child lineage. A selected Mutation
   can be promoted to a new Seed; experimental Mutations need not be promoted.
-- **Imprint** is an immutable capture of an artwork's parameters (and random
-  seed when applicable) at a point in time. It references the Seed and source
-  revision whose code interprets those values. Saving live parameter changes
-  creates a child Imprint of the prior saved Imprint; that child is the next
-  node in the trait lineage, like an offspring state. This is a data capture,
-  not a screenshot.
+- **Imprint** is a capture of an artwork's parameters (and random seed when
+  applicable) at a point in time. Its captured values and provenance are
+  immutable. It references the Seed and source revision whose code interprets
+  those values. Saving live parameter changes creates a child Imprint of the
+  prior saved Imprint; that child is the next node in the trait lineage, like
+  an offspring state. An inactive Imprint can be deleted; its direct children
+  are reparented to its former parent so the remaining lineage stays connected.
+  This is a data capture, not a screenshot.
 - **Presence** is the artwork currently running in the browser. It runs a
   particular Seed/source revision with an active Imprint. When a child Imprint
   is saved, the Presence can continue rendering while its active lineage
@@ -90,10 +92,12 @@ in [ADR 0007](0007-live-mutation-code-and-sandbox.md).
   Imprint metadata. Give each Seed, Mutation, and Imprint a stable unique ID.
   Store parent IDs for lineage and foreign-key references for the code
   revision used by each Imprint.
-- Keep source revisions and Imprints immutable. The active Presence points
-  to its current Imprint. Saving changed parameters creates a child Imprint
-  and updates the active reference in one transaction; transient slider
-  movement does not create archive entries.
+- Keep source revisions and Imprint content immutable. The active Presence
+  points to its current Imprint. Saving changed parameters creates a child
+  Imprint and updates the active reference in one transaction; transient
+  slider movement does not create archive entries. Deleting an inactive
+  Imprint reparents its children and removes the Imprint in one transaction;
+  the active Imprint cannot be deleted.
 - Validate Seed IDs and parameter values against the registered Seed's
   declarations before committing an Imprint. A write is durable only after
   its SQLite transaction commits. Failed writes must surface an error and
@@ -113,8 +117,10 @@ in [ADR 0007](0007-live-mutation-code-and-sandbox.md).
 - Source-code evolution and parameter-state evolution can be browsed
   independently or together without conflating code changes with live trait
   changes.
-- Immutable Imprints preserve saved parameter states and their ancestry;
-  the Presence can move to a child Imprint without interrupting rendering.
+- Immutable Imprint content preserves saved parameter states; deleting an
+  inactive Imprint preserves the remaining ancestry by reparenting its
+  children. The Presence can move to a child Imprint without interrupting
+  rendering.
 - A source revision identifies code provenance but does not guarantee that
   historical code is bundled. Reproducing old output requires that code to
   remain available.

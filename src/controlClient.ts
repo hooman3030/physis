@@ -212,6 +212,10 @@ export async function createImprint(): Promise<{ id: string }> {
   return { id: result.id }
 }
 
+export async function deleteImprint(id: string): Promise<void> {
+  await request(`/imprints/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
 export function subscribeToPresence(
   onPresence: (snapshot: PresenceSnapshot) => void,
   onOpen: () => void,
