@@ -1,5 +1,27 @@
 import type { P5Seed } from '../../seeds/p5/types'
-import type { ArtworkGeneValues } from '../../seeds/types'
+import type { ArtworkGene, ArtworkGeneValues } from '../../seeds/types'
+
+export function getDefaultGeneValues(genes: readonly ArtworkGene[]): ArtworkGeneValues {
+  return Object.fromEntries(genes.map(({ id, defaultValue }) => [id, defaultValue]))
+}
+
+export function randomizeGeneValues(
+  genes: readonly ArtworkGene[],
+  random: () => number = Math.random,
+): ArtworkGeneValues {
+  return Object.fromEntries(
+    genes.map(({ id, min, max, step }) => {
+      const stepCount = Math.floor((max - min) / step)
+      const value = min + Math.floor(random() * (stepCount + 1)) * step
+      const precision = Math.max(
+        min.toString().split('.')[1]?.length ?? 0,
+        max.toString().split('.')[1]?.length ?? 0,
+        step.toString().split('.')[1]?.length ?? 0,
+      )
+      return [id, Number(value.toFixed(precision))]
+    }),
+  )
+}
 
 type SeedControlsProps = {
   activeSeed: P5Seed
@@ -7,6 +29,7 @@ type SeedControlsProps = {
   onSeedChange: (seed: P5Seed) => void
   geneValues: ArtworkGeneValues
   onGeneChange: (id: string, value: number) => void
+  onGenesChange: (values: ArtworkGeneValues) => void
   onSaveImprint: () => void
   controlStatus: 'connecting' | 'connected' | 'offline'
   saveStatus: 'idle' | 'saving' | 'saved'
@@ -20,6 +43,7 @@ export function SeedControls({
   onSeedChange,
   geneValues,
   onGeneChange,
+  onGenesChange,
   onSaveImprint,
   controlStatus,
   saveStatus,
@@ -85,7 +109,52 @@ export function SeedControls({
           </option>
         ))}
       </select>
-      <h3>Genes</h3>
+      <div className="genes-heading">
+        <h3>Genes</h3>
+        <div className="gene-actions">
+          <button
+            type="button"
+            className="gene-action-button"
+            title="Reset genes to defaults"
+            aria-label="Reset genes to defaults"
+            disabled={controlsDisabled}
+            onClick={() => onGenesChange(getDefaultGeneValues(activeSeed.genes))}
+          >
+            reset
+          </button>
+          <button
+            type="button"
+            className="gene-action-button"
+            title="Randomize all genes"
+            aria-label="Randomize all genes"
+            disabled={controlsDisabled}
+            onClick={() => onGenesChange(randomizeGeneValues(activeSeed.genes))}
+          >
+            <svg
+              className="gene-action-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <rect
+                x="3.5"
+                y="3.5"
+                width="17"
+                height="17"
+                rx="3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              <circle cx="8" cy="8" r="1.3" fill="currentColor" />
+              <circle cx="12" cy="12" r="1.3" fill="currentColor" />
+              <circle cx="16" cy="16" r="1.3" fill="currentColor" />
+              <circle cx="16" cy="8" r="1.3" fill="currentColor" />
+              <circle cx="8" cy="16" r="1.3" fill="currentColor" />
+            </svg>
+          </button>
+        </div>
+      </div>
       {activeSeed.genes.map((gene) => {
         const value = geneValues[gene.id] ?? gene.defaultValue
         const inputId = `gene-${gene.id}`

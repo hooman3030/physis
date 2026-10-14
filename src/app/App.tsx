@@ -31,6 +31,7 @@ import { DevelopmentOverlay } from '../ui/overlays/DevelopmentOverlay'
 import { RemoteAccessPairing } from '../ui/overlays/RemoteAccessPairing'
 import { SeedControls } from '../ui/artwork/SeedControls'
 import type { P5Seed } from '../seeds/p5/types'
+import type { ArtworkGeneValues } from '../seeds/types'
 import { artworkSeeds, defaultArtworkSeed } from '../seeds/registry'
 import '../ui/styles.css'
 
@@ -366,17 +367,17 @@ export function App() {
     }
   }
 
-  const handleGeneChange = (id: string, value: number) => {
+  const handleGenesChange = (values: ArtworkGeneValues) => {
     setSettings((current) => ({
       ...current,
       genesBySeed: {
         ...current.genesBySeed,
-        [current.seed.id]: { ...current.genesBySeed[current.seed.id], [id]: value },
+        [current.seed.id]: { ...current.genesBySeed[current.seed.id], ...values },
       },
     }))
     clearSaveFeedback()
     if (statusRef.current === 'connected') {
-      void updateApiGenes({ [id]: value }).catch((error: unknown) => {
+      void updateApiGenes(values).catch((error: unknown) => {
         if (!requirePairing(error)) {
           reportApplicationError(`Gene update failed: ${errorMessage(error)}`)
         }
@@ -386,6 +387,10 @@ export function App() {
         }
       })
     }
+  }
+
+  const handleGeneChange = (id: string, value: number) => {
+    handleGenesChange({ [id]: value })
   }
 
   const handleSaveImprint = async () => {
@@ -495,6 +500,7 @@ export function App() {
         onSeedChange={handleSeedChange}
         geneValues={geneValues}
         onGeneChange={handleGeneChange}
+        onGenesChange={handleGenesChange}
         onSaveImprint={handleSaveImprint}
         controlStatus={controlStatus}
         saveStatus={saveStatus}

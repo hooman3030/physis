@@ -1,6 +1,10 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import { SeedControls } from '../../../../src/ui/artwork/SeedControls'
+import {
+  getDefaultGeneValues,
+  randomizeGeneValues,
+  SeedControls,
+} from '../../../../src/ui/artwork/SeedControls'
 import { driftingFilamentsSeed } from '../../../../src/seeds/p5/drifting-filaments/seed'
 import { artworkSeeds, defaultArtworkSeed } from '../../../../src/seeds/registry'
 
@@ -13,6 +17,7 @@ describe('seed controls', () => {
         onSeedChange={vi.fn()}
         geneValues={{}}
         onGeneChange={vi.fn()}
+        onGenesChange={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="offline"
         saveStatus="idle"
@@ -36,6 +41,7 @@ describe('seed controls', () => {
         onSeedChange={vi.fn()}
         geneValues={{ filamentCount: 200, noiseScale: 0.002, stepLength: 2 }}
         onGeneChange={vi.fn()}
+        onGenesChange={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="connected"
         saveStatus="idle"
@@ -49,6 +55,8 @@ describe('seed controls', () => {
     expect(markup).toContain('Trail length')
     expect(markup).toContain('Flow scale')
     expect(markup).toContain('Step length')
+    expect(markup).toContain('aria-label="Reset genes to defaults"')
+    expect(markup).toContain('aria-label="Randomize all genes"')
     expect(markup).toContain('Save Imprint')
     expect(markup).toContain('class="connection-indicator-label" aria-hidden="true">API')
     expect(markup).not.toContain('disabled=""')
@@ -62,6 +70,7 @@ describe('seed controls', () => {
         onSeedChange={vi.fn()}
         geneValues={{}}
         onGeneChange={vi.fn()}
+        onGenesChange={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="connected"
         saveStatus="saved"
@@ -70,5 +79,24 @@ describe('seed controls', () => {
 
     expect(markup).toContain('class="save-feedback save-feedback-saved"')
     expect(markup).toContain('aria-live="polite">Saved')
+  })
+
+  it('returns the declared defaults for every Gene', () => {
+    expect(getDefaultGeneValues(driftingFilamentsSeed.genes)).toEqual(
+      Object.fromEntries(
+        driftingFilamentsSeed.genes.map(({ id, defaultValue }) => [id, defaultValue]),
+      ),
+    )
+  })
+
+  it('randomizes every Gene to a step-aligned value in its declared range', () => {
+    const values = randomizeGeneValues(driftingFilamentsSeed.genes, () => 0.5)
+
+    for (const gene of driftingFilamentsSeed.genes) {
+      const value = values[gene.id]
+      expect(value).toBeGreaterThanOrEqual(gene.min)
+      expect(value).toBeLessThanOrEqual(gene.max)
+      expect((value - gene.min) / gene.step).toBeCloseTo(Math.round((value - gene.min) / gene.step))
+    }
   })
 })

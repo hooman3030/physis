@@ -1,23 +1,49 @@
 import { describe, expect, it } from 'vitest'
 import {
-  getEffectiveStrokeOpacity,
+  getFilamentLifetimeFrames,
   getTrailFadeAlpha,
   getWrappedLineSegments,
+  driftingFilamentsSeed,
 } from '../../../src/seeds/p5/drifting-filaments/seed'
 
-describe('Drifting Filaments density compensation', () => {
-  it('preserves the opacity gene at default density and trail length', () => {
-    expect(getEffectiveStrokeOpacity(40, 240, 24)).toBe(40)
+describe('Drifting Filaments genes', () => {
+  it('declares configurable background color genes', () => {
+    expect(driftingFilamentsSeed.genes).toContainEqual(
+      expect.objectContaining({ id: 'backgroundHue', defaultValue: 230 }),
+    )
+    expect(driftingFilamentsSeed.genes).toContainEqual(
+      expect.objectContaining({ id: 'backgroundSaturation', defaultValue: 60 }),
+    )
+    expect(driftingFilamentsSeed.genes).toContainEqual(
+      expect.objectContaining({ id: 'backgroundBrightness', defaultValue: 6 }),
+    )
   })
 
-  it('reduces stroke opacity when density and trail length would create haze', () => {
-    expect(getEffectiveStrokeOpacity(40, 2940, 90)).toBeLessThan(1)
+  it('declares lifetime and variation genes', () => {
+    expect(driftingFilamentsSeed.genes).toContainEqual(
+      expect.objectContaining({ id: 'lifetime', defaultValue: 600 }),
+    )
+    expect(driftingFilamentsSeed.genes).toContainEqual(
+      expect.objectContaining({ id: 'lifetimeVariation', defaultValue: 25 }),
+    )
+  })
+
+  it('samples lifetime symmetrically around the base lifetime', () => {
+    expect(getFilamentLifetimeFrames(600, 25, 0)).toBe(450)
+    expect(getFilamentLifetimeFrames(600, 25, 0.5)).toBe(600)
+    expect(getFilamentLifetimeFrames(600, 25, 1)).toBe(750)
+    expect(getFilamentLifetimeFrames(600, 0, 0.8)).toBe(600)
+  })
+
+  it('keeps lifetime positive when full variation reaches zero', () => {
+    expect(getFilamentLifetimeFrames(60, 100, 0)).toBe(1)
   })
 })
 
 describe('Drifting Filaments trail fade', () => {
   it.each([2, 24, 300])('fades to less than one color step within %i frames', (trailLength) => {
-    const remaining = Math.pow(1 - getTrailFadeAlpha(trailLength) / 100, trailLength)
+    const fadeDuration = trailLength * 2
+    const remaining = Math.pow(1 - getTrailFadeAlpha(trailLength) / 100, fadeDuration)
     expect(remaining).toBeCloseTo(1 / 1024, 12)
   })
 })

@@ -1,24 +1,19 @@
 import type { P5Seed } from '../types'
 
-type Filament = { x: number; y: number; hueOffset: number }
+type Filament = { x: number; y: number; hueOffset: number; age: number; lifetime: number }
 type LineSegment = readonly [number, number, number, number]
 
-const DEFAULT_FILAMENT_COUNT = 240
-const DEFAULT_TRAIL_LENGTH = 24
-
 export function getTrailFadeAlpha(trailLength: number): number {
-  return 100 * (1 - Math.pow(1 / 1024, 1 / trailLength))
+  return 100 * (1 - Math.pow(1 / 1024, 1 / (trailLength * 2)))
 }
 
-export function getEffectiveStrokeOpacity(
-  opacity: number,
-  filamentCount: number,
-  trailLength: number,
+export function getFilamentLifetimeFrames(
+  lifetime: number,
+  variation: number,
+  randomValue: number,
 ): number {
-  return Math.min(
-    100,
-    (opacity * DEFAULT_FILAMENT_COUNT * DEFAULT_TRAIL_LENGTH) / (filamentCount * trailLength),
-  )
+  const variationRange = (lifetime * variation) / 100
+  return Math.max(1, Math.round(lifetime - variationRange + variationRange * 2 * randomValue))
 }
 
 export function getWrappedLineSegments(
@@ -77,6 +72,22 @@ export const driftingFilamentsSeed: P5Seed = {
       max: 300,
       step: 2,
     },
+    {
+      id: 'lifetime',
+      label: 'Lifetime (frames)',
+      defaultValue: 600,
+      min: 60,
+      max: 1800,
+      step: 30,
+    },
+    {
+      id: 'lifetimeVariation',
+      label: 'Lifetime variation (%)',
+      defaultValue: 25,
+      min: 0,
+      max: 100,
+      step: 1,
+    },
     { id: 'hue', label: 'Hue', defaultValue: 240, min: 0, max: 360, step: 1 },
     { id: 'hueSpread', label: 'Hue variation', defaultValue: 90, min: 0, max: 180, step: 1 },
     { id: 'saturation', label: 'Saturation', defaultValue: 55, min: 0, max: 100, step: 1 },
@@ -104,11 +115,16 @@ export const driftingFilamentsSeed: P5Seed = {
   createSketch: (instance, getGenes) => {
     let filaments: Filament[] = []
 
-    const spawn = (): Filament => ({
-      x: instance.random(instance.width),
-      y: instance.random(instance.height),
-      hueOffset: instance.random(-1, 1),
-    })
+    const spawn = (): Filament => {
+      const { lifetime, lifetimeVariation } = getGenes()
+      return {
+        x: instance.random(instance.width),
+        y: instance.random(instance.height),
+        hueOffset: instance.random(-1, 1),
+        age: 0,
+        lifetime: getFilamentLifetimeFrames(lifetime, lifetimeVariation, instance.random()),
+      }
+    }
 
     const reset = () => {
       const { backgroundHue, backgroundSaturation, backgroundBrightness } = getGenes()
@@ -146,8 +162,6 @@ export const driftingFilamentsSeed: P5Seed = {
       if (filaments.length > filamentCount) filaments.length = filamentCount
       while (filaments.length < filamentCount) filaments.push(spawn())
 
-      const strokeOpacity = getEffectiveStrokeOpacity(opacity, filamentCount, trailLength)
-
       instance.noStroke()
       instance.fill(
         backgroundHue,
@@ -157,7 +171,13 @@ export const driftingFilamentsSeed: P5Seed = {
       )
       instance.rect(0, 0, instance.width, instance.height)
 
-      for (const filament of filaments) {
+      for (let index = 0; index < filaments.length; index += 1) {
+        let filament = filaments[index]
+        if (filament.age >= filament.lifetime) {
+          filament = spawn()
+          filaments[index] = filament
+        }
+
         const angle =
           instance.noise(
             filament.x * noiseScale,
@@ -173,7 +193,7 @@ export const driftingFilamentsSeed: P5Seed = {
           wrap(hue + filament.hueOffset * hueSpread, 360),
           saturation,
           brightness,
-          strokeOpacity,
+          opacity,
         )
         instance.strokeWeight(strokeWeight)
         for (const [x1, y1, x2, y2] of getWrappedLineSegments(
@@ -189,6 +209,7 @@ export const driftingFilamentsSeed: P5Seed = {
 
         filament.x = wrap(nextX, instance.width)
         filament.y = wrap(nextY, instance.height)
+        filament.age += 1
       }
     }
 
