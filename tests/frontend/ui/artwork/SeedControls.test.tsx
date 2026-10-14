@@ -1,6 +1,10 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import { SeedControls } from '../../../../src/ui/artwork/SeedControls'
+import {
+  getDefaultGeneValues,
+  randomizeGeneValues,
+  SeedControls,
+} from '../../../../src/ui/artwork/SeedControls'
 import { driftingFilamentsSeed } from '../../../../src/seeds/p5/drifting-filaments/seed'
 import { artworkSeeds, defaultArtworkSeed } from '../../../../src/seeds/registry'
 
@@ -11,8 +15,10 @@ describe('seed controls', () => {
         activeSeed={defaultArtworkSeed}
         seeds={artworkSeeds}
         onSeedChange={vi.fn()}
-        parameterValues={{}}
-        onParameterChange={vi.fn()}
+        geneValues={{}}
+        onGeneChange={vi.fn()}
+        onGenesChange={vi.fn()}
+        onResetCanvas={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="offline"
         saveStatus="idle"
@@ -28,14 +34,16 @@ describe('seed controls', () => {
     expect(markup).toContain('disabled=""')
   })
 
-  it('renders parameter sliders for the active module', () => {
+  it('renders Gene sliders for the active module', () => {
     const markup = renderToStaticMarkup(
       <SeedControls
         activeSeed={driftingFilamentsSeed}
         seeds={artworkSeeds}
         onSeedChange={vi.fn()}
-        parameterValues={{ filamentCount: 200, noiseScale: 0.002, stepLength: 2 }}
-        onParameterChange={vi.fn()}
+        geneValues={{ filamentCount: 200, noiseScale: 0.002, stepLength: 2 }}
+        onGeneChange={vi.fn()}
+        onGenesChange={vi.fn()}
+        onResetCanvas={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="connected"
         saveStatus="idle"
@@ -44,8 +52,23 @@ describe('seed controls', () => {
 
     expect(markup).toContain('Filament count')
     expect(markup).toContain('value="200"')
-    expect(markup).toContain('Noise scale')
+    expect(markup).toContain('Genes')
+    expect(markup).toContain('Hue')
+    expect(markup).toContain('Trail length')
+    expect(markup).toContain('Flow scale')
     expect(markup).toContain('Step length')
+    expect(markup).toContain('aria-label="Reset genes to defaults"')
+    expect(markup).toContain('aria-label="Randomize all genes"')
+    const geneActionsStart = markup.indexOf('class="gene-actions"')
+    const rebirthButtonIndex = markup.indexOf('aria-label="rebirth, R key"')
+    const resetGenesButtonIndex = markup.indexOf('aria-label="Reset genes to defaults"')
+    const geneActionsEnd = markup.indexOf('</div>', geneActionsStart)
+    const geneActionsMarkup = markup.slice(geneActionsStart, geneActionsEnd)
+
+    expect(rebirthButtonIndex).toBeGreaterThan(geneActionsStart)
+    expect(rebirthButtonIndex).toBeLessThan(resetGenesButtonIndex)
+    expect(rebirthButtonIndex).toBeLessThan(geneActionsEnd)
+    expect(geneActionsMarkup).toContain('<kbd class="gene-action-key">r</kbd>')
     expect(markup).toContain('Save Imprint')
     expect(markup).toContain('class="connection-indicator-label" aria-hidden="true">API')
     expect(markup).not.toContain('disabled=""')
@@ -57,8 +80,10 @@ describe('seed controls', () => {
         activeSeed={defaultArtworkSeed}
         seeds={artworkSeeds}
         onSeedChange={vi.fn()}
-        parameterValues={{}}
-        onParameterChange={vi.fn()}
+        geneValues={{}}
+        onGeneChange={vi.fn()}
+        onGenesChange={vi.fn()}
+        onResetCanvas={vi.fn()}
         onSaveImprint={vi.fn()}
         controlStatus="connected"
         saveStatus="saved"
@@ -67,5 +92,24 @@ describe('seed controls', () => {
 
     expect(markup).toContain('class="save-feedback save-feedback-saved"')
     expect(markup).toContain('aria-live="polite">Saved')
+  })
+
+  it('returns the declared defaults for every Gene', () => {
+    expect(getDefaultGeneValues(driftingFilamentsSeed.genes)).toEqual(
+      Object.fromEntries(
+        driftingFilamentsSeed.genes.map(({ id, defaultValue }) => [id, defaultValue]),
+      ),
+    )
+  })
+
+  it('randomizes every Gene to a step-aligned value in its declared range', () => {
+    const values = randomizeGeneValues(driftingFilamentsSeed.genes, () => 0.5)
+
+    for (const gene of driftingFilamentsSeed.genes) {
+      const value = values[gene.id]
+      expect(value).toBeGreaterThanOrEqual(gene.min)
+      expect(value).toBeLessThanOrEqual(gene.max)
+      expect((value - gene.min) / gene.step).toBeCloseTo(Math.round((value - gene.min) / gene.step))
+    }
   })
 })

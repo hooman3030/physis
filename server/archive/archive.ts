@@ -5,10 +5,10 @@ import type { SeedDeclaration } from '../../src/seeds/types'
 import { ArchiveError } from './errors'
 import { migrate } from './migrations'
 
-export type ParameterDeclaration = SeedDeclaration['parameters'][number]
+export type GeneDeclaration = SeedDeclaration['genes'][number]
 export type ModuleDeclaration = SeedDeclaration
 
-export type ParameterValues = Readonly<Record<string, number>>
+export type GeneValues = Readonly<Record<string, number>>
 
 // Shared core of everything in a lineage tree.
 export interface LineageNode {
@@ -28,7 +28,7 @@ export interface CodeNodeRecord extends LineageNode {
 export interface ImprintRecord extends LineageNode {
   codeId: string
   sourceRevision: string
-  parameters: ParameterValues
+  genes: GeneValues
   randomSeed: number | null
   validation: unknown
 }
@@ -41,7 +41,7 @@ export type PresenceState = {
 export type SaveImprintInput = {
   codeId: string
   sourceRevision: string
-  parameters: ParameterValues
+  genes: GeneValues
   randomSeed?: number | null
   validation?: unknown
   // Defaults to the Presence's Imprint when it runs the same code, otherwise
@@ -83,12 +83,12 @@ function parseJson(text: string | null, what: string): unknown {
   }
 }
 
-function parseParameters(text: string, imprintId: string): ParameterValues {
-  const value = parseJson(text, `parameters of imprint ${imprintId}`)
+function parseGenes(text: string, imprintId: string): GeneValues {
+  const value = parseJson(text, `Genes of imprint ${imprintId}`)
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new ArchiveError('corrupt', `Parameters of imprint ${imprintId} are not an object`)
+    throw new ArchiveError('corrupt', `Genes of imprint ${imprintId} are not an object`)
   }
-  return value as ParameterValues
+  return value as GeneValues
 }
 
 function toImprint(row: Row): ImprintRecord {
@@ -98,7 +98,7 @@ function toImprint(row: Row): ImprintRecord {
     parentId: row.parent_id as string | null,
     codeId: row.code_id as string,
     sourceRevision: row.source_revision as string,
-    parameters: parseParameters(row.parameters as string, id),
+    genes: parseGenes(row.genes as string, id),
     randomSeed: row.random_seed as number | null,
     validation: parseJson(row.validation as string | null, `validation of imprint ${id}`),
     createdAt: row.created_at as string,
@@ -163,7 +163,7 @@ export class Archive {
   #declaration(id: string): ModuleDeclaration {
     const declaration = this.#declarations.get(id)
     if (declaration === undefined) {
-      throw invalid(`Module ${id} has no registered parameter declarations`)
+      throw invalid(`Module ${id} has no registered Gene declarations`)
     }
     return declaration
   }
@@ -241,7 +241,7 @@ export class Archive {
     })
   }
 
-  // Saves the current parameters as a child Imprint and points the Presence at it.
+  // Saves the current Genes as a child Imprint and points the Presence at it.
   saveImprint(input: SaveImprintInput): ImprintRecord {
     requireRevision(input.sourceRevision)
     const randomSeed = input.randomSeed ?? null
@@ -251,7 +251,7 @@ export class Archive {
 
     return this.#transaction(() => {
       this.getCodeNode(input.codeId)
-      validateParameters(this.#declaration(input.codeId), input.parameters)
+      validateGenes(this.#declaration(input.codeId), input.genes)
 
       const presence = this.getPresence()
       const parentId =
@@ -271,7 +271,7 @@ export class Archive {
       this.#db
         .prepare(
           `INSERT INTO imprints
-             (id, parent_id, code_id, source_revision, parameters, random_seed,
+             (id, parent_id, code_id, source_revision, genes, random_seed,
               validation, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
@@ -280,7 +280,7 @@ export class Archive {
           parentId,
           input.codeId,
           input.sourceRevision,
-          JSON.stringify(input.parameters),
+          JSON.stringify(input.genes),
           randomSeed,
           input.validation === undefined ? null : JSON.stringify(input.validation),
           this.#timestamp(),
@@ -380,7 +380,7 @@ export class Archive {
   }
 
   // Selecting anything from the archive only moves the pointer; nothing is written
-  // to the immutable tables. A code node starts at its default parameters.
+  // to the immutable tables. A code node starts at its default Genes.
   selectCode(id: string): PresenceState {
     return this.#transaction(() => {
       this.getCodeNode(id)
@@ -408,9 +408,9 @@ export class Archive {
     for (const row of this.#db.prepare('PRAGMA foreign_key_check').all() as Row[]) {
       problems.push(`foreign key: ${row.table} row ${row.rowid} references missing ${row.parent}`)
     }
-    for (const row of this.#db.prepare('SELECT id, parameters FROM imprints').all() as Row[]) {
+    for (const row of this.#db.prepare('SELECT id, genes FROM imprints').all() as Row[]) {
       try {
-        parseParameters(row.parameters as string, row.id as string)
+        parseGenes(row.genes as string, row.id as string)
       } catch (error) {
         problems.push((error as Error).message)
       }
@@ -427,18 +427,18 @@ export class Archive {
   }
 }
 
-function validateParameters(declaration: ModuleDeclaration, values: ParameterValues): void {
-  const declared = new Set(declaration.parameters.map(({ id }) => id))
+function validateGenes(declaration: ModuleDeclaration, values: GeneValues): void {
+  const declared = new Set(declaration.genes.map(({ id }) => id))
   for (const key of Object.keys(values)) {
-    if (!declared.has(key)) throw invalid(`Unknown parameter ${key} for ${declaration.id}`)
+    if (!declared.has(key)) throw invalid(`Unknown Gene ${key} for ${declaration.id}`)
   }
-  for (const { id, min, max } of declaration.parameters) {
+  for (const { id, min, max } of declaration.genes) {
     const value = values[id]
     if (typeof value !== 'number' || !Number.isFinite(value)) {
-      throw invalid(`Parameter ${id} must be a finite number`)
+      throw invalid(`Gene ${id} must be a finite number`)
     }
     if (value < min || value > max) {
-      throw invalid(`Parameter ${id} must be between ${min} and ${max}`)
+      throw invalid(`Gene ${id} must be between ${min} and ${max}`)
     }
   }
 }

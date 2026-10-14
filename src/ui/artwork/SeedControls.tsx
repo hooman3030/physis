@@ -1,12 +1,36 @@
 import type { P5Seed } from '../../seeds/p5/types'
-import type { ArtworkParameterValues } from '../../seeds/types'
+import type { ArtworkGene, ArtworkGeneValues } from '../../seeds/types'
+
+export function getDefaultGeneValues(genes: readonly ArtworkGene[]): ArtworkGeneValues {
+  return Object.fromEntries(genes.map(({ id, defaultValue }) => [id, defaultValue]))
+}
+
+export function randomizeGeneValues(
+  genes: readonly ArtworkGene[],
+  random: () => number = Math.random,
+): ArtworkGeneValues {
+  return Object.fromEntries(
+    genes.map(({ id, min, max, step }) => {
+      const stepCount = Math.floor((max - min) / step)
+      const value = min + Math.floor(random() * (stepCount + 1)) * step
+      const precision = Math.max(
+        min.toString().split('.')[1]?.length ?? 0,
+        max.toString().split('.')[1]?.length ?? 0,
+        step.toString().split('.')[1]?.length ?? 0,
+      )
+      return [id, Number(value.toFixed(precision))]
+    }),
+  )
+}
 
 type SeedControlsProps = {
   activeSeed: P5Seed
   seeds: readonly P5Seed[]
   onSeedChange: (seed: P5Seed) => void
-  parameterValues: ArtworkParameterValues
-  onParameterChange: (id: string, value: number) => void
+  geneValues: ArtworkGeneValues
+  onGeneChange: (id: string, value: number) => void
+  onGenesChange: (values: ArtworkGeneValues) => void
+  onResetCanvas: () => void
   onSaveImprint: () => void
   controlStatus: 'connecting' | 'connected' | 'offline'
   saveStatus: 'idle' | 'saving' | 'saved'
@@ -18,8 +42,10 @@ export function SeedControls({
   activeSeed,
   seeds,
   onSeedChange,
-  parameterValues,
-  onParameterChange,
+  geneValues,
+  onGeneChange,
+  onGenesChange,
+  onResetCanvas,
   onSaveImprint,
   controlStatus,
   saveStatus,
@@ -85,33 +111,88 @@ export function SeedControls({
           </option>
         ))}
       </select>
-      {activeSeed.parameters.map((parameter) => {
-        const value = parameterValues[parameter.id] ?? parameter.defaultValue
-        const inputId = `parameter-${parameter.id}`
+      <div className="genes-heading">
+        <h3>Genes</h3>
+        <div className="gene-actions">
+          <button
+            type="button"
+            className="gene-action-button"
+            title="rebirth (r)"
+            aria-label="rebirth, R key"
+            onClick={onResetCanvas}
+          >
+            rebirth <kbd className="gene-action-key">r</kbd>
+          </button>
+          <button
+            type="button"
+            className="gene-action-button"
+            title="Reset genes to defaults"
+            aria-label="Reset genes to defaults"
+            disabled={controlsDisabled}
+            onClick={() => onGenesChange(getDefaultGeneValues(activeSeed.genes))}
+          >
+            reset
+          </button>
+          <button
+            type="button"
+            className="gene-action-button"
+            title="Randomize all genes"
+            aria-label="Randomize all genes"
+            disabled={controlsDisabled}
+            onClick={() => onGenesChange(randomizeGeneValues(activeSeed.genes))}
+          >
+            <svg
+              className="gene-action-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <rect
+                x="3.5"
+                y="3.5"
+                width="17"
+                height="17"
+                rx="3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              <circle cx="8" cy="8" r="1.3" fill="currentColor" />
+              <circle cx="12" cy="12" r="1.3" fill="currentColor" />
+              <circle cx="16" cy="16" r="1.3" fill="currentColor" />
+              <circle cx="16" cy="8" r="1.3" fill="currentColor" />
+              <circle cx="8" cy="16" r="1.3" fill="currentColor" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      {activeSeed.genes.map((gene) => {
+        const value = geneValues[gene.id] ?? gene.defaultValue
+        const inputId = `gene-${gene.id}`
         const progress = Math.min(
           100,
-          Math.max(0, ((value - parameter.min) / (parameter.max - parameter.min)) * 100),
+          Math.max(0, ((value - gene.min) / (gene.max - gene.min)) * 100),
         )
 
         return (
-          <div className="parameter-control" key={parameter.id}>
-            <div className="parameter-heading">
-              <label htmlFor={inputId}>{parameter.label}</label>
+          <div className="gene-control" key={gene.id}>
+            <div className="gene-heading">
+              <label htmlFor={inputId}>{gene.label}</label>
               <output htmlFor={inputId}>{Number(value.toFixed(4))}</output>
             </div>
             <input
               id={inputId}
               className="range-control"
               type="range"
-              min={parameter.min}
-              max={parameter.max}
-              step={parameter.step}
+              min={gene.min}
+              max={gene.max}
+              step={gene.step}
               value={value}
               style={{
                 background: `linear-gradient(90deg, var(--color-accent) ${progress}%, var(--track-background) ${progress}%) center / 100% var(--range-track-height) no-repeat`,
               }}
               disabled={controlsDisabled}
-              onChange={(event) => onParameterChange(parameter.id, Number(event.target.value))}
+              onChange={(event) => onGeneChange(gene.id, Number(event.target.value))}
             />
           </div>
         )

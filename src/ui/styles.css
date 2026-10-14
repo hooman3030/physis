@@ -39,7 +39,7 @@
   --radius-control: 0.5rem;
   --radius-pill: 999px;
   --radius-circle: 50%;
-  --studio-panel-gutter: clamp(1.25rem, 5vw, 5rem);
+  --studio-panel-gutter: clamp(1.25rem, 1vw, 5rem);
 }
 
 * {
@@ -252,6 +252,66 @@ h2 {
   font-weight: 500;
 }
 
+h3 {
+  margin-bottom: 0;
+  font-size: var(--text-heading);
+  font-weight: 500;
+}
+
+.genes-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1em;
+}
+
+.genes-heading h3 {
+  margin: 0;
+}
+
+.gene-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.gene-action-button {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--border-default);
+  color: var(--color-text);
+  background: var(--surface-control-background);
+  font-size: var(--text-sm);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.gene-action-button:not(:disabled):hover {
+  background: var(--surface-accent-background);
+}
+
+.gene-action-key {
+  min-width: 1.25em;
+  margin-left: 0.3rem;
+  padding: 0.15em 0.3em;
+  border: 1px solid var(--border-default);
+  border-radius: 0.2rem;
+  background: var(--surface-control-background);
+  font: inherit;
+  font-size: 0.85em;
+  line-height: 1;
+  text-align: center;
+}
+
+.gene-action-icon {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+}
+
 .archive-empty {
   color: var(--color-muted);
   font-size: var(--text-base);
@@ -456,18 +516,18 @@ label {
   color: var(--color-muted);
 }
 
-.parameter-control {
+.gene-control {
   margin-top: 0.65rem;
 }
 
-.parameter-heading {
+.gene-heading {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
 }
 
-.parameter-heading output {
+.gene-heading output {
   color: var(--color-accent);
   font-variant-numeric: tabular-nums;
 }

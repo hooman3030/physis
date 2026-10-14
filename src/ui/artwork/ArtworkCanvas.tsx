@@ -1,26 +1,26 @@
 import { useEffect, useRef } from 'react'
 import { mountSeedRuntime, type SeedModule } from '../../runtime'
-import type { ArtworkParameterValues } from '../../seeds/types'
+import type { ArtworkGeneValues } from '../../seeds/types'
 
 type ArtworkCanvasProps = {
   seed: SeedModule
-  parameters: ArtworkParameterValues
+  genes: ArtworkGeneValues
   onFpsChange?: (fps: number | null) => void
 }
 
-export function ArtworkCanvas({ seed, parameters, onFpsChange }: ArtworkCanvasProps) {
+export function ArtworkCanvas({ seed, genes, onFpsChange }: ArtworkCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const parametersRef = useRef(parameters)
+  const genesRef = useRef(genes)
 
   useEffect(() => {
-    parametersRef.current = parameters
-  }, [parameters])
+    genesRef.current = genes
+  }, [genes])
 
   useEffect(() => {
     if (!containerRef.current) return
 
     onFpsChange?.(null)
-    return mountSeedRuntime(containerRef.current, seed, () => parametersRef.current, onFpsChange)
+    return mountSeedRuntime(containerRef.current, seed, () => genesRef.current, onFpsChange)
   }, [seed, onFpsChange])
 
   return <div ref={containerRef} className="artwork-canvas" aria-label={`Artwork: ${seed.label}`} />

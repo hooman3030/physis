@@ -18,12 +18,12 @@ archive.selectCode('drifting-filaments') // the Presence now runs this Seed at i
 const imprint = archive.saveImprint({
   codeId: 'drifting-filaments',
   sourceRevision: '<git commit hash>',
-  parameters: { filamentCount: 160 },
+  genes: { filamentCount: 240 },
 })
 ```
 
-Module parameter declarations are supplied by the caller and used to validate
-Imprints (known parameters, finite values, within bounds).
+Seed Gene declarations are supplied by the caller and used to validate
+Imprints (known Genes, finite values, within bounds).
 
 ## Data model
 
@@ -62,7 +62,7 @@ parent must belong to the same code node, so a lineage never crosses code.
 - To restore, stop the service and open the backup file with `openArchive`
   (or copy it over the archive path).
 - `archive.verify()` returns a list of problems from the SQLite integrity check,
-  the foreign-key check, and stored-parameter parsing; an empty list means
+  the foreign-key check, and stored-Gene parsing; an empty list means
   healthy.
 
 ## Control API
@@ -98,13 +98,13 @@ Routes under `/api/v1`:
 - `GET /presence`, `GET /presence/events` (SSE; current state on connect, then
   `event: presence` on every change)
 - `POST /presence` with `{kind: "code" | "imprint", id}` selects anything from
-  the archive; `PUT /presence/parameters` with `{parameters}` tweaks live
+  the archive; `PUT /presence/genes` with `{genes}` tweaks live
   values in memory only
 - `GET /code-nodes[?role=seed|mutation]`, `/code-nodes/:id`,
   `/code-nodes/:id/ancestry`
 - `GET /imprints[?codeId=]`, `/imprints/:id`, `/imprints/:id/ancestry`
 - `POST /imprints` with optional `{parentId, randomSeed}` archives the current
-  parameters; the server stamps `sourceRevision` and a `sourceDirty` flag
+  Genes; the server stamps `sourceRevision` and a `sourceDirty` flag
 - `DELETE /imprints/:id` deletes an inactive Imprint and reparents its children
   to its former parent; deleting the active Imprint returns a conflict
 

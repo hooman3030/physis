@@ -13,7 +13,7 @@ import {
   saveControlApiToken,
   selectCode,
   selectImprint,
-  setParameters as updateApiParameters,
+  setGenes as updateApiGenes,
   subscribeToPresence,
   type ImprintRecord,
   type PairingStatus,
@@ -21,7 +21,7 @@ import {
 } from '../controlClient'
 import {
   loadSettings,
-  sanitizeParameterValues,
+  sanitizeGeneValues,
   saveSettings,
   type ArtworkSettings,
 } from '../persistence'
@@ -31,6 +31,7 @@ import { DevelopmentOverlay } from '../ui/overlays/DevelopmentOverlay'
 import { RemoteAccessPairing } from '../ui/overlays/RemoteAccessPairing'
 import { SeedControls } from '../ui/artwork/SeedControls'
 import type { P5Seed } from '../seeds/p5/types'
+import type { ArtworkGeneValues } from '../seeds/types'
 import { artworkSeeds, defaultArtworkSeed } from '../seeds/registry'
 import '../ui/styles.css'
 
@@ -51,6 +52,7 @@ export function App() {
   const [settings, setSettings] = useState<ArtworkSettings<P5Seed>>(initialSettings.settings)
   const [controlsOpen, setControlsOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
+  const [canvasResetVersion, setCanvasResetVersion] = useState(0)
   const [controlStatus, setControlStatus] = useState<ControlStatus>('connecting')
   const [fps, setFps] = useState<number | null>(null)
   const [authenticationRequired, setAuthenticationRequired] = useState(false)
@@ -68,7 +70,7 @@ export function App() {
   const revisionRef = useRef(-1)
   const saveFeedbackTimer = useRef<number | null>(null)
   const { seed } = settings
-  const parameterValues = settings.parametersBySeed[seed.id]
+  const geneValues = settings.genesBySeed[seed.id]
 
   settingsRef.current = settings
   statusRef.current = controlStatus
@@ -113,9 +115,9 @@ export function App() {
     setSettings((current) => ({
       ...current,
       seed: activeSeed,
-      parametersBySeed: {
-        ...current.parametersBySeed,
-        [activeSeed.id]: sanitizeParameterValues(activeSeed, snapshot.parameters),
+      genesBySeed: {
+        ...current.genesBySeed,
+        [activeSeed.id]: sanitizeGeneValues(activeSeed, snapshot.genes),
       },
     }))
   }, [])
@@ -281,6 +283,18 @@ export function App() {
       }
 
       if (
+        event.code === 'KeyR' &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.repeat
+      ) {
+        event.preventDefault()
+        setCanvasResetVersion((version) => version + 1)
+        return
+      }
+
+      if (
         event.code === 'KeyC' &&
         !event.altKey &&
         !event.ctrlKey &&
@@ -366,19 +380,19 @@ export function App() {
     }
   }
 
-  const handleParameterChange = (id: string, value: number) => {
+  const handleGenesChange = (values: ArtworkGeneValues) => {
     setSettings((current) => ({
       ...current,
-      parametersBySeed: {
-        ...current.parametersBySeed,
-        [current.seed.id]: { ...current.parametersBySeed[current.seed.id], [id]: value },
+      genesBySeed: {
+        ...current.genesBySeed,
+        [current.seed.id]: { ...current.genesBySeed[current.seed.id], ...values },
       },
     }))
     clearSaveFeedback()
     if (statusRef.current === 'connected') {
-      void updateApiParameters({ [id]: value }).catch((error: unknown) => {
+      void updateApiGenes(values).catch((error: unknown) => {
         if (!requirePairing(error)) {
-          reportApplicationError(`Parameter update failed: ${errorMessage(error)}`)
+          reportApplicationError(`Gene update failed: ${errorMessage(error)}`)
         }
         if (!(error instanceof ControlApiError)) {
           statusRef.current = 'offline'
@@ -386,6 +400,10 @@ export function App() {
         }
       })
     }
+  }
+
+  const handleGeneChange = (id: string, value: number) => {
+    handleGenesChange({ [id]: value })
   }
 
   const handleSaveImprint = async () => {
@@ -454,9 +472,9 @@ export function App() {
   return (
     <main data-open-panels={controlsOpen && archiveOpen ? 'both' : 'one'}>
       <ArtworkCanvas
-        key={seed.id}
+        key={`${seed.id}-${canvasResetVersion}`}
         seed={seed}
-        parameters={parameterValues}
+        genes={geneValues}
         onFpsChange={import.meta.env.DEV ? setFps : undefined}
       />
       <DevelopmentOverlay fps={fps} />
@@ -493,8 +511,10 @@ export function App() {
         activeSeed={seed}
         seeds={artworkSeeds}
         onSeedChange={handleSeedChange}
-        parameterValues={parameterValues}
-        onParameterChange={handleParameterChange}
+        geneValues={geneValues}
+        onGeneChange={handleGeneChange}
+        onGenesChange={handleGenesChange}
+        onResetCanvas={() => setCanvasResetVersion((version) => version + 1)}
         onSaveImprint={handleSaveImprint}
         controlStatus={controlStatus}
         saveStatus={saveStatus}

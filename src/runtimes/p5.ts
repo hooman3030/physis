@@ -1,17 +1,17 @@
 import p5 from 'p5'
-import type { ArtworkParameterValues } from '../seeds/types'
+import type { ArtworkGeneValues } from '../seeds/types'
 import type { P5Seed } from '../seeds/p5/types'
 
 export function mountP5Runtime(
   container: HTMLDivElement,
   seed: P5Seed,
-  getParameters: () => ArtworkParameterValues,
+  getGenes: () => ArtworkGeneValues,
   onFpsChange?: (fps: number) => void,
 ): () => void {
   let disposed = false
   // p5 may reach setup after its host component has already unmounted.
   const artwork = new p5((instance) => {
-    seed.createSketch(instance, getParameters)
+    seed.createSketch(instance, getGenes)
 
     const { setup } = instance
     instance.setup = async () => {

@@ -69,6 +69,20 @@ const migrations: readonly string[] = [
       OR NEW.created_at IS NOT OLD.created_at
     BEGIN SELECT RAISE(ABORT, 'Imprint content is immutable'); END;
   `,
+  `
+  ALTER TABLE imprints RENAME COLUMN parameters TO genes;
+
+  DROP TRIGGER imprints_content_immutable_update;
+  CREATE TRIGGER imprints_content_immutable_update BEFORE UPDATE ON imprints
+    WHEN NEW.id IS NOT OLD.id
+      OR NEW.code_id IS NOT OLD.code_id
+      OR NEW.source_revision IS NOT OLD.source_revision
+      OR NEW.genes IS NOT OLD.genes
+      OR NEW.random_seed IS NOT OLD.random_seed
+      OR NEW.validation IS NOT OLD.validation
+      OR NEW.created_at IS NOT OLD.created_at
+    BEGIN SELECT RAISE(ABORT, 'Imprint content is immutable'); END;
+  `,
 ]
 
 export const CURRENT_SCHEMA_VERSION = migrations.length

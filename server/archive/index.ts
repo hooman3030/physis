@@ -5,7 +5,8 @@ export type {
   ImprintRecord,
   LineageNode,
   ModuleDeclaration,
-  ParameterValues,
+  GeneDeclaration,
+  GeneValues,
   PresenceState,
   SaveImprintInput,
 } from './archive'

@@ -1,8 +1,8 @@
-import type { Archive, CodeNodeRecord, ImprintRecord, ParameterValues } from '../archive'
-import type { ArtworkParameter, SeedDeclaration } from '../../src/seeds/types'
+import type { Archive, CodeNodeRecord, GeneValues, ImprintRecord } from '../archive'
+import type { ArtworkGene, SeedDeclaration } from '../../src/seeds/types'
 import { HttpError } from './http'
 
-export type ControlParameter = ArtworkParameter
+export type ControlGene = ArtworkGene
 export type ControlModule = SeedDeclaration
 
 export type PresenceSnapshot = {
@@ -10,19 +10,19 @@ export type PresenceSnapshot = {
   code: CodeNodeRecord | null
   imprint: ImprintRecord | null
   module: SeedDeclaration | null
-  parameters: ParameterValues | null
+  genes: GeneValues | null
 }
 
 type Listener = (snapshot: PresenceSnapshot) => void
 
 export type SelectKind = 'code' | 'imprint'
 
-function defaultsOf(module: ControlModule): ParameterValues {
-  return Object.fromEntries(module.parameters.map(({ id, defaultValue }) => [id, defaultValue]))
+function defaultsOf(module: ControlModule): GeneValues {
+  return Object.fromEntries(module.genes.map(({ id, defaultValue }) => [id, defaultValue]))
 }
 
 // The one running artwork. The archive stores which code and Imprint it points
-// to; the live parameter values exist only here until they are saved as an
+// to; the live Gene values exist only here until they are saved as an
 // Imprint.
 export class LivePresence {
   readonly #archive: Archive
@@ -30,7 +30,7 @@ export class LivePresence {
   readonly #listeners = new Set<Listener>()
   #code: CodeNodeRecord | null = null
   #imprint: ImprintRecord | null = null
-  #parameters: ParameterValues | null = null
+  #genes: GeneValues | null = null
   #revision = 0
 
   constructor(archive: Archive, modules: readonly ControlModule[]) {
@@ -47,7 +47,7 @@ export class LivePresence {
     if (code === null || module === undefined) return
     this.#code = code
     this.#imprint = imprint
-    this.#parameters = imprint === null ? defaultsOf(module) : { ...imprint.parameters }
+    this.#genes = imprint === null ? defaultsOf(module) : { ...imprint.genes }
   }
 
   #module(id: string): ControlModule {
@@ -76,10 +76,10 @@ export class LivePresence {
           : {
               id: module.id,
               label: module.label,
-              parameters: module.parameters,
+              genes: module.genes,
               runtime: module.runtime,
             },
-      parameters: this.#parameters,
+      genes: this.#genes,
     }
   }
 
@@ -99,49 +99,46 @@ export class LivePresence {
       const { code } = this.#archive.selectCode(id)
       this.#code = code
       this.#imprint = null
-      this.#parameters = defaultsOf(module)
+      this.#genes = defaultsOf(module)
     } else {
       const imprint = this.#archive.getImprint(id)
       this.#module(imprint.codeId)
       const presence = this.#archive.selectImprint(id)
       this.#code = presence.code
       this.#imprint = presence.imprint
-      this.#parameters = { ...imprint.parameters }
+      this.#genes = { ...imprint.genes }
     }
     this.#notify()
     return this.snapshot()
   }
 
   // Live tweaks change only this in-memory state; nothing is archived.
-  setParameters(values: Record<string, unknown>): PresenceSnapshot {
-    if (this.#code === null || this.#parameters === null) {
+  setGenes(values: Record<string, unknown>): PresenceSnapshot {
+    if (this.#code === null || this.#genes === null) {
       throw new HttpError(409, 'No artwork is selected')
     }
     const module = this.#module(this.#code.id)
-    const declared = new Map(module.parameters.map((parameter) => [parameter.id, parameter]))
-    const next: Record<string, number> = { ...this.#parameters }
+    const declared = new Map(module.genes.map((gene) => [gene.id, gene]))
+    const next: Record<string, number> = { ...this.#genes }
 
     for (const [key, value] of Object.entries(values)) {
-      const parameter = declared.get(key)
-      if (parameter === undefined) throw new HttpError(400, `Unknown parameter ${key}`)
+      const gene = declared.get(key)
+      if (gene === undefined) throw new HttpError(400, `Unknown Gene ${key}`)
       if (typeof value !== 'number' || !Number.isFinite(value)) {
-        throw new HttpError(400, `Parameter ${key} must be a finite number`)
+        throw new HttpError(400, `Gene ${key} must be a finite number`)
       }
-      if (value < parameter.min || value > parameter.max) {
-        throw new HttpError(
-          400,
-          `Parameter ${key} must be between ${parameter.min} and ${parameter.max}`,
-        )
+      if (value < gene.min || value > gene.max) {
+        throw new HttpError(400, `Gene ${key} must be between ${gene.min} and ${gene.max}`)
       }
       next[key] = value
     }
 
-    this.#parameters = next
+    this.#genes = next
     this.#notify()
     return this.snapshot()
   }
 
-  // Saves the live parameters as an Imprint. The Presence keeps running and
+  // Saves the live Genes as an Imprint. The Presence keeps running and
   // advances to the new Imprint.
   saveImprint(options: {
     sourceRevision: string
@@ -149,13 +146,13 @@ export class LivePresence {
     parentId?: string | null
     randomSeed?: number
   }): ImprintRecord {
-    if (this.#code === null || this.#parameters === null) {
+    if (this.#code === null || this.#genes === null) {
       throw new HttpError(409, 'No artwork is selected')
     }
     const imprint = this.#archive.saveImprint({
       codeId: this.#code.id,
       sourceRevision: options.sourceRevision,
-      parameters: this.#parameters,
+      genes: this.#genes,
       parentId: options.parentId,
       randomSeed: options.randomSeed,
       validation: { sourceDirty: options.sourceDirty },

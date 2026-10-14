@@ -24,7 +24,7 @@ in Git, bundled at build time. That cannot produce code at runtime.
   immutable like every other archive row.
 - **Sandboxed execution only.** The browser runs runtime source solely inside a
   sandboxed iframe (`sandbox="allow-scripts"`, no same-origin access) that
-  exposes a narrow message interface: parameters in, frames and health probe
+  exposes a narrow message interface: Gene values in, frames and health probe
   readings out. Runtime code has no access to `localStorage`, the control API,
   credentials, or the network (enforced by CSP `connect-src 'none'`). The
   service never executes runtime source.
@@ -79,7 +79,7 @@ in Git, bundled at build time. That cannot produce code at runtime.
   failed check. A runaway synchronous loop can still freeze the tab; move to
   Worker plus `OffscreenCanvas` only if that happens.
 - **Renderer-agnostic:** the sandbox contract must not be p5-specific. Runtime
-  code targets a small renderer interface (parameters in, canvas and frames
+  code targets a small renderer interface (Gene values in, canvas and frames
   out), with p5, raw Canvas 2D, and later Three.js and raw shaders as
   interchangeable runtimes behind it. Each module declares its runtime.
 - **Process view:** hidden but toggleable on the laptop panel; primarily
@@ -87,7 +87,7 @@ in Git, bundled at build time. That cannot produce code at runtime.
 
 ## Runtime interface
 
-A runtime is an adapter that turns module source and parameters into pixels.
+A runtime is an adapter that turns module source and Genes into pixels.
 The sandbox wrapper, not the module author, owns the canvas, the frame loop,
 and the host messaging; the module supplies only drawing logic.
 
@@ -105,8 +105,8 @@ interface ArtworkRuntime {
 - The wrapper drives timing: it calls the runtime's frame step, measures frame
   rate for the heartbeat, and posts downscaled frames to the host.
 - Each runtime defines what `source` means: a p5 sketch function body, a Canvas
-  2D `draw(ctx, time, params)` function, a Three.js scene factory, or a
-  fragment shader with parameter uniforms. Adding a runtime means adding an
+  2D `draw(ctx, time, genes)` function, a Three.js scene factory, or a
+  fragment shader with Gene uniforms. Adding a runtime means adding an
   adapter; the host, probe, archive, and watchdog do not change.
 - Parameter declarations (`id`, `label`, `defaultValue`, `min`, `max`, `step`)
   are runtime-independent and remain the contract the archive validates.
@@ -124,7 +124,7 @@ Before #24, `ArtworkSeed` in `src/seeds/types.ts` was p5-specific:
 `createSketch` took a `p5` instance, and `ArtworkCanvas` mounted p5 directly.
 Issue #24 implements the renderer-independent declaration and runtime boundary:
 
-- `SeedDeclaration` (`id`, `label`, `parameters`, `runtime`) is shared by the
+- `SeedDeclaration` (`id`, `label`, `genes`, `runtime`) is shared by the
   archive and control API. `src/seeds/types.ts` has no renderer imports.
 - `P5Seed` adds the p5-specific `createSketch` implementation. Existing seeds
   declare the `p5` runtime.

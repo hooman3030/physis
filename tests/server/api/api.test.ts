@@ -13,7 +13,7 @@ const REVISION = 'a1b2c3d4e5f6'
 const REMOTE_TOKEN = 'a'.repeat(64)
 const modules = [driftingFilamentsSeed, firstLightSeed]
 const seedId = driftingFilamentsSeed.id
-const [firstParameter] = driftingFilamentsSeed.parameters
+const [firstGene] = driftingFilamentsSeed.genes
 
 let directory: string
 let archive: Archive
@@ -64,47 +64,47 @@ async function call(method: string, path: string, body?: unknown, headers: Heade
 }
 
 describe('presence', () => {
-  it('starts empty, then selecting a seed starts it at default parameters', async () => {
-    expect((await call('GET', '/presence')).body).toMatchObject({ code: null, parameters: null })
+  it('starts empty, then selecting a seed starts it at default Genes', async () => {
+    expect((await call('GET', '/presence')).body).toMatchObject({ code: null, genes: null })
 
     const { status, body } = await call('POST', '/presence', { kind: 'code', id: seedId })
     expect(status).toBe(200)
     expect(body.code.id).toBe(seedId)
     expect(body.imprint).toBeNull()
-    expect(body.parameters[firstParameter.id]).toBe(firstParameter.defaultValue)
+    expect(body.genes[firstGene.id]).toBe(firstGene.defaultValue)
     expect(body.module.runtime).toBe('p5')
-    expect(body.module.parameters).toHaveLength(driftingFilamentsSeed.parameters.length)
+    expect(body.module.genes).toHaveLength(driftingFilamentsSeed.genes.length)
   })
 
-  it('live parameter changes are kept in memory and never archived', async () => {
+  it('live Gene changes are kept in memory and never archived', async () => {
     await call('POST', '/presence', { kind: 'code', id: seedId })
-    const changed = await call('PUT', '/presence/parameters', {
-      parameters: { [firstParameter.id]: firstParameter.max },
+    const changed = await call('PUT', '/presence/genes', {
+      genes: { [firstGene.id]: firstGene.max },
     })
 
-    expect(changed.body.parameters[firstParameter.id]).toBe(firstParameter.max)
+    expect(changed.body.genes[firstGene.id]).toBe(firstGene.max)
     expect((await call('GET', '/imprints')).body).toEqual([])
   })
 
-  it('rejects unknown, non-numeric, and out-of-bounds parameters', async () => {
+  it('rejects unknown, non-numeric, and out-of-bounds Genes', async () => {
     await call('POST', '/presence', { kind: 'code', id: seedId })
-    const put = (parameters: unknown) => call('PUT', '/presence/parameters', { parameters })
+    const put = (genes: unknown) => call('PUT', '/presence/genes', { genes })
 
     expect((await put({ bogus: 1 })).status).toBe(400)
-    expect((await put({ [firstParameter.id]: 'big' })).status).toBe(400)
-    expect((await put({ [firstParameter.id]: firstParameter.max + 1 })).status).toBe(400)
+    expect((await put({ [firstGene.id]: 'big' })).status).toBe(400)
+    expect((await put({ [firstGene.id]: firstGene.max + 1 })).status).toBe(400)
     expect((await put([])).status).toBe(400)
   })
 
-  it('refuses parameter changes and saves before anything is selected', async () => {
-    expect((await call('PUT', '/presence/parameters', { parameters: {} })).status).toBe(409)
+  it('refuses Gene changes and saves before anything is selected', async () => {
+    expect((await call('PUT', '/presence/genes', { genes: {} })).status).toBe(409)
     expect((await call('POST', '/imprints', {})).status).toBe(409)
   })
 
-  it('selects an imprint, restoring its saved parameters', async () => {
+  it('selects an imprint, restoring its saved Genes', async () => {
     await call('POST', '/presence', { kind: 'code', id: seedId })
-    await call('PUT', '/presence/parameters', {
-      parameters: { [firstParameter.id]: firstParameter.max },
+    await call('PUT', '/presence/genes', {
+      genes: { [firstGene.id]: firstGene.max },
     })
     const saved = await call('POST', '/imprints', {})
     await call('POST', '/presence', { kind: 'code', id: firstLightSeed.id })
@@ -112,7 +112,7 @@ describe('presence', () => {
     const { body } = await call('POST', '/presence', { kind: 'imprint', id: saved.body.id })
     expect(body.code.id).toBe(seedId)
     expect(body.imprint.id).toBe(saved.body.id)
-    expect(body.parameters[firstParameter.id]).toBe(firstParameter.max)
+    expect(body.genes[firstGene.id]).toBe(firstGene.max)
   })
 
   it('validates selection requests', async () => {
@@ -133,11 +133,11 @@ describe('presence', () => {
 })
 
 describe('imprints and lineage', () => {
-  it('saves live parameters as a child imprint with the server source revision', async () => {
+  it('saves live Genes as a child Imprint with the server source revision', async () => {
     await call('POST', '/presence', { kind: 'code', id: seedId })
     const first = await call('POST', '/imprints', { randomSeed: 7 })
-    await call('PUT', '/presence/parameters', {
-      parameters: { [firstParameter.id]: firstParameter.min },
+    await call('PUT', '/presence/genes', {
+      genes: { [firstGene.id]: firstGene.min },
     })
     const second = await call('POST', '/imprints', {})
 
@@ -200,14 +200,14 @@ describe('imprints and lineage', () => {
 })
 
 describe('persistence across restart', () => {
-  it('restores the selected imprint and its parameters, but not unsaved tweaks', async () => {
+  it('restores the selected Imprint and its Genes, but not unsaved tweaks', async () => {
     await call('POST', '/presence', { kind: 'code', id: seedId })
-    await call('PUT', '/presence/parameters', {
-      parameters: { [firstParameter.id]: firstParameter.max },
+    await call('PUT', '/presence/genes', {
+      genes: { [firstGene.id]: firstGene.max },
     })
     const saved = await call('POST', '/imprints', {})
-    await call('PUT', '/presence/parameters', {
-      parameters: { [firstParameter.id]: firstParameter.min },
+    await call('PUT', '/presence/genes', {
+      genes: { [firstGene.id]: firstGene.min },
     })
 
     await shutdown()
@@ -215,7 +215,7 @@ describe('persistence across restart', () => {
 
     const { body } = await call('GET', '/presence')
     expect(body.imprint.id).toBe(saved.body.id)
-    expect(body.parameters[firstParameter.id]).toBe(firstParameter.max)
+    expect(body.genes[firstGene.id]).toBe(firstGene.max)
   })
 
   it('starts empty when the stored code is not part of this build', async () => {
@@ -231,7 +231,7 @@ describe('persistence across restart', () => {
     })
     base = (await server.start()).url
 
-    expect((await call('GET', '/presence')).body).toMatchObject({ code: null, parameters: null })
+    expect((await call('GET', '/presence')).body).toMatchObject({ code: null, genes: null })
   })
 })
 
@@ -490,11 +490,11 @@ describe('presence events (SSE)', () => {
     const selected = await nextEvent()
     expect(selected.code.id).toBe(seedId)
 
-    await call('PUT', '/presence/parameters', {
-      parameters: { [firstParameter.id]: firstParameter.max },
+    await call('PUT', '/presence/genes', {
+      genes: { [firstGene.id]: firstGene.max },
     })
     const tweaked = await nextEvent()
-    expect(tweaked.parameters[firstParameter.id]).toBe(firstParameter.max)
+    expect(tweaked.genes[firstGene.id]).toBe(firstGene.max)
     expect(tweaked.revision).toBeGreaterThan(selected.revision)
 
     controller.abort()
