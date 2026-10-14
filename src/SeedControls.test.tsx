@@ -13,12 +13,18 @@ describe('seed controls', () => {
         onSeedChange={vi.fn()}
         parameterValues={{}}
         onParameterChange={vi.fn()}
+        onSaveImprint={vi.fn()}
+        controlStatus="offline"
+        controlError={null}
+        operationMessage={null}
       />,
     )
 
     expect(markup).toContain(defaultArtworkSeed.id)
     expect(markup).toContain(defaultArtworkSeed.label)
     expect(markup).toContain('drifting-filaments')
+    expect(markup).toContain('browser-only controls are active')
+    expect(markup).toContain('disabled=""')
   })
 
   it('renders parameter sliders for the active module', () => {
@@ -29,6 +35,10 @@ describe('seed controls', () => {
         onSeedChange={vi.fn()}
         parameterValues={{ filamentCount: 200, noiseScale: 0.002, stepLength: 2 }}
         onParameterChange={vi.fn()}
+        onSaveImprint={vi.fn()}
+        controlStatus="connected"
+        controlError={null}
+        operationMessage={null}
       />,
     )
 
@@ -36,5 +46,7 @@ describe('seed controls', () => {
     expect(markup).toContain('value="200"')
     expect(markup).toContain('Noise scale')
     expect(markup).toContain('Step length')
+    expect(markup).toContain('Save Imprint')
+    expect(markup).not.toContain('disabled=""')
   })
 })

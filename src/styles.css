@@ -57,6 +57,84 @@ main {
   display: none;
 }
 
+.archive-panel {
+  right: auto;
+  left: clamp(1.25rem, 5vw, 5rem);
+}
+
+.archive-heading,
+.imprint-entry-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.archive-heading .eyebrow,
+.archive-heading h2 {
+  margin: 0;
+}
+
+.archive-heading h2 {
+  margin-top: 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.archive-heading button {
+  padding: 0.5rem 0.7rem;
+}
+
+.archive-empty {
+  color: #c7c2b7;
+  font-size: 0.875rem;
+}
+
+.imprint-list {
+  display: grid;
+  gap: 0.625rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.imprint-entry {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  padding: 0.8rem;
+  border-color: rgb(244 241 232 / 20%);
+  color: #f4f1e8;
+  background: rgb(244 241 232 / 6%);
+  text-align: left;
+}
+
+.imprint-entry[aria-pressed='true'] {
+  border-color: #a9d5c0;
+  background: rgb(169 213 192 / 12%);
+}
+
+.imprint-entry-heading code {
+  overflow-wrap: anywhere;
+}
+
+.imprint-active {
+  color: #a9d5c0;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.imprint-metadata,
+.imprint-parameters {
+  color: #c7c2b7;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .eyebrow,
 .seed-label,
 label {
@@ -74,6 +152,21 @@ label {
   color: #c7c2b7;
   letter-spacing: 0.04em;
   text-transform: none;
+}
+
+.control-status,
+.control-error {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.control-status {
+  color: #a9d5c0;
+}
+
+.control-error {
+  color: #ffadad;
 }
 
 .seed-label code {
@@ -132,11 +225,22 @@ button {
   cursor: pointer;
 }
 
-.controls-reveal {
+.save-imprint {
+  margin-top: 1rem;
+}
+
+button:disabled,
+select:disabled,
+input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.controls-reveal,
+.archive-reveal {
   position: fixed;
   z-index: 3;
   top: 50%;
-  right: 0;
   display: grid;
   width: 0.875rem;
   height: 4rem;
@@ -152,13 +256,26 @@ button {
     background-color 140ms ease;
 }
 
+.controls-reveal {
+  right: 0;
+  border-radius: 0.5rem 0 0 0.5rem;
+}
+
+.archive-reveal {
+  left: 0;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
 .controls-reveal:hover,
-.controls-reveal:focus-visible {
+.controls-reveal:focus-visible,
+.archive-reveal:hover,
+.archive-reveal:focus-visible {
   background: rgb(13 17 23 / 80%);
   opacity: 0.9;
 }
 
-.controls-reveal:focus-visible {
+.controls-reveal:focus-visible,
+.archive-reveal:focus-visible {
   outline: 2px solid #a9d5c0;
   outline-offset: -2px;
 }
@@ -171,7 +288,13 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .controls-reveal {
+  .controls-reveal,
+  .archive-reveal {
     transition: none;
   }
+}
+
+main[data-open-panels='both'] .studio-panel,
+main[data-open-panels='both'] .archive-panel {
+  width: min(24rem, calc((100vw - 3rem) / 2));
 }
