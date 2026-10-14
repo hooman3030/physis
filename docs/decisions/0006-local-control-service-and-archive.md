@@ -53,6 +53,15 @@ flowchart LR
   can identify which implementation gave meaning to its parameters. It does
   not contain or archive that code.
 
+**Refinement (storage model).** Seed and Mutation are two roles of one kind of
+node, a code node with a parent; a Seed is a code node that has been promoted
+(authored root modules are registered promoted). Code nodes and Imprints share
+a lineage core (`id`, parent, creation time). A Presence is not a lineage node
+but a mutable pointer to a code node and an optional Imprint, so selecting any
+Seed, Mutation, or Imprint from the archive starts a Presence without writing
+archive rows. An Imprint's parent must share its code node. See
+[local-archive.md](../local-archive.md).
+
 The two lineages are related but distinct. A source-code Mutation can produce
 a new Seed, and an Imprint records which code revision it uses. Multiple
 Imprints can use the same Seed; an Imprint can also use a newly promoted Seed.
@@ -135,12 +144,12 @@ in [ADR 0007](0007-live-mutation-code-and-sandbox.md).
 
 ## Deferred choices
 
-- Select the HTTP framework and API request/response shapes in #11.
+- API shape (decided in #11): plain `node:http`, JSON under `/api/v1`, and
+  Server-Sent Events for Presence change notification. There is one Presence.
+  See `docs/local-archive.md`.
 - Define LAN authentication and exposure in #12; keep the M2 service
   loopback-only.
 - Specify retention, pruning, and backup frequency before unattended
   operation.
 - Decide how Mutations are generated and registered once evolution is
   implemented (M4). Until then, see "Seed code immutability" below.
-- Decide how a Presence is identified across browser restarts and whether
-  multiple simultaneous Presences are supported.

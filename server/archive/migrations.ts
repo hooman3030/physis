@@ -1,30 +1,27 @@
 import type { DatabaseSync } from 'node:sqlite'
 import { ArchiveError } from './errors'
 
-// Append-only: each entry upgrades the schema by one user_version.
+// Append-only once released: each entry upgrades the schema by one user_version.
 const migrations: readonly string[] = [
   `
-  CREATE TABLE mutations (
+  -- A code node is a Seed or a Mutation; it is a Seed once promoted.
+  CREATE TABLE code_nodes (
     id TEXT PRIMARY KEY,
-    parent_seed_id TEXT REFERENCES seeds(id),
-    parent_mutation_id TEXT REFERENCES mutations(id),
+    parent_id TEXT REFERENCES code_nodes(id),
     source_revision TEXT NOT NULL,
     validation TEXT,
-    created_at TEXT NOT NULL,
-    CHECK ((parent_seed_id IS NULL) <> (parent_mutation_id IS NULL))
+    created_at TEXT NOT NULL
   ) STRICT;
 
-  CREATE TABLE seeds (
-    id TEXT PRIMARY KEY,
-    source_revision TEXT NOT NULL,
-    promoted_from_mutation_id TEXT REFERENCES mutations(id),
+  CREATE TABLE promotions (
+    code_id TEXT PRIMARY KEY REFERENCES code_nodes(id),
     created_at TEXT NOT NULL
   ) STRICT;
 
   CREATE TABLE imprints (
     id TEXT PRIMARY KEY,
-    parent_imprint_id TEXT REFERENCES imprints(id),
-    seed_id TEXT NOT NULL REFERENCES seeds(id),
+    parent_id TEXT REFERENCES imprints(id),
+    code_id TEXT NOT NULL REFERENCES code_nodes(id),
     source_revision TEXT NOT NULL,
     parameters TEXT NOT NULL,
     random_seed INTEGER,
@@ -32,24 +29,27 @@ const migrations: readonly string[] = [
     created_at TEXT NOT NULL
   ) STRICT;
 
+  -- The only mutable table: what is currently running, as a pointer.
   CREATE TABLE presence (
     id INTEGER PRIMARY KEY CHECK (id = 1),
-    active_imprint_id TEXT REFERENCES imprints(id)
+    code_id TEXT REFERENCES code_nodes(id),
+    imprint_id TEXT REFERENCES imprints(id)
   ) STRICT;
 
-  INSERT INTO presence (id, active_imprint_id) VALUES (1, NULL);
+  INSERT INTO presence (id) VALUES (1);
 
-  CREATE INDEX imprints_parent ON imprints(parent_imprint_id);
-  CREATE INDEX imprints_seed ON imprints(seed_id);
+  CREATE INDEX code_nodes_parent ON code_nodes(parent_id);
+  CREATE INDEX imprints_parent ON imprints(parent_id);
+  CREATE INDEX imprints_code ON imprints(code_id);
 
-  CREATE TRIGGER seeds_immutable_update BEFORE UPDATE ON seeds
-    BEGIN SELECT RAISE(ABORT, 'seeds are immutable'); END;
-  CREATE TRIGGER seeds_immutable_delete BEFORE DELETE ON seeds
-    BEGIN SELECT RAISE(ABORT, 'seeds are immutable'); END;
-  CREATE TRIGGER mutations_immutable_update BEFORE UPDATE ON mutations
-    BEGIN SELECT RAISE(ABORT, 'mutations are immutable'); END;
-  CREATE TRIGGER mutations_immutable_delete BEFORE DELETE ON mutations
-    BEGIN SELECT RAISE(ABORT, 'mutations are immutable'); END;
+  CREATE TRIGGER code_nodes_immutable_update BEFORE UPDATE ON code_nodes
+    BEGIN SELECT RAISE(ABORT, 'code nodes are immutable'); END;
+  CREATE TRIGGER code_nodes_immutable_delete BEFORE DELETE ON code_nodes
+    BEGIN SELECT RAISE(ABORT, 'code nodes are immutable'); END;
+  CREATE TRIGGER promotions_immutable_update BEFORE UPDATE ON promotions
+    BEGIN SELECT RAISE(ABORT, 'promotions are immutable'); END;
+  CREATE TRIGGER promotions_immutable_delete BEFORE DELETE ON promotions
+    BEGIN SELECT RAISE(ABORT, 'promotions are immutable'); END;
   CREATE TRIGGER imprints_immutable_update BEFORE UPDATE ON imprints
     BEGIN SELECT RAISE(ABORT, 'imprints are immutable'); END;
   CREATE TRIGGER imprints_immutable_delete BEFORE DELETE ON imprints

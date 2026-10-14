@@ -1,13 +1,13 @@
 export { Archive, openArchive } from './archive'
 export type {
   ArchiveOptions,
+  CodeNodeRecord,
   ImprintRecord,
-  MutationParent,
-  MutationRecord,
+  LineageNode,
+  ModuleDeclaration,
   ParameterValues,
+  PresenceState,
   SaveImprintInput,
-  SeedDeclaration,
-  SeedRecord,
 } from './archive'
 export { ArchiveError } from './errors'
 export type { ArchiveErrorCode } from './errors'
