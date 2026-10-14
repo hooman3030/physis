@@ -62,3 +62,35 @@ parent must belong to the same code node, so a lineage never crosses code.
 - `archive.verify()` returns a list of problems from the SQLite integrity check,
   the foreign-key check, and stored-parameter parsing; an empty list means
   healthy.
+
+## Control API
+
+Run the service with `pnpm server` (bundles `server/main.ts`, then runs it with
+Node). It registers the bundled Seeds, restores the Presence from the archive
+and listens on loopback only.
+
+| Variable                 | Default                                       |
+| ------------------------ | --------------------------------------------- |
+| `PHYSIS_PORT`            | `4317`                                        |
+| `PHYSIS_ARCHIVE_PATH`    | `data/archive.sqlite` (git-ignored)           |
+| `PHYSIS_SOURCE_REVISION` | `git rev-parse HEAD`                          |
+| `PHYSIS_ALLOWED_ORIGINS` | `http://127.0.0.1:5173,http://localhost:5173` |
+
+Routes under `/api/v1`:
+
+- `GET /health`
+- `GET /presence`, `GET /presence/events` (SSE; current state on connect, then
+  `event: presence` on every change)
+- `POST /presence` with `{kind: "code" | "imprint", id}` selects anything from
+  the archive; `PUT /presence/parameters` with `{parameters}` tweaks live
+  values in memory only
+- `GET /code-nodes[?role=seed|mutation]`, `/code-nodes/:id`,
+  `/code-nodes/:id/ancestry`
+- `GET /imprints[?codeId=]`, `/imprints/:id`, `/imprints/:id/ancestry`
+- `POST /imprints` with optional `{parentId, randomSeed}` archives the current
+  parameters; the server stamps `sourceRevision` and a `sourceDirty` flag
+
+Live tweaks are never archived until imprinted, and are lost on restart. The
+service refuses non-loopback hosts, checks the `Host` and `Origin` headers, and
+requires `application/json` on writes. There is no authentication in M2; LAN
+access and auth belong to #12.

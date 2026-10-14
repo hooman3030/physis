@@ -144,12 +144,12 @@ in [ADR 0007](0007-live-mutation-code-and-sandbox.md).
 
 ## Deferred choices
 
-- Select the HTTP framework and API request/response shapes in #11.
+- API shape (decided in #11): plain `node:http`, JSON under `/api/v1`, and
+  Server-Sent Events for Presence change notification. There is one Presence.
+  See `docs/local-archive.md`.
 - Define LAN authentication and exposure in #12; keep the M2 service
   loopback-only.
 - Specify retention, pruning, and backup frequency before unattended
   operation.
 - Decide how Mutations are generated and registered once evolution is
   implemented (M4). Until then, see "Seed code immutability" below.
-- Decide how a Presence is identified across browser restarts and whether
-  multiple simultaneous Presences are supported.

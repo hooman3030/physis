@@ -7,6 +7,8 @@
     "dev": "vp dev",
     "build": "vp build",
     "preview": "vp preview",
+    "server:build": "vp pack server/main.ts --no-config --out-dir dist-server --tsconfig tsconfig.server.json",
+    "server": "pnpm server:build && node dist-server/main.mjs",
     "check": "vp check",
     "check:fix": "vp check --fix",
     "test": "vp test",
