@@ -1,7 +1,7 @@
 ---
 name: commit-and-merge
-description: "Use when asked to commit, push, open a pull request, or merge work. Keep the Git workflow concise while preserving Physis review and CI safeguards."
-argument-hint: "Commit and merge the current work or specified pull request"
+description: 'Use when asked to commit, push, open a pull request, or merge work. Keep the Git workflow concise while preserving Physis review and CI safeguards.'
+argument-hint: 'Commit and merge the current work or specified pull request'
 ---
 
 # Commit and Merge
