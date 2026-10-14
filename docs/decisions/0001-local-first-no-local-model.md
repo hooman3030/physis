@@ -19,7 +19,7 @@ laptop. Treat hosted AI as an optional, bounded influence on evolution. Do not
 make local model inference part of the baseline architecture.
 
 The artwork runtime must continue independently of AI. Authored procedural
-generation, seeds, parameters, and snapshots are the foundation; AI can be
+generation, Seeds, Imprints, and parameter traits are the foundation; AI can be
 added later behind a provider adapter.
 
 ## Consequences

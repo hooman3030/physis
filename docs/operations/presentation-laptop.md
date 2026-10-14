@@ -34,7 +34,7 @@ When implementation starts, the installation should eventually provide:
 - automatic startup after boot;
 - fullscreen/kiosk display mode;
 - recovery to the last stable artwork after a process failure;
-- local persistence for seeds, versions, and snapshots;
+- local persistence for Seeds, Mutations, and Imprints;
 - a local-network control surface;
 - a way to pause evolution before maintenance;
 - visible logs or diagnostics for failures.

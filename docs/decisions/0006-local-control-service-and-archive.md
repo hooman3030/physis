@@ -1,0 +1,135 @@
+# ADR 0006: Local control service and artwork lineage
+
+## Status
+
+Accepted.
+
+## Context
+
+The first slice keeps the active seed and its parameters in browser
+`localStorage` (ADR 0005). M2 needs durable artwork state, a record of how
+source code changes over time, and a family tree of saved parameter
+configurations. The presentation laptop has 4 GB of RAM, so the archive and
+control service should add little operational overhead.
+
+The renderer must remain useful if the control service, archive, network, or
+hosted AI is unavailable. The M2 API is local-only; LAN access and
+authentication are a separate M3 decision.
+
+## Decision
+
+### Names and model
+
+The biological and mystical language describes the model; it does not require
+that an artwork use an actual neural network.
+
+```mermaid
+flowchart LR
+  SeedA["Seed A<br/>approved artwork code"] -->|"code change"| Mutation["Mutation<br/>source-code revision"]
+  Mutation -->|"selected / promoted"| SeedB["Seed B<br/>approved artwork code"]
+  ImprintA["Imprint A<br/>saved parameter state"] -->|"save live trait changes"| ImprintB["Imprint B<br/>child state"]
+  ImprintB -. "uses code from" .-> SeedB
+  Presence["Presence<br/>currently running artwork"] -->|"runs from"| ImprintB
+```
+
+- **Seed** is an approved, reusable artwork module. It identifies authored
+  source code; it is not a running artwork or a saved parameter set.
+- **Mutation** is a child source-code revision produced by changing a Seed's
+  code. Mutations form their own parent/child lineage. A selected Mutation
+  can be promoted to a new Seed; experimental Mutations need not be promoted.
+- **Imprint** is an immutable capture of an artwork's parameters (and random
+  seed when applicable) at a point in time. It references the Seed and source
+  revision whose code interprets those values. Saving live parameter changes
+  creates a child Imprint of the prior saved Imprint; that child is the next
+  node in the trait lineage, like an offspring state. This is a data capture,
+  not a screenshot.
+- **Presence** is the artwork currently running in the browser. It runs a
+  particular Seed/source revision with an active Imprint. When a child Imprint
+  is saved, the Presence can continue rendering while its active lineage
+  advances to that child; the lineage is retained in Imprints rather than
+  requiring a new browser process for every save.
+- **Source revision** is the identifier for the code in a Seed or Mutation,
+  such as a Git commit or build ID. It provides provenance so a saved Imprint
+  can identify which implementation gave meaning to its parameters. It does
+  not contain or archive that code.
+
+The two lineages are related but distinct. A source-code Mutation can produce
+a new Seed, and an Imprint records which code revision it uses. Multiple
+Imprints can use the same Seed; an Imprint can also use a newly promoted Seed.
+This supports a simple tree view of Seeds and a detailed view that expands
+their Imprints and running Presences. The underlying parent and reference
+relationships do not depend on a particular visualization.
+
+### Storage and runtime
+
+- Run a small local control service as a separate process from the browser
+  renderer. Bind it to loopback by default. Keep its HTTP framework choice
+  open for the API implementation issue.
+- Use SQLite for authoritative active state, Seed and Mutation lineage, and
+  Imprint metadata. Give each Seed, Mutation, and Imprint a stable unique ID.
+  Store parent IDs for lineage and foreign-key references for the code
+  revision used by each Imprint.
+- Keep source revisions and Imprints immutable. The active Presence points
+  to its current Imprint. Saving changed parameters creates a child Imprint
+  and updates the active reference in one transaction; transient slider
+  movement does not create archive entries.
+- Validate Seed IDs and parameter values against the registered Seed's
+  declarations before committing an Imprint. A write is durable only after
+  its SQLite transaction commits. Failed writes must surface an error and
+  must not be represented as saved.
+- Run ordered, transactional schema migrations tracked by SQLite's
+  `user_version`. Back up the database consistently and verify recovery by
+  restoring it and checking source lineage, Imprint parent links, and the
+  active reference.
+- Let the browser render from its last-known-good local settings immediately;
+  it must not wait for the service on startup or in the animation loop. When
+  the service is available, its active Imprint is authoritative and the
+  browser refreshes its local cache from that state. If it is unavailable,
+  continue rendering the cached state.
+
+## Consequences
+
+- Source-code evolution and parameter-state evolution can be browsed
+  independently or together without conflating code changes with live trait
+  changes.
+- Immutable Imprints preserve saved parameter states and their ancestry;
+  the Presence can move to a child Imprint without interrupting rendering.
+- A source revision identifies code provenance but does not guarantee that
+  historical code is bundled. Reproducing old output requires that code to
+  remain available.
+- SQLite provides transactional state and lineage without a separate
+  database service. M2 Imprints contain parameter data, not rendered images,
+  so no image-asset directory is required for this model.
+- Loopback binding avoids exposing an unauthenticated control surface on the
+  LAN in M2. M3 must decide authentication and any LAN binding before remote
+  access is enabled.
+
+## Alternatives considered
+
+- **Browser `localStorage` as the archive:** retain it as a last-known-good
+  rendering cache, but not as authoritative storage. It is browser-scoped and
+  does not provide transactional lineage or shared access for a local
+  service.
+- **JSON files for all state:** simpler initially, but concurrent updates,
+  referential integrity, and atomic changes across active state and lineage
+  would need to be implemented manually. SQLite is a better fit for the
+  relational metadata.
+- **A separate database server:** rejected for M2 because it adds a service
+  and resource burden without a need for multi-host database access.
+- **A screenshot as the saved state:** rejected because an Imprint must
+  capture editable parameters and ancestry, not only rendered pixels.
+- **Make rendering depend on API availability:** rejected because a service
+  outage must not blank or stop the artwork.
+
+## Deferred choices
+
+- Select the HTTP framework and API request/response shapes in #11.
+- Define LAN authentication and exposure in #12; keep the M2 service
+  loopback-only.
+- Specify retention, pruning, and backup frequency before unattended
+  operation.
+- Define how archived Mutations retain executable source code if historical
+  revisions later become unavailable. A source revision is provenance, not a
+  copy of the code.
+- Decide how a Presence is identified across browser restarts and whether
+  multiple simultaneous Presences are supported.

@@ -14,8 +14,8 @@ Physis is a local-first installation with four separable concerns:
 1. **Artwork runtime** renders the current stable work in a fullscreen browser.
 2. **Evolution engine** proposes and validates changes on a schedule or in
    response to a prompt.
-3. **Control plane and archive** store authoritative state, versions, prompts,
-   logs, and snapshots.
+3. **Control plane and archive** store Seed and Mutation lineage, Imprints,
+   active Presence state, prompts, and logs.
 4. **Remote studio** provides a local-network dashboard for observation and
    control.
 
@@ -26,21 +26,31 @@ to show the last stable version.
 ## Conceptual flow
 
 ```text
-authored seed + prompt
+Seed + active Imprint
           |
           v
-   evolution engine ---> candidate workspace ---> build/runtime checks
-          |                                         |
-          |                                   pass | fail
-          |                                         v
-          +------------------------------> promote / reject
-                                                   |
-                                                   v
-                                         stable artwork + snapshot
+      Presence ------------------------> fullscreen display
+
+authored Seed + prompt
+          |
+          v
+   evolution engine ---> candidate Mutation ---> build/runtime checks
+                              |                     |
+                              |                pass | fail
+                              |                     v
+                              +------------> promote / reject
+                              |
+                        promoted Mutation
+                              |
+                              v
+                         new Seed
 ```
 
-The control plane records each outcome. A rejected candidate never replaces
-the active stable version.
+An Imprint records the parameters used by a Presence and can have a parent
+Imprint, forming a trait lineage. A Mutation records a source-code change and
+can have a parent Seed or Mutation, forming a separate code lineage. An
+Imprint references the Seed and source revision it uses. The control plane
+records both lineages; a rejected Mutation never replaces the active Seed.
 
 ## Runtime and rendering
 
@@ -61,15 +71,19 @@ The artwork remains fullscreen when the panel is closed.
 
 ## Evolution and safety
 
-An iteration should be a bounded proposal:
+Code evolution should be a bounded proposal:
 
-1. Select a seed, prompt, and relevant history.
+1. Select a Seed, prompt, and relevant history.
 2. Generate a constrained change.
-3. Save it in a separate candidate workspace.
+3. Save it as a child Mutation in a separate candidate workspace.
 4. Build and run it in an isolated browser context.
 5. Check for errors, rendering failure, blank output, and resource violations.
-6. Promote it only when checks pass; otherwise retain the stable version.
-7. Record the result and capture a snapshot.
+6. Promote it to a new Seed only when checks pass; otherwise retain the active
+   Seed.
+7. Record the result and its lineage.
+
+Saving changed live parameters creates a child Imprint. The active Presence
+can continue rendering while it advances to the saved child Imprint.
 
 AI-generated artwork code must not be allowed to rewrite the backend, execute
 arbitrary shell commands, install dependencies, or access provider secrets.
@@ -77,27 +91,29 @@ arbitrary shell commands, install dependencies, or access provider secrets.
 ## State and archive
 
 SQLite is appropriate for structured metadata. The filesystem can hold source
-trees, generated builds, screenshots, and other larger assets. A version should
-record at least:
+trees, generated builds, screenshots, and other larger assets. The archive
+should record at least:
 
-- seed module and version identifiers;
-- parent version and lineage;
-- rendering engine;
-- authored prompt and change proposal;
-- random seed and relevant parameters;
-- creation time and validation results;
-- snapshot references.
+- **Seed:** stable identity, approved source revision, and creation metadata.
+- **Mutation:** stable identity, parent Seed or Mutation, source revision, and
+  validation/promotion metadata.
+- **Imprint:** stable identity, parent Imprint, Seed and source revision used,
+  parameters, random seed when applicable, creation time, and validation
+  metadata.
+- **Presence:** the active Imprint and runtime status; it can resume from its
+  last-known-good local settings if the control service is unavailable.
 
-A snapshot is a captured state. A seed is a pre-built, self-contained artwork
-module that can render a fullscreen piece and serve as a reproducible starting
-point for a new branch. Selecting a snapshot as a seed must preserve the
-original branch.
+Imprints capture parameter state, not screenshots. A visual capture, if
+needed later, is a separate image asset linked to a Presence or Imprint and
+does not replace the Imprint's parameter data. Selecting an Imprint as the
+starting state for further work creates a child Imprint and preserves its
+ancestors.
 
 ## Remote studio
 
 The laptop can serve a dashboard on its local network address. It should
-support prompt submission, queue inspection, pause/resume, seed and snapshot
-selection, version comparison, and logs. Control operations require
+support prompt submission, queue inspection, pause/resume, Seed and Imprint
+selection, lineage browsing, and logs. Control operations require
 authentication even on the trusted network. Provider keys remain on the
 laptop and are never sent to the dashboard.
 

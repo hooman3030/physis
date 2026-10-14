@@ -39,16 +39,16 @@ See [ADR 0003](decisions/0003-first-slice-static-canvas.md),
 ## M2 — Local Runtime and Archive
 
 Add a lightweight local control API and persistent archive for artwork state,
-versions, lineage, and snapshots. Keep rendering available when the API,
-database, network, or AI provider is unavailable.
+Seed and Mutation lineage, and Imprints. Keep rendering available when the
+API, database, network, or AI provider is unavailable.
 
-**Exit outcome:** active artwork state can be controlled locally and restored
-after restart; versions and snapshots are stored and retrieved with their
-lineage intact.
+**Exit outcome:** the active Presence can be controlled locally and restored
+after restart; Seeds, Mutations, and Imprints can be stored and retrieved with
+their lineage intact.
 
 1. Define the local API, authoritative state, and archive design
    ([#14](https://github.com/hooman3030/physis/issues/14)).
-2. Persist artwork versions and snapshots
+2. Persist artwork Imprints and source lineage
    ([#10](https://github.com/hooman3030/physis/issues/10)).
 3. Add the local artwork control API
    ([#11](https://github.com/hooman3030/physis/issues/11)).
