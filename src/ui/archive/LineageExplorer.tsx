@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { type CodeNodeRecord, type ImprintRecord, type PresenceSnapshot } from '../../controlClient'
+import { PrimaryButton } from '../primitives/PrimaryButton'
 import { createLineageGraph } from './lineageGraph'
 import { LineageGraphView } from './LineageGraphView'
 
@@ -104,9 +105,9 @@ export function LineageExplorer({
         </p>
       )}
       {loadFailed && !authenticationRequired && (
-        <button type="button" className="lineage-retry" onClick={onRetry}>
+        <PrimaryButton type="button" className="lineage-retry" onClick={onRetry}>
           Retry
-        </button>
+        </PrimaryButton>
       )}
       {!loading && !loadFailed && !authenticationRequired && (
         <>

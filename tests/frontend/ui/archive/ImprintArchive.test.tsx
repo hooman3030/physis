@@ -13,6 +13,25 @@ const imprint: ImprintRecord = {
 }
 
 describe('Imprint archive', () => {
+  it('keeps a closed archive hidden until it is opened', () => {
+    const markup = renderToStaticMarkup(
+      <ImprintArchive
+        imprints={[]}
+        activeImprintId={null}
+        connected
+        loading={false}
+        loadFailed={false}
+        onSelect={vi.fn()}
+        onDelete={vi.fn()}
+        hidden
+      />,
+    )
+
+    expect(markup).toContain('hidden=""')
+    expect(markup).toContain('inert=""')
+    expect(markup).toContain('surface-transition--closed')
+  })
+
   it('renders compact Imprint entries with dates and marks the active entry', () => {
     const markup = renderToStaticMarkup(
       <ImprintArchive

@@ -1,4 +1,5 @@
 import type { ImprintRecord } from '../../controlClient'
+import { useSurfaceTransition } from '../primitives/useSurfaceTransition'
 
 type ImprintArchiveProps = {
   imprints: readonly ImprintRecord[]
@@ -26,12 +27,17 @@ export function ImprintArchive({
   onDelete,
   hidden = false,
 }: ImprintArchiveProps) {
+  const surfaceTransition = useSurfaceTransition(!hidden)
+
   return (
     <section
       id="imprint-archive"
-      className="studio-panel archive-panel surface shape-panel"
+      className={`studio-panel archive-panel surface shape-panel ${surfaceTransition.className}`}
       aria-label="Imprint archive"
-      hidden={hidden}
+      aria-hidden={surfaceTransition.ariaHidden}
+      hidden={surfaceTransition.hidden}
+      inert={surfaceTransition.inert}
+      onAnimationEnd={surfaceTransition.onAnimationEnd}
     >
       <div className="archive-heading">
         <div>

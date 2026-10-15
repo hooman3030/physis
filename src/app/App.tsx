@@ -46,6 +46,9 @@ import '../ui/styles.css'
 
 type ControlStatus = 'connecting' | 'connected' | 'offline'
 
+const SAVE_WIPE_MINIMUM_MS = 650
+const SAVE_FEEDBACK_DURATION_MS = 650
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
@@ -547,6 +550,7 @@ function ArtworkApp() {
 
   const handleSaveImprint = async () => {
     clearSaveFeedback()
+    const saveStartedAt = performance.now()
     setSaveStatus('saving')
     const animationPromise = captureArtworkAnimation(canvasRef.current).catch((error: unknown) => {
       reportApplicationError(`Could not capture the Imprint animation: ${errorMessage(error)}`)
@@ -578,11 +582,15 @@ function ArtworkApp() {
             reportApplicationError(`Could not save the Imprint animation: ${errorMessage(error)}`)
           }
         })
+      const remainingWipeDuration = SAVE_WIPE_MINIMUM_MS - (performance.now() - saveStartedAt)
+      if (remainingWipeDuration > 0) {
+        await new Promise<void>((resolve) => window.setTimeout(resolve, remainingWipeDuration))
+      }
       setSaveStatus('saved')
       saveFeedbackTimer.current = window.setTimeout(() => {
         setSaveStatus('idle')
         saveFeedbackTimer.current = null
-      }, 1800)
+      }, SAVE_FEEDBACK_DURATION_MS)
       if (archiveOpen) void refreshImprints()
     } catch (error) {
       setSaveStatus('idle')

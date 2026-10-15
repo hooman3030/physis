@@ -7,8 +7,9 @@ packages or workspaces just for organization.
 ## Browser application
 
 - `src/main.tsx` is the browser entry point; `src/app/` composes the app.
-- `src/ui/` contains React components and styles. Group components by
-  responsibility; keep domain and runtime logic outside the UI.
+- `src/ui/` contains React components and styles. Shared behavior-bearing
+  primitives live in `src/ui/primitives/`; group domain compositions by
+  responsibility and keep domain/runtime logic outside the UI.
 - `src/seeds/types.ts` and `src/seeds/registry.ts` hold shared Seed contracts
   and registration. Put each bundled Seed at
   `src/seeds/<runtime>/<seed-id>/seed.ts`; keep runtime-specific Seed types

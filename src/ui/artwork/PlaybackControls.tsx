@@ -1,8 +1,10 @@
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
+import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react'
 import { DEFAULT_PLAYBACK_SPEED, MAX_PLAYBACK_SPEED, MIN_PLAYBACK_SPEED } from '../../playbackClock'
+import { useSurfaceTransition } from '../primitives/useSurfaceTransition'
 
 const SPEED_STEP = 0.1
 const SPEED_STEP_COUNT = Math.round((MAX_PLAYBACK_SPEED - MIN_PLAYBACK_SPEED) / SPEED_STEP)
+type PlaybackProgressStyle = CSSProperties & { '--playback-progress': number }
 
 export function getPlaybackSpeedFromDialAngle(angle: number): number | null {
   if (!Number.isFinite(angle)) return null
@@ -33,6 +35,7 @@ export function PlaybackControls({
   controlStatus,
 }: PlaybackControlsProps) {
   const [open, setOpen] = useState(false)
+  const surfaceTransition = useSurfaceTransition(open)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const pointerActive = useRef(false)
   const controlsDisabled = controlStatus !== 'connected'
@@ -40,6 +43,7 @@ export function PlaybackControls({
     1,
     Math.max(0, (speed - MIN_PLAYBACK_SPEED) / (MAX_PLAYBACK_SPEED - MIN_PLAYBACK_SPEED)),
   )
+  const progressStyle: PlaybackProgressStyle = { '--playback-progress': progress * 75 }
   const activeTick = Math.round(progress * SPEED_STEP_COUNT)
   const speedDisabled = controlsDisabled
 
@@ -108,10 +112,15 @@ export function PlaybackControls({
         id="playback-controls-surface"
         className="playback-surface"
         aria-label="Playback controls"
-        hidden={!open}
+        aria-hidden={surfaceTransition.ariaHidden}
+        hidden={surfaceTransition.hidden}
+        inert={surfaceTransition.inert}
         onKeyDown={handleSurfaceKeyDown}
       >
-        <div className="playback-dial-shell surface">
+        <div
+          className={`playback-dial-shell surface ${surfaceTransition.className}`}
+          onAnimationEnd={surfaceTransition.onAnimationEnd}
+        >
           <button
             type="button"
             className="playback-toggle"
@@ -191,6 +200,7 @@ export function PlaybackControls({
                 r="66"
                 pathLength="100"
                 strokeDasharray={`${progress * 75} 100`}
+                style={progressStyle}
                 transform="rotate(135 80 80)"
               />
               {Array.from({ length: SPEED_STEP_COUNT + 1 }, (_, index) => (
@@ -201,6 +211,11 @@ export function PlaybackControls({
                   y1="5"
                   x2="80"
                   y2={index % 5 === 0 ? '14' : '10'}
+                  style={
+                    index <= activeTick
+                      ? { animationDelay: `${activeTick > 0 ? (index / activeTick) * 280 : 0}ms` }
+                      : undefined
+                  }
                   transform={`rotate(${225 + (index / SPEED_STEP_COUNT) * 270} 80 80)`}
                 />
               ))}
