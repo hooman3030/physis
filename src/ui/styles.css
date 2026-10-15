@@ -21,7 +21,7 @@
   --track-foreground: color-mix(in srgb, var(--color-text) 62%, transparent);
   --spinner-border: color-mix(in srgb, var(--color-canvas) 35%, transparent);
   --surface-background: color-mix(in srgb, var(--color-canvas) 22%, transparent);
-  --surface-backdrop-filter: blur(1rem) saturate(180%);
+  --surface-backdrop-filter: blur(1.5rem) saturate(180%) brightness(50%);
   --surface-background-hover: color-mix(in srgb, var(--color-canvas) 80%, transparent);
   --surface-sheen: inset 0 -3px 4px color-mix(in srgb, var(--color-text) 10%, transparent);
   --surface-control-background: color-mix(in srgb, var(--color-text) 8%, transparent);
@@ -1030,7 +1030,21 @@ button {
 
 .playback-dial-progress {
   filter: var(--filter-accent-strong);
-  stroke: var(--color-accent);
+  stroke: var(--color-text);
+  stroke-width: 4;
+}
+
+.playback-dial-shell.surface-transition--opening .playback-dial-progress {
+  animation: playback-dial-load 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes playback-dial-load {
+  from {
+    stroke-dasharray: 0 100;
+  }
+  to {
+    stroke-dasharray: var(--playback-progress) 100;
+  }
 }
 
 .playback-dial-tick {
@@ -1040,11 +1054,34 @@ button {
 }
 
 .playback-dial-tick.is-active {
-  stroke: var(--color-accent);
+  filter: var(--filter-accent-strong);
+  stroke: var(--color-text);
+  stroke-width: 1.8;
 }
 
 .playback-dial-tick.is-major {
   stroke-width: 1.4;
+}
+
+.playback-dial-tick.is-active.is-major {
+  stroke-width: 1.8;
+}
+
+.playback-dial-shell.surface-transition--opening .playback-dial-tick.is-active {
+  animation: playback-tick-light 80ms ease-out both;
+}
+
+@keyframes playback-tick-light {
+  from {
+    filter: none;
+    stroke: var(--track-foreground);
+    stroke-width: 1;
+  }
+  to {
+    filter: var(--filter-accent-strong);
+    stroke: var(--color-text);
+    stroke-width: 1.8;
+  }
 }
 
 .playback-dial-value {
@@ -1236,6 +1273,8 @@ input:disabled {
   .gene-action-icon--rolling,
   .surface-transition--opening,
   .surface-transition--closing,
+  .playback-dial-shell.surface-transition--opening .playback-dial-progress,
+  .playback-dial-shell.surface-transition--opening .playback-dial-tick.is-active,
   .primary-button__fill--animating,
   .save-imprint::before {
     transition: none;

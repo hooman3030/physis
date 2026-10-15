@@ -30,6 +30,7 @@ describe('playback controls', () => {
     )
     expect(markup).toContain('aria-label="Playback speed, double-click to reset to 1×"')
     expect(markup).toContain('aria-valuetext="1.0 times"')
+    expect(markup).toContain('style="--playback-progress:')
     expect(markup).toContain('aria-label="Pause artwork"')
     expect(markup).toContain('playback-toggle-icon--pause is-active')
     expect(markup).not.toContain('playback-toggle-icon--play is-active')
