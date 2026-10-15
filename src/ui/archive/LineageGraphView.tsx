@@ -341,7 +341,7 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
   const reducedMotion = usePrefersReducedMotion()
   const dimensions = useMemo(() => graphDimensions(graph.nodes.length), [graph.nodes.length])
   const initialPositions = useMemo(
-    () => createInitialLineagePositions(graph.nodes, dimensions),
+    () => createInitialLineagePositions(graph.nodes, dimensions, new Map(), graph.edges),
     [dimensions, graph],
   )
   const [positions, setPositions] = useState(initialPositions)
@@ -411,7 +411,7 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
     const { nodes, simulation } = createLineageLayoutSimulation(graph, dimensions, savedPositions)
     nodesByKeyRef.current = new Map(nodes.map((node) => [node.key, node]))
     simulationRef.current = simulation
-    persistOnEndRef.current = savedPositions.size < nodes.length
+    persistOnEndRef.current = nodes.length > 0
     publishPositions(nodes)
 
     let frame: number | null = null
@@ -432,15 +432,10 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
     }
 
     simulation.on('tick', updateAfterTick).on('end', finishSimulation)
-    const allPositionsSaved = savedPositions.size === nodes.length
-    if (reducedMotion || allPositionsSaved) {
+    if (reducedMotion) {
       simulation.stop()
-      if (!reducedMotion) {
-        publishPositions(nodes)
-      } else {
-        simulation.tick(140)
-        publishPositions(nodes)
-      }
+      simulation.tick(140)
+      publishPositions(nodes)
       if (persistOnEndRef.current) saveCurrentPositions()
     } else {
       simulation.restart()

@@ -95,6 +95,7 @@ export function LineageExplorer({
         <a className="lineage-back-link" href="/">
           Back to artwork
         </a>
+        <p className="eyebrow">archive</p>
         <h1>Lineage Explorer</h1>
       </header>
       {statusMessage !== null && (

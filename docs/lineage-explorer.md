@@ -29,14 +29,21 @@ Do not draw additional Imprint-to-code reference edges for Imprints that
 already have an Imprint parent. The archive's `codeId` remains provenance and
 is still available in the inspector.
 
-Use `d3-force` for link, repulsion, centering, and collision forces while
-keeping React and SVG responsible for rendering, accessible node controls,
-and preview images. Start from deterministic positions, let the simulation
-settle, then stop it. Users can drag nodes, pan the graph, and zoom the
-viewport; arrow keys also move a focused node. Save node positions locally in
-the browser and provide a reset control. Use small wheel-zoom increments.
-Never persist layout in the archive. Presence is current runtime state, not
-an archived node, and is indicated without changing the graph relationships.
+Use `d3-force` for link, repulsion, centering, collision, and gentle
+chronological positioning while keeping React and SVG responsible for
+rendering, accessible node controls, and preview images. Start from
+deterministic positions spread from oldest at the top toward newest at the
+bottom; use a deterministic, creation-time-ordered horizontal subtree layout
+to keep sibling branches in order. Let the force simulation organically make
+room without losing those overall time and branch relationships, then stop
+it. Give Imprints stronger repulsion and a larger collision radius so their
+previews and labels have room. Re-run the force layout from saved positions
+on each page load, allowing existing layouts to relax; users can still drag
+nodes, pan the graph, and zoom the viewport, and arrow keys also move a
+focused node. Save the latest node positions locally in the browser and
+provide a reset control. Use small wheel-zoom increments. Never persist layout
+in the archive. Presence is current runtime state, not an archived node, and
+is indicated without changing the graph relationships.
 
 The existing archive API already exposes code nodes, Imprints, their parents,
 and each Imprint's `codeId`. The browser client will need validated list
