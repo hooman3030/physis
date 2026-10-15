@@ -30,7 +30,7 @@
   --surface-accent-hover: color-mix(in srgb, var(--color-accent) 18%, transparent);
   --surface-danger-background: color-mix(in srgb, var(--color-danger) 12%, transparent);
   --surface-warning-background: color-mix(in srgb, var(--color-warning) 12%, transparent);
-  --surface-grid-dot: color-mix(in srgb, var(--color-text) 10%, transparent);
+  --surface-grid-dot: color-mix(in srgb, var(--color-text) 16%, transparent);
   --shadow-overlay: 0 0.5rem 2rem color-mix(in srgb, var(--color-shadow) 35%, transparent);
   --shadow-control: 0 0.12rem 0.28rem color-mix(in srgb, var(--color-shadow) 35%, transparent);
   --shadow-raised: 0 0.35rem 1.2rem color-mix(in srgb, var(--color-shadow) 22%, transparent);
@@ -1513,6 +1513,10 @@ main[data-open-panels='both'] .archive-panel {
   font-size: var(--text-sm);
 }
 
+.lineage-graph-buttons .surface {
+  background: var(--surface-background);
+}
+
 .lineage-graph-viewport {
   position: absolute;
   z-index: 1;
@@ -1527,12 +1531,19 @@ main[data-open-panels='both'] .archive-panel {
   width: 100%;
   height: 100%;
   max-width: none;
-  background-image: radial-gradient(var(--surface-grid-dot) 1px, transparent 1px);
-  background-size: 30px 30px;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   cursor: grab;
+}
+
+.lineage-graph-zoom-content {
+  transform-box: view-box;
+  transform-origin: center;
+}
+
+.lineage-graph-grain {
+  pointer-events: none;
 }
 
 .lineage-graph:active {
@@ -1546,21 +1557,35 @@ main[data-open-panels='both'] .archive-panel {
 
 .lineage-graph-edge {
   stroke: var(--color-accent);
-  stroke-width: 1.5;
+  stroke-width: 1.35;
+  stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
 
+.lineage-graph-edge-glow {
+  stroke: color-mix(in srgb, var(--color-accent) 13%, transparent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
 .lineage-arrow-parent {
-  fill: var(--color-accent);
+  fill: color-mix(in srgb, var(--color-accent) 82%, var(--color-text));
 }
 
 .lineage-graph-node {
   cursor: grab;
-  filter: drop-shadow(var(--shadow-graph-node));
+  filter: drop-shadow(0 5px 8px color-mix(in srgb, var(--color-shadow) 72%, transparent));
   outline: none;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.lineage-graph-node-active {
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--color-accent) 42%, transparent))
+    drop-shadow(0 5px 8px color-mix(in srgb, var(--color-shadow) 72%, transparent));
 }
 
 .lineage-graph-node:active {
@@ -1579,31 +1604,45 @@ main[data-open-panels='both'] .archive-panel {
 
 .lineage-graph-shape {
   fill: var(--color-canvas);
-  stroke-width: 2;
+  stroke-width: 1.6;
   vector-effect: non-scaling-stroke;
 }
 
 .lineage-graph-shape-seed {
-  stroke: var(--color-accent);
+  fill: color-mix(in srgb, var(--color-accent) 12%, var(--color-canvas));
+  stroke: color-mix(in srgb, var(--color-accent) 88%, var(--color-text));
 }
 
 .lineage-graph-shape-mutation {
-  fill: var(--surface-warning-background);
-  stroke: var(--color-warning);
+  fill: color-mix(in srgb, var(--color-warning) 16%, var(--color-canvas));
+  stroke: color-mix(in srgb, var(--color-warning) 86%, var(--color-text));
 }
 
 .lineage-graph-shape-imprint {
-  fill: var(--surface-subtle-background);
-  stroke: var(--color-muted);
+  fill: color-mix(in srgb, #b9a2ff 12%, var(--color-canvas));
+  stroke: color-mix(in srgb, #b9a2ff 56%, var(--color-accent));
+}
+
+.lineage-graph-inner-rim {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-text) 25%, transparent);
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.lineage-graph-glass {
+  pointer-events: none;
 }
 
 .lineage-graph-preview {
   pointer-events: none;
+  filter: saturate(1.1) contrast(1.03);
 }
 
 .lineage-graph-node:hover .lineage-graph-preview,
 .lineage-graph-node:focus-visible .lineage-graph-preview {
-  filter: brightness(1.08);
+  filter: saturate(1.15) brightness(1.08);
 }
 
 .lineage-graph-glyph {
@@ -1635,16 +1674,51 @@ main[data-open-panels='both'] .archive-panel {
 .lineage-graph-active-ring {
   fill: none;
   stroke: var(--color-accent);
-  stroke-width: 2;
+  stroke-width: 1.4;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-accent) 70%, transparent));
   vector-effect: non-scaling-stroke;
+}
+
+.lineage-graph-node-orbit {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-accent) 76%, var(--color-text));
+  stroke-dasharray: 1 5;
+  stroke-width: 1;
+  opacity: 0.8;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }
 
 .lineage-graph-selected-ring {
   fill: none;
   stroke: var(--color-text);
-  stroke-dasharray: 3 3;
-  stroke-width: 1;
+  stroke-dasharray: 1 3;
+  stroke-width: 1.2;
+  opacity: 0.85;
   vector-effect: non-scaling-stroke;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lineage-graph-node-selected .lineage-graph-node-orbit {
+    animation: lineage-selected-sun-wave 4.5s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  @keyframes lineage-selected-sun-wave {
+    0%,
+    100% {
+      opacity: 0.58;
+      stroke-dashoffset: 0;
+      transform: scale(0.98);
+    }
+
+    50% {
+      opacity: 0.9;
+      stroke-dashoffset: -3;
+      transform: scale(1.035);
+    }
+  }
 }
 
 @media (max-width: 40rem) {
