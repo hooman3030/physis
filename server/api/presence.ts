@@ -1,5 +1,6 @@
 import type { Archive, CodeNodeRecord, GeneValues, ImprintRecord } from '../archive'
 import type { ArtworkGene, SeedDeclaration } from '../../src/seeds/types'
+import { DEFAULT_PLAYBACK_SPEED, isPlaybackSpeed } from '../../src/playbackClock'
 import { HttpError } from './http'
 
 export type ControlGene = ArtworkGene
@@ -7,6 +8,8 @@ export type ControlModule = SeedDeclaration
 
 export type PresenceSnapshot = {
   revision: number
+  paused: boolean
+  speed: number
   code: CodeNodeRecord | null
   imprint: ImprintRecord | null
   module: SeedDeclaration | null
@@ -31,6 +34,8 @@ export class LivePresence {
   #code: CodeNodeRecord | null = null
   #imprint: ImprintRecord | null = null
   #genes: GeneValues | null = null
+  #paused = false
+  #speed = DEFAULT_PLAYBACK_SPEED
   #revision = 0
 
   constructor(archive: Archive, modules: readonly ControlModule[]) {
@@ -68,6 +73,8 @@ export class LivePresence {
     const module = this.#code === null ? undefined : this.#modules.get(this.#code.id)
     return {
       revision: this.#revision,
+      paused: this.#paused,
+      speed: this.#speed,
       code: this.#code,
       imprint: this.#imprint,
       module:
@@ -108,6 +115,27 @@ export class LivePresence {
       this.#imprint = presence.imprint
       this.#genes = { ...imprint.genes }
     }
+    this.#paused = false
+    this.#speed = DEFAULT_PLAYBACK_SPEED
+    this.#notify()
+    return this.snapshot()
+  }
+
+  setPaused(paused: boolean): PresenceSnapshot {
+    if (this.#code === null) throw new HttpError(409, 'No artwork is selected')
+    if (this.#paused === paused) return this.snapshot()
+    this.#paused = paused
+    this.#notify()
+    return this.snapshot()
+  }
+
+  setSpeed(speed: number): PresenceSnapshot {
+    if (this.#code === null) throw new HttpError(409, 'No artwork is selected')
+    if (!isPlaybackSpeed(speed)) {
+      throw new HttpError(400, 'Playback speed must be between 0.1 and 4')
+    }
+    if (this.#speed === speed) return this.snapshot()
+    this.#speed = speed
     this.#notify()
     return this.snapshot()
   }

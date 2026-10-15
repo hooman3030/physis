@@ -1,10 +1,13 @@
 import type { ArtworkGene, ArtworkGeneValues, RuntimeKind, SeedDeclaration } from './seeds/types'
+import { isPlaybackSpeed } from './playbackClock'
 
 const API_BASE_URL = '/api/v1'
 const TOKEN_STORAGE_KEY = 'physis:installation-token:v1'
 
 export type PresenceSnapshot = {
   revision: number
+  paused: boolean
+  speed: number
   code: { id: string } | null
   imprint: { id: string } | null
   module: SeedDeclaration | null
@@ -215,13 +218,17 @@ function parsePresenceSnapshot(value: unknown): PresenceSnapshot {
   if (
     !isRecord(value) ||
     typeof value.revision !== 'number' ||
-    !Number.isSafeInteger(value.revision)
+    !Number.isSafeInteger(value.revision) ||
+    typeof value.paused !== 'boolean' ||
+    !isPlaybackSpeed(value.speed)
   ) {
     throw new Error('Control API returned an invalid Presence snapshot')
   }
 
   return {
     revision: value.revision,
+    paused: value.paused,
+    speed: value.speed,
     code: parseIdentity(value.code, 'code node'),
     imprint: parseIdentity(value.imprint, 'Imprint'),
     module: parseModule(value.module),
@@ -348,6 +355,24 @@ export async function setGenes(genes: ArtworkGeneValues): Promise<void> {
     method: 'PUT',
     body: JSON.stringify({ genes }),
   })
+}
+
+export async function setPresencePaused(paused: boolean): Promise<PresenceSnapshot> {
+  return parsePresenceSnapshot(
+    await request('/presence/playback', {
+      method: 'PUT',
+      body: JSON.stringify({ paused }),
+    }),
+  )
+}
+
+export async function setPresenceSpeed(speed: number): Promise<PresenceSnapshot> {
+  return parsePresenceSnapshot(
+    await request('/presence/playback', {
+      method: 'PUT',
+      body: JSON.stringify({ speed }),
+    }),
+  )
 }
 
 export async function createImprint(): Promise<{ id: string }> {

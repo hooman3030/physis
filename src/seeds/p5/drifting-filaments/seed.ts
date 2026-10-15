@@ -3,8 +3,13 @@ import type { P5Seed } from '../types'
 type Filament = { x: number; y: number; hueOffset: number; age: number; lifetime: number }
 type LineSegment = readonly [number, number, number, number]
 
-export function getTrailFadeAlpha(trailLength: number): number {
-  return 100 * (1 - Math.pow(1 / 1024, 1 / (trailLength * 2)))
+export function getTrailFadeAlpha(trailLength: number, elapsedFrames = 1): number {
+  const frameFade = 1 - Math.pow(1 / 1024, 1 / (trailLength * 2))
+  return 100 * (1 - Math.pow(1 - frameFade, elapsedFrames))
+}
+
+export function getPlaybackScaledStepLength(stepLength: number, deltaSeconds: number): number {
+  return stepLength * deltaSeconds * 60
 }
 
 export function getFilamentLifetimeFrames(
@@ -112,7 +117,7 @@ export const driftingFilamentsSeed: P5Seed = {
       step: 1,
     },
   ],
-  createSketch: (instance, getGenes) => {
+  createSketch: (instance, getGenes, getPlaybackFrame) => {
     let filaments: Filament[] = []
 
     const spawn = (): Filament => {
@@ -142,6 +147,8 @@ export const driftingFilamentsSeed: P5Seed = {
     }
 
     instance.draw = () => {
+      const playbackFrame = getPlaybackFrame()
+      const elapsedFrames = playbackFrame.deltaSeconds * 60
       const {
         filamentCount,
         noiseScale,
@@ -158,6 +165,7 @@ export const driftingFilamentsSeed: P5Seed = {
         backgroundSaturation,
         backgroundBrightness,
       } = getGenes()
+      const scaledStepLength = getPlaybackScaledStepLength(stepLength, playbackFrame.deltaSeconds)
 
       if (filaments.length > filamentCount) filaments.length = filamentCount
       while (filaments.length < filamentCount) filaments.push(spawn())
@@ -167,7 +175,7 @@ export const driftingFilamentsSeed: P5Seed = {
         backgroundHue,
         backgroundSaturation,
         backgroundBrightness,
-        getTrailFadeAlpha(trailLength),
+        getTrailFadeAlpha(trailLength, elapsedFrames),
       )
       instance.rect(0, 0, instance.width, instance.height)
 
@@ -182,12 +190,12 @@ export const driftingFilamentsSeed: P5Seed = {
           instance.noise(
             filament.x * noiseScale,
             filament.y * noiseScale,
-            instance.frameCount * flowSpeed,
+            playbackFrame.elapsedSeconds * 60 * flowSpeed,
           ) *
           instance.TWO_PI *
           2
-        const nextX = filament.x + Math.cos(angle) * stepLength
-        const nextY = filament.y + Math.sin(angle) * stepLength
+        const nextX = filament.x + Math.cos(angle) * scaledStepLength
+        const nextY = filament.y + Math.sin(angle) * scaledStepLength
 
         instance.stroke(
           wrap(hue + filament.hueOffset * hueSpread, 360),
@@ -209,7 +217,7 @@ export const driftingFilamentsSeed: P5Seed = {
 
         filament.x = wrap(nextX, instance.width)
         filament.y = wrap(nextY, instance.height)
-        filament.age += 1
+        filament.age += elapsedFrames
       }
     }
 

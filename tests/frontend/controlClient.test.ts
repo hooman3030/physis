@@ -17,11 +17,15 @@ import {
   selectCode,
   selectImprint,
   setGenes,
+  setPresencePaused,
+  setPresenceSpeed,
   subscribeToPresence,
 } from '../../src/controlClient'
 
 const snapshot = {
   revision: 3,
+  paused: false,
+  speed: 1,
   code: { id: 'first-light' },
   imprint: null,
   module: { id: 'first-light', label: 'First Light', genes: [], runtime: 'p5' },
@@ -96,6 +100,42 @@ describe('control API client', () => {
     )
     expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('accept')).toBe(
       'application/json',
+    )
+  })
+
+  it('sets shared Presence playback state and validates the returned snapshot', async () => {
+    const pausedSnapshot = { ...snapshot, paused: true }
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(JSON.stringify(pausedSnapshot), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(setPresencePaused(true)).resolves.toEqual(pausedSnapshot)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/presence/playback',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ paused: true }),
+        headers: expect.any(Headers),
+      }),
+    )
+  })
+
+  it('sets and validates the shared Presence speed', async () => {
+    const fasterSnapshot = { ...snapshot, speed: 2.5 }
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(JSON.stringify(fasterSnapshot), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(setPresenceSpeed(2.5)).resolves.toEqual(fasterSnapshot)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/presence/playback',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ speed: 2.5 }),
+        headers: expect.any(Headers),
+      }),
     )
   })
 

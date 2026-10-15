@@ -70,6 +70,8 @@ describe('seed controls', () => {
     expect(rebirthButtonIndex).toBeLessThan(geneActionsEnd)
     expect(geneActionsMarkup).toContain('<kbd class="gene-action-key">r</kbd>')
     expect(markup).toContain('Save Imprint')
+    expect(markup).not.toContain('playback-toggle')
+    expect(markup).not.toContain('playback-speed')
     expect(markup).toContain('class="connection-indicator-label" aria-hidden="true">API')
     expect(markup).not.toContain('disabled=""')
   })
@@ -92,6 +94,26 @@ describe('seed controls', () => {
 
     expect(markup).toContain('class="save-feedback save-feedback-saved"')
     expect(markup).toContain('aria-live="polite">Saved')
+  })
+
+  it('keeps playback controls out of the Seeds surface', () => {
+    const markup = renderToStaticMarkup(
+      <SeedControls
+        activeSeed={defaultArtworkSeed}
+        seeds={artworkSeeds}
+        onSeedChange={vi.fn()}
+        geneValues={{}}
+        onGeneChange={vi.fn()}
+        onGenesChange={vi.fn()}
+        onResetCanvas={vi.fn()}
+        onSaveImprint={vi.fn()}
+        controlStatus="offline"
+        saveStatus="idle"
+      />,
+    )
+
+    expect(markup).not.toContain('playback-toggle')
+    expect(markup).not.toContain('playback-speed')
   })
 
   it('returns the declared defaults for every Gene', () => {

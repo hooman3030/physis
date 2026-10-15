@@ -15,6 +15,7 @@ long-term architecture.
 - [ADR 0007: Live Mutation code storage and sandboxed execution](0007-live-mutation-code-and-sandbox.md)
 - [ADR 0008: Remote studio network and authentication boundary](0008-remote-studio-network-and-authentication.md)
 - [ADR 0009: Lineage Explorer graph and previews](0009-lineage-explorer-graph-and-previews.md) (proposed)
+- [ADR 0010: Shared Presence playback state](0010-shared-presence-playback-state.md)
 
 Use the following headings for future records:
 

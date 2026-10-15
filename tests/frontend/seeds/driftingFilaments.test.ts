@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   getFilamentLifetimeFrames,
+  getPlaybackScaledStepLength,
   getTrailFadeAlpha,
   getWrappedLineSegments,
   driftingFilamentsSeed,
@@ -45,6 +46,16 @@ describe('Drifting Filaments trail fade', () => {
     const fadeDuration = trailLength * 2
     const remaining = Math.pow(1 - getTrailFadeAlpha(trailLength) / 100, fadeDuration)
     expect(remaining).toBeCloseTo(1 / 1024, 12)
+  })
+})
+
+describe('Drifting Filaments playback speed', () => {
+  it.each([
+    [0.1, 0.2],
+    [1, 2],
+    [2, 4],
+  ])('scales frame-based movement by %ix', (speed, expectedLength) => {
+    expect(getPlaybackScaledStepLength(2, speed / 60)).toBeCloseTo(expectedLength)
   })
 })
 
