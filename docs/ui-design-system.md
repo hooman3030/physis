@@ -66,5 +66,7 @@ channels.
   motion when reduced motion is requested.
 - Apply entrance motion to the element that owns `.surface`; animating an
   ancestor with opacity or `filter` can interrupt its backdrop treatment.
+- The playback speed dial loads its progress arc to the current speed when
+  opened; keep the active arc and ticks distinctly brighter than the track.
 - Preserve visible keyboard focus, disabled states, responsive behavior, and
   reduced-motion support when reusing or refining these patterns.
