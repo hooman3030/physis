@@ -11,19 +11,45 @@
   --color-danger: #ffadad;
   --color-warning: #f2cc8f;
   --color-success: #287557;
-  --border-subtle: rgb(244 241 232 / 20%);
-  --border-default: rgb(244 241 232 / 30%);
-  --border-danger: rgb(255 173 173 / 60%);
-  --track-background: rgb(244 241 232 / 35%);
-  --spinner-border: rgb(13 17 23 / 35%);
-  --surface-background: rgb(13 17 23 / 22%);
+  --color-shadow: #000;
+  --border-subtle: color-mix(in srgb, var(--color-text) 20%, transparent);
+  --border-default: color-mix(in srgb, var(--color-text) 30%, transparent);
+  --border-strong: color-mix(in srgb, var(--color-text) 42%, transparent);
+  --border-accent: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  --border-danger: color-mix(in srgb, var(--color-danger) 60%, transparent);
+  --track-background: color-mix(in srgb, var(--color-text) 35%, transparent);
+  --track-foreground: color-mix(in srgb, var(--color-text) 62%, transparent);
+  --spinner-border: color-mix(in srgb, var(--color-canvas) 35%, transparent);
+  --surface-background: color-mix(in srgb, var(--color-canvas) 22%, transparent);
   --surface-backdrop-filter: blur(1rem) saturate(180%);
-  --surface-background-hover: rgb(13 17 23 / 80%);
-  --surface-sheen: inset 0 -3px 4px rgb(244 241 232 / 10%);
-  --surface-control-background: rgb(244 241 232 / 8%);
-  --surface-accent-background: rgb(169 213 192 / 12%);
-  --surface-danger-background: rgb(255 173 173 / 12%);
-  --shadow-overlay: 0 0.5rem 2rem rgb(0 0 0 / 35%);
+  --surface-background-hover: color-mix(in srgb, var(--color-canvas) 80%, transparent);
+  --surface-sheen: inset 0 -3px 4px color-mix(in srgb, var(--color-text) 10%, transparent);
+  --surface-control-background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  --surface-subtle-background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  --surface-accent-background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  --surface-accent-hover: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  --surface-danger-background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  --surface-warning-background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  --surface-grid-dot: color-mix(in srgb, var(--color-text) 10%, transparent);
+  --shadow-overlay: 0 0.5rem 2rem color-mix(in srgb, var(--color-shadow) 35%, transparent);
+  --shadow-control: 0 0.12rem 0.28rem color-mix(in srgb, var(--color-shadow) 35%, transparent);
+  --shadow-raised: 0 0.35rem 1.2rem color-mix(in srgb, var(--color-shadow) 22%, transparent);
+  --shadow-thumb:
+    0 0 0 0.16rem color-mix(in srgb, var(--color-accent) 13%, transparent), var(--shadow-control);
+  --shadow-thumb-hover:
+    0 0 0 0.22rem color-mix(in srgb, var(--color-accent) 18%, transparent), var(--shadow-control);
+  --shadow-accent: 0 0 0.65rem color-mix(in srgb, var(--color-accent) 24%, transparent);
+  --shadow-accent-subtle: 0 0 0.75rem color-mix(in srgb, var(--color-accent) 10%, transparent);
+  --shadow-accent-text: 0 0 1rem color-mix(in srgb, var(--color-accent) 25%, transparent);
+  --filter-accent: drop-shadow(
+    0 0 0.65rem color-mix(in srgb, var(--color-accent) 24%, transparent)
+  );
+  --filter-accent-strong: drop-shadow(
+    0 0 3px color-mix(in srgb, var(--color-accent) 75%, transparent)
+  );
+  --shadow-graph-node: 0 5px 8px color-mix(in srgb, var(--color-shadow) 72%, transparent);
+  --focus-outline: 2px solid var(--color-accent);
+  --focus-outline-offset: 0.2rem;
   --font-display: 'Bitcount Single', var(--font-body);
   --font-body: 'Ubuntu Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --text-xs: 0.7rem;
@@ -37,8 +63,14 @@
   --radius-surface: 2rem;
   --radius-card: 1.5rem;
   --radius-control: 0.5rem;
+  --radius-key: 0.2rem;
   --radius-pill: 999px;
   --radius-circle: 50%;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
   --studio-panel-gutter: clamp(1.25rem, 1vw, 5rem);
 }
 
@@ -48,6 +80,7 @@
 }
 
 .surface {
+  border: 1px solid var(--border-subtle);
   background: var(--surface-background);
   backdrop-filter: var(--surface-backdrop-filter);
   box-shadow: var(--surface-sheen);
@@ -75,7 +108,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .controls-header .eyebrow {
@@ -91,7 +124,6 @@ button {
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.65rem;
-  border: 1px solid var(--border-subtle);
   color: var(--color-muted);
   font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
@@ -145,12 +177,11 @@ main {
   width: min(22rem, calc(100vw - 2.5rem));
   max-height: calc(100vh - 2rem);
   overflow: auto;
-  padding: 1.125rem;
-  border: 1px solid var(--border-subtle);
+  padding: var(--space-4);
   transform: translateY(-50%);
   flex-direction: column;
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .studio-panel[hidden] {
@@ -165,8 +196,8 @@ main {
   display: flex;
   width: min(24rem, calc(100vw - 2rem));
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1.25rem;
+  gap: var(--space-3);
+  padding: var(--space-5);
   border: 1px solid var(--border-default);
   transform: translate(-50%, -50%);
 }
@@ -203,7 +234,7 @@ main {
   display: flex;
   width: min(24rem, calc(100vw - 2rem));
   flex-direction: column;
-  gap: 0.65rem;
+  gap: var(--space-3);
   padding: 1rem 1.25rem;
   border: 1px solid var(--border-default);
   transform: translateX(-50%);
@@ -237,7 +268,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .archive-heading .eyebrow,
@@ -276,7 +307,7 @@ h3 {
   gap: 0.35rem;
 }
 
-.gene-action-button {
+.button--quiet {
   display: inline-flex;
   min-height: 2rem;
   align-items: center;
@@ -290,8 +321,9 @@ h3 {
   white-space: nowrap;
 }
 
-.gene-action-button:not(:disabled):hover {
-  background: var(--surface-accent-background);
+.button--quiet:not(:disabled):hover {
+  border-color: var(--border-accent);
+  background: var(--surface-accent-hover);
 }
 
 .gene-action-key {
@@ -299,7 +331,7 @@ h3 {
   margin-left: 0.3rem;
   padding: 0.15em 0.3em;
   border: 1px solid var(--border-default);
-  border-radius: 0.2rem;
+  border-radius: var(--radius-key);
   background: var(--surface-control-background);
   font: inherit;
   font-size: 0.85em;
@@ -320,8 +352,8 @@ h3 {
 
 .imprint-list {
   display: grid;
-  gap: 0.4rem;
-  margin: 0.5rem 0 0;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -330,7 +362,6 @@ h3 {
   display: flex;
   align-items: stretch;
   gap: 0.25rem;
-  border: 1px solid var(--border-subtle);
 }
 
 .imprint-select {
@@ -378,7 +409,7 @@ h3 {
 
 .imprint-delete:focus-visible,
 .imprint-select:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: var(--focus-outline);
   outline-offset: -2px;
 }
 
@@ -533,26 +564,21 @@ label {
   font-variant-numeric: tabular-nums;
 }
 
-.control-base,
-input,
-select,
+.control,
 button {
   border: 1px solid var(--border-default);
-  padding: 0.7rem 0.9rem;
+  padding: var(--space-3) var(--space-4);
   font: inherit;
 }
 
-input,
-select {
+.control {
   min-width: 0;
-  flex: 1;
   color: var(--color-text);
-  background: var(--surface-control-background);
+  background-color: var(--surface-control-background);
 }
 
-.control-base {
-  border-radius: var(--radius-control);
-  corner-shape: squircle;
+input {
+  flex: 1;
 }
 
 select {
@@ -594,12 +620,14 @@ select {
   margin-top: -0.3rem;
   -webkit-appearance: none;
   appearance: none;
-  border: 1px solid rgb(244 241 232 / 42%);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-circle);
-  background: radial-gradient(circle at 35% 28%, rgb(244 241 232 / 92%), var(--color-accent) 58%);
-  box-shadow:
-    0 0 0 0.16rem rgb(169 213 192 / 13%),
-    0 0.12rem 0.28rem rgb(0 0 0 / 35%);
+  background: radial-gradient(
+    circle at 35% 28%,
+    color-mix(in srgb, var(--color-text) 92%, transparent),
+    var(--color-accent) 58%
+  );
+  box-shadow: var(--shadow-thumb);
   transition:
     transform 140ms ease,
     box-shadow 140ms ease;
@@ -622,42 +650,48 @@ select {
 .range-control::-moz-range-thumb {
   width: var(--range-thumb-size);
   height: var(--range-thumb-size);
-  border: 1px solid rgb(244 241 232 / 42%);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-circle);
-  background: radial-gradient(circle at 35% 28%, rgb(244 241 232 / 92%), var(--color-accent) 58%);
-  box-shadow:
-    0 0 0 0.16rem rgb(169 213 192 / 13%),
-    0 0.12rem 0.28rem rgb(0 0 0 / 35%);
+  background: radial-gradient(
+    circle at 35% 28%,
+    color-mix(in srgb, var(--color-text) 92%, transparent),
+    var(--color-accent) 58%
+  );
+  box-shadow: var(--shadow-thumb);
   transition:
     transform 140ms ease,
     box-shadow 140ms ease;
 }
 
 .range-control:hover::-webkit-slider-thumb,
-.range-control:active::-webkit-slider-thumb {
-  box-shadow:
-    0 0 0 0.22rem rgb(169 213 192 / 18%),
-    0 0.12rem 0.28rem rgb(0 0 0 / 35%);
-  transform: scale(1.08);
-}
-
+.range-control:active::-webkit-slider-thumb,
 .range-control:hover::-moz-range-thumb,
 .range-control:active::-moz-range-thumb {
-  box-shadow:
-    0 0 0 0.22rem rgb(169 213 192 / 18%),
-    0 0.12rem 0.28rem rgb(0 0 0 / 35%);
+  box-shadow: var(--shadow-thumb-hover);
   transform: scale(1.08);
 }
 
-.range-control:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 0.2rem;
+.range-control:focus-visible,
+.control:focus-visible,
+button:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-outline-offset);
 }
 
 button {
   color: var(--color-canvas);
   background: var(--color-accent);
   cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    filter 140ms ease;
+}
+
+.button--primary:not(:disabled):hover {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 88%, var(--color-text));
+  filter: var(--filter-accent);
 }
 
 .save-imprint {
@@ -694,11 +728,11 @@ button {
 
 .playback-toggle:not(:disabled):hover {
   border-color: var(--color-accent);
-  filter: drop-shadow(0 0 0.65rem rgb(169 213 192 / 24%));
+  filter: var(--filter-accent);
 }
 
 .playback-toggle:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--color-accent);
+  outline-offset: var(--focus-outline-offset);
 }
 
 .playback-toggle-icon {
@@ -755,22 +789,16 @@ button {
   aspect-ratio: 1;
   place-items: center;
   padding: 0.7rem;
-  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-circle);
-  box-shadow:
-    var(--surface-sheen),
-    0 0.35rem 1.2rem rgb(0 0 0 / 22%);
+  box-shadow: var(--surface-sheen), var(--shadow-raised);
   transition:
     border-color 140ms ease,
     box-shadow 140ms ease;
 }
 
 .playback-dial-shell:hover {
-  border-color: rgb(169 213 192 / 45%);
-  box-shadow:
-    var(--surface-sheen),
-    0 0 0.75rem rgb(169 213 192 / 10%),
-    0 0.35rem 1.2rem rgb(0 0 0 / 22%);
+  border-color: var(--border-accent);
+  box-shadow: var(--surface-sheen), var(--shadow-accent-subtle), var(--shadow-raised);
 }
 
 .playback-dial:active {
@@ -778,8 +806,8 @@ button {
 }
 
 .playback-dial:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 0.2rem;
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-outline-offset);
 }
 
 .playback-dial[aria-disabled='true'] {
@@ -804,16 +832,16 @@ button {
 }
 
 .playback-dial-track {
-  stroke: rgb(244 241 232 / 30%);
+  stroke: var(--border-default);
 }
 
 .playback-dial-progress {
-  filter: drop-shadow(0 0 3px rgb(169 213 192 / 75%));
+  filter: var(--filter-accent-strong);
   stroke: var(--color-accent);
 }
 
 .playback-dial-tick {
-  stroke: rgb(244 241 232 / 62%);
+  stroke: var(--track-foreground);
   stroke-linecap: round;
   stroke-width: 1;
 }
@@ -835,7 +863,7 @@ button {
   font-size: 2.25rem;
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  text-shadow: 0 0 1rem rgb(169 213 192 / 25%);
+  text-shadow: var(--shadow-accent-text);
 }
 
 .playback-dial-value small {
@@ -877,12 +905,12 @@ button {
 
 @keyframes connection-ping {
   0% {
-    box-shadow: 0 0 0 0 rgb(169 213 192 / 38%);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 38%, transparent);
   }
 
   70%,
   100% {
-    box-shadow: 0 0 0 0.45rem rgb(169 213 192 / 0%);
+    box-shadow: 0 0 0 0.45rem transparent;
   }
 }
 
@@ -978,6 +1006,7 @@ input:disabled {
   .playback-toggle-icon,
   .playback-dial,
   .connection-indicator[data-status] .connection-indicator-dot,
+  button,
   .range-control,
   .save-feedback-saving::before,
   .save-feedback-saved {
@@ -1184,7 +1213,11 @@ main[data-open-panels='both'] .archive-panel {
 
 .lineage-graph-backdrop-overlay {
   position: absolute;
-  background: linear-gradient(to bottom, rgb(0 0 0 / 90%) 0, rgb(0 0 0 / 30%) 33vh);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-shadow) 90%, transparent) 0,
+    color-mix(in srgb, var(--color-shadow) 30%, transparent) 33vh
+  );
   inset: 0;
 }
 
@@ -1197,8 +1230,8 @@ main[data-open-panels='both'] .archive-panel {
 
 .archive-explorer-link:focus-visible,
 .lineage-back-link:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 0.2rem;
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-outline-offset);
 }
 
 .lineage-graph-buttons {
@@ -1227,7 +1260,7 @@ main[data-open-panels='both'] .archive-panel {
   width: 100%;
   height: 100%;
   max-width: none;
-  background-image: radial-gradient(rgb(244 241 232 / 10%) 1px, transparent 1px);
+  background-image: radial-gradient(var(--surface-grid-dot) 1px, transparent 1px);
   background-size: 30px 30px;
   touch-action: none;
   user-select: none;
@@ -1256,7 +1289,7 @@ main[data-open-panels='both'] .archive-panel {
 
 .lineage-graph-node {
   cursor: grab;
-  filter: drop-shadow(0 5px 8px rgb(0 0 0 / 72%));
+  filter: drop-shadow(var(--shadow-graph-node));
   outline: none;
   touch-action: none;
   user-select: none;
@@ -1288,12 +1321,12 @@ main[data-open-panels='both'] .archive-panel {
 }
 
 .lineage-graph-shape-mutation {
-  fill: rgb(242 204 143 / 12%);
+  fill: var(--surface-warning-background);
   stroke: var(--color-warning);
 }
 
 .lineage-graph-shape-imprint {
-  fill: rgb(244 241 232 / 7%);
+  fill: var(--surface-subtle-background);
   stroke: var(--color-muted);
 }
 

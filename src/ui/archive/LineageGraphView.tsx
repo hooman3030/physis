@@ -686,7 +686,7 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
         <div className="lineage-graph-buttons">
           <button
             type="button"
-            className="gene-action-button"
+            className="button--quiet"
             aria-label="Zoom out"
             onClick={() => zoomAtCenter(1 / 1.2)}
           >
@@ -694,13 +694,13 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
           </button>
           <button
             type="button"
-            className="gene-action-button"
+            className="button--quiet"
             aria-label="Zoom in"
             onClick={() => zoomAtCenter(1.2)}
           >
             +
           </button>
-          <button type="button" className="gene-action-button" onClick={handleResetLayout}>
+          <button type="button" className="button--quiet" onClick={handleResetLayout}>
             Reset layout
           </button>
         </div>

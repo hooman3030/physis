@@ -50,7 +50,12 @@ export function RemoteAccessPairing({
           <p>
             Request a PIN. It will appear on the installation display; enter it here to connect.
           </p>
-          <button type="button" disabled={busy} onClick={() => void requestPin()}>
+          <button
+            type="button"
+            className="button--primary"
+            disabled={busy}
+            onClick={() => void requestPin()}
+          >
             {requested ? 'Request another PIN' : 'Request PIN'}
           </button>
           {requested && (
@@ -59,6 +64,7 @@ export function RemoteAccessPairing({
               <label htmlFor="pairing-pin">Pairing PIN</label>
               <input
                 id="pairing-pin"
+                className="control"
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]{6}"
@@ -67,7 +73,7 @@ export function RemoteAccessPairing({
                 value={pin}
                 onChange={(event) => setPin(event.target.value.replace(/\D/g, ''))}
               />
-              <button type="submit" disabled={busy || pin.length !== 6}>
+              <button type="submit" className="button--primary" disabled={busy || pin.length !== 6}>
                 Connect
               </button>
             </>
@@ -79,7 +85,12 @@ export function RemoteAccessPairing({
           <p className="eyebrow">Device pairing requested</p>
           <p>Enter this PIN on the requesting device before it expires.</p>
           <strong>{pairingStatus.pin}</strong>
-          <button type="button" disabled={busy} onClick={() => void onDismissPin()}>
+          <button
+            type="button"
+            className="button--quiet"
+            disabled={busy}
+            onClick={() => void onDismissPin()}
+          >
             Cancel pairing
           </button>
         </aside>

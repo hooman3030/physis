@@ -98,6 +98,7 @@ export function SeedControls({
       <label htmlFor="seed">Choose a seed module</label>
       <select
         id="seed"
+        className="control"
         value={activeSeed.id}
         disabled={controlsDisabled}
         onChange={(event) => {
@@ -116,7 +117,7 @@ export function SeedControls({
         <div className="gene-actions">
           <button
             type="button"
-            className="gene-action-button"
+            className="button--quiet"
             title="rebirth (r)"
             aria-label="rebirth, R key"
             onClick={onResetCanvas}
@@ -125,7 +126,7 @@ export function SeedControls({
           </button>
           <button
             type="button"
-            className="gene-action-button"
+            className="button--quiet"
             title="Reset genes to defaults"
             aria-label="Reset genes to defaults"
             disabled={controlsDisabled}
@@ -135,7 +136,7 @@ export function SeedControls({
           </button>
           <button
             type="button"
-            className="gene-action-button"
+            className="button--quiet"
             title="Randomize all genes"
             aria-label="Randomize all genes"
             disabled={controlsDisabled}
@@ -199,7 +200,7 @@ export function SeedControls({
       })}
       <button
         type="button"
-        className="save-imprint"
+        className="button--primary save-imprint"
         disabled={controlsDisabled || controlStatus !== 'connected' || saveStatus === 'saving'}
         onClick={onSaveImprint}
       >

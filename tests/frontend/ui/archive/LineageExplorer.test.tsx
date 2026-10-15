@@ -148,7 +148,7 @@ describe('Lineage Explorer', () => {
     expect(markup).toContain('lineage-graph-node-selected')
     expect(markup).toContain('scale(1.33)')
     expect(markup).toContain('markerWidth="2"')
-    expect(markup).toContain('class="gene-action-button"')
+    expect(markup).toContain('class="button--quiet"')
     expect(markup).not.toContain('Use in Presence')
     expect(markup).toContain('Reset layout')
     expect(markup).not.toContain('disabled=""')

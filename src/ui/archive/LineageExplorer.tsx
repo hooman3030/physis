@@ -104,7 +104,7 @@ export function LineageExplorer({
         </p>
       )}
       {loadFailed && !authenticationRequired && (
-        <button type="button" className="lineage-retry" onClick={onRetry}>
+        <button type="button" className="button--primary lineage-retry" onClick={onRetry}>
           Retry
         </button>
       )}
