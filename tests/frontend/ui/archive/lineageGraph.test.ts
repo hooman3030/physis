@@ -313,7 +313,7 @@ describe('lineage graph model', () => {
     layout.simulation.stop()
 
     expect(layout.nodes.some((node) => node.x !== 500 || node.y !== 500)).toBe(true)
-    expect(closestPair).toBeGreaterThan(120)
+    expect(closestPair).toBeGreaterThan(100)
     expect(oldest?.y).toBeLessThan(newest?.y ?? Infinity)
   })
 })

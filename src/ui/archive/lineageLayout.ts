@@ -61,6 +61,18 @@ export function createLineageLayoutSimulation(
     )
     .force('charge', forceManyBody<LineageSimulationNode>().strength(-460).distanceMax(540))
     .force(
+      'chronology',
+      forceY<LineageSimulationNode>(
+        (node) => yTargets.get(node.key) ?? dimensions.height / 2,
+      ).strength(0.16),
+    )
+    .force(
+      'branches',
+      forceX<LineageSimulationNode>(
+        (node) => xTargets.get(node.key) ?? dimensions.width / 2,
+      ).strength(0.42),
+    )
+    .force(
       'collision',
       forceCollide<LineageSimulationNode>()
         .radius((node) => (node.role === 'seed' ? 70 : node.kind === 'imprint' ? 56 : 52))
