@@ -50,6 +50,8 @@ const imprints: ImprintRecord[] = [
 
 const presenceWithImprint: PresenceSnapshot = {
   revision: 1,
+  paused: false,
+  speed: 1,
   code: { id: 'first-light' },
   imprint: { id: 'imprint-root' },
   module: null,

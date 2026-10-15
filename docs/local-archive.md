@@ -35,10 +35,13 @@ lineage (`imprints.parent_id`) and reference the code node they were saved
 under. Both lineages share the same core (`id`, `parent_id`, `created_at`),
 exposed as `LineageNode` in TypeScript.
 
-The **Presence** is a single mutable pointer (`code_id`, `imprint_id`), not a
-lineage node. Selecting any Seed, Mutation, or Imprint (`selectCode`,
-`selectImprint`) only moves the pointer and writes nothing else. An Imprint's
-parent must belong to the same code node, so a lineage never crosses code.
+The **Presence** is a single mutable pointer (`code_id`, `imprint_id`) plus
+transient playback state, not a lineage node. Selecting any Seed, Mutation, or
+Imprint (`selectCode`, `selectImprint`) moves the pointer and starts playback
+at 1× speed. Pause and the 0.1×–4× speed multiplier are shared by connected
+clients, are not archived, and default to running at 1× after a service
+restart. An Imprint's parent must belong to the same code node, so a lineage
+never crosses code.
 
 ## Guarantees
 
@@ -106,6 +109,9 @@ Routes under `/api/v1`:
 - `POST /presence` with `{kind: "code" | "imprint", id}` selects anything from
   the archive; `PUT /presence/genes` with `{genes}` tweaks live
   values in memory only
+- `PUT /presence/playback` with `{paused: boolean}` pauses or resumes, or
+  `{speed: number}` sets the active Presence speed from 0.1× to 4×; responses
+  and Presence events include `paused` and `speed`
 - `GET /code-nodes[?role=seed|mutation]`, `/code-nodes/:id`,
   `/code-nodes/:id/ancestry`
 - `GET /imprints[?codeId=]`, `/imprints/:id`, `/imprints/:id/ancestry`
@@ -114,8 +120,13 @@ Routes under `/api/v1`:
 - `DELETE /imprints/:id` deletes an inactive Imprint and reparents its children
   to its former parent; deleting the active Imprint returns a conflict
 
-Live tweaks are never archived until imprinted, and are lost on restart. The
-loopback service checks the `Host` and `Origin` headers and requires
+Live Gene tweaks and playback controls are never archived and are lost on
+restart. Browser runtimes use a renderer-neutral playback clock that exposes
+scaled elapsed and delta time; renderers may map that time to simulation steps
+or shader uniforms. If the control API is unavailable, each browser keeps
+rendering in its last locally known playback state; playback controls cannot
+change the authoritative state until the API reconnects. The loopback service
+checks the `Host` and `Origin` headers and requires
 `application/json` on writes. Loopback development remains unauthenticated.
 
 ### Opt-in remote access

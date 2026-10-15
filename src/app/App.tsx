@@ -14,6 +14,8 @@ import {
   saveControlApiToken,
   selectCode,
   selectImprint,
+  setPresencePaused,
+  setPresenceSpeed as updatePresenceSpeed,
   setGenes as updateApiGenes,
   subscribeToPresence,
   type ImprintRecord,
@@ -32,11 +34,13 @@ import { captureArtworkAnimation } from '../ui/archive/animationCapture'
 import { DevelopmentOverlay } from '../ui/overlays/DevelopmentOverlay'
 import { RemoteAccessPairing } from '../ui/overlays/RemoteAccessPairing'
 import { SeedControls } from '../ui/artwork/SeedControls'
+import { PlaybackControls } from '../ui/artwork/PlaybackControls'
 import { LineageRoute } from './LineageRoute'
 import { captureArtworkPreview } from '../ui/archive/previewCapture'
 import { resolveAppRoute } from './routes'
 import type { P5Seed } from '../seeds/p5/types'
 import type { ArtworkGeneValues } from '../seeds/types'
+import { DEFAULT_PLAYBACK_SPEED } from '../playbackClock'
 import { artworkSeeds, defaultArtworkSeed } from '../seeds/registry'
 import '../ui/styles.css'
 
@@ -73,6 +77,9 @@ function ArtworkApp() {
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [canvasResetVersion, setCanvasResetVersion] = useState(0)
   const [controlStatus, setControlStatus] = useState<ControlStatus>('connecting')
+  const [paused, setPaused] = useState(false)
+  const [speed, setSpeed] = useState(DEFAULT_PLAYBACK_SPEED)
+  const [playbackUpdating, setPlaybackUpdating] = useState(false)
   const [fps, setFps] = useState<number | null>(null)
   const [authenticationRequired, setAuthenticationRequired] = useState(false)
   const [pairingStatus, setPairingStatus] = useState<PairingStatus | null>(null)
@@ -90,6 +97,10 @@ function ArtworkApp() {
   const pairingStatusFailureRef = useRef(false)
   const revisionRef = useRef(-1)
   const saveFeedbackTimer = useRef<number | null>(null)
+  const playbackSpeedTimer = useRef<number | null>(null)
+  const playbackSpeedSequence = useRef(0)
+  const pendingSpeedRef = useRef<number | null>(null)
+  const authoritativeSpeedRef = useRef(DEFAULT_PLAYBACK_SPEED)
   const { seed } = settings
   const geneValues = settings.genesBySeed[seed.id]
   const handleCanvasReady = useCallback((canvas: HTMLCanvasElement | null) => {
@@ -113,6 +124,11 @@ function ArtworkApp() {
       if (saveFeedbackTimer.current !== null) {
         window.clearTimeout(saveFeedbackTimer.current)
       }
+      if (playbackSpeedTimer.current !== null) {
+        window.clearTimeout(playbackSpeedTimer.current)
+      }
+      playbackSpeedSequence.current += 1
+      pendingSpeedRef.current = null
     },
     [],
   )
@@ -120,6 +136,9 @@ function ArtworkApp() {
   const applyPresence = useCallback((snapshot: PresenceSnapshot, force = false) => {
     if (!force && snapshot.revision < revisionRef.current) return
     revisionRef.current = snapshot.revision
+    setPaused(snapshot.paused)
+    authoritativeSpeedRef.current = snapshot.speed
+    if (pendingSpeedRef.current === null) setSpeed(snapshot.speed)
     setActiveImprintId(snapshot.imprint?.id ?? null)
     if (snapshot.code === null) return
     const activeSeed = artworkSeeds.find((candidate) => candidate.id === snapshot.code?.id)
@@ -464,6 +483,64 @@ function ArtworkApp() {
     }
   }
 
+  const handlePlaybackToggle = async () => {
+    if (statusRef.current !== 'connected' || playbackUpdating) return
+    setPlaybackUpdating(true)
+    try {
+      applyPresence(await setPresencePaused(!paused))
+    } catch (error) {
+      if (!requirePairing(error)) {
+        reportApplicationError(`Could not change artwork playback: ${errorMessage(error)}`)
+      }
+      if (!(error instanceof ControlApiError)) {
+        statusRef.current = 'offline'
+        setControlStatus('offline')
+      }
+    } finally {
+      setPlaybackUpdating(false)
+    }
+  }
+
+  const handlePlaybackSpeedChange = (nextSpeed: number) => {
+    if (statusRef.current !== 'connected') return
+    setSpeed(nextSpeed)
+    pendingSpeedRef.current = nextSpeed
+    const sequence = ++playbackSpeedSequence.current
+    if (playbackSpeedTimer.current !== null) {
+      window.clearTimeout(playbackSpeedTimer.current)
+    }
+    playbackSpeedTimer.current = window.setTimeout(() => {
+      playbackSpeedTimer.current = null
+      if (statusRef.current !== 'connected') {
+        if (sequence === playbackSpeedSequence.current) {
+          pendingSpeedRef.current = null
+          setSpeed(authoritativeSpeedRef.current)
+        }
+        return
+      }
+      void updatePresenceSpeed(nextSpeed)
+        .then((snapshot) => {
+          if (sequence === playbackSpeedSequence.current) {
+            pendingSpeedRef.current = null
+            applyPresence(snapshot)
+          }
+        })
+        .catch((error: unknown) => {
+          if (sequence === playbackSpeedSequence.current) {
+            pendingSpeedRef.current = null
+            setSpeed(authoritativeSpeedRef.current)
+          }
+          if (!requirePairing(error)) {
+            reportApplicationError(`Could not change artwork speed: ${errorMessage(error)}`)
+          }
+          if (!(error instanceof ControlApiError)) {
+            statusRef.current = 'offline'
+            setControlStatus('offline')
+          }
+        })
+    }, 120)
+  }
+
   const handleGeneChange = (id: string, value: number) => {
     handleGenesChange({ [id]: value })
   }
@@ -565,10 +642,20 @@ function ArtworkApp() {
         key={`${seed.id}-${canvasResetVersion}`}
         seed={seed}
         genes={geneValues}
+        paused={paused}
+        speed={speed}
         onFpsChange={import.meta.env.DEV ? setFps : undefined}
         onCanvasReady={handleCanvasReady}
       />
       <DevelopmentOverlay fps={fps} />
+      <PlaybackControls
+        paused={paused}
+        onPlaybackToggle={handlePlaybackToggle}
+        playbackUpdating={playbackUpdating}
+        speed={speed}
+        onPlaybackSpeedChange={handlePlaybackSpeedChange}
+        controlStatus={controlStatus}
+      />
       <RemoteAccessPairing
         required={authenticationRequired}
         pairingStatus={pairingStatus}
@@ -578,25 +665,25 @@ function ArtworkApp() {
       />
       <button
         type="button"
-        className="controls-reveal"
+        className="surface-reveal surface-reveal--right"
         aria-label={controlsOpen ? 'Hide artwork controls' : 'Show artwork controls'}
         aria-controls="artwork-controls"
         aria-expanded={controlsOpen}
         title="Artwork controls (C)"
         onClick={() => setControlsOpen((open) => !open)}
       >
-        <span className="controls-reveal-mark" aria-hidden="true" />
+        <span className="surface-reveal-mark" aria-hidden="true" />
       </button>
       <button
         type="button"
-        className="archive-reveal"
+        className="surface-reveal surface-reveal--left"
         aria-label={archiveOpen ? 'Hide Imprint archive' : 'Show Imprint archive'}
         aria-controls="imprint-archive"
         aria-expanded={archiveOpen}
         title="Imprint archive (A)"
         onClick={() => setArchiveOpen((open) => !open)}
       >
-        <span className="controls-reveal-mark" aria-hidden="true" />
+        <span className="surface-reveal-mark" aria-hidden="true" />
       </button>
       <SeedControls
         activeSeed={seed}

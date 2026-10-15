@@ -21,6 +21,7 @@ import {
   toHttpError,
 } from './http'
 import { LivePresence, type ControlModule, type SelectKind } from './presence'
+import { isPlaybackSpeed } from '../../src/playbackClock'
 
 const DEFAULT_ALLOWED_ORIGINS = ['http://127.0.0.1:5173', 'http://localhost:5173']
 const HEARTBEAT_MS = 25_000
@@ -233,6 +234,23 @@ export function createControlServer(options: ControlServerOptions): ControlServe
         throw new HttpError(400, '"genes" must be an object')
       }
       return ok(presence.setGenes(values as Record<string, unknown>))
+    }
+
+    if (method === 'PUT' && resource === 'presence' && id === 'playback' && segments.length === 2) {
+      const body = await readJsonObject(request)
+      if (Object.hasOwn(body, 'paused') && !Object.hasOwn(body, 'speed')) {
+        if (typeof body.paused !== 'boolean') {
+          throw new HttpError(400, '"paused" must be a boolean')
+        }
+        return ok(presence.setPaused(body.paused))
+      }
+      if (Object.hasOwn(body, 'speed') && !Object.hasOwn(body, 'paused')) {
+        if (!isPlaybackSpeed(body.speed)) {
+          throw new HttpError(400, '"speed" must be between 0.1 and 4')
+        }
+        return ok(presence.setSpeed(body.speed))
+      }
+      throw new HttpError(400, 'Provide exactly one of "paused" or "speed"')
     }
 
     if (method === 'POST' && resource === 'imprints' && segments.length === 1) {

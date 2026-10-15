@@ -67,7 +67,12 @@ async function call(method: string, path: string, body?: unknown, headers: Heade
 
 describe('presence', () => {
   it('starts empty, then selecting a seed starts it at default Genes', async () => {
-    expect((await call('GET', '/presence')).body).toMatchObject({ code: null, genes: null })
+    expect((await call('GET', '/presence')).body).toMatchObject({
+      code: null,
+      genes: null,
+      paused: false,
+      speed: 1,
+    })
 
     const { status, body } = await call('POST', '/presence', { kind: 'code', id: seedId })
     expect(status).toBe(200)
@@ -76,6 +81,70 @@ describe('presence', () => {
     expect(body.genes[firstGene.id]).toBe(firstGene.defaultValue)
     expect(body.module.runtime).toBe('p5')
     expect(body.module.genes).toHaveLength(driftingFilamentsSeed.genes.length)
+  })
+
+  it('shares transient playback controls and resets them for newly selected artwork', async () => {
+    expect((await call('PUT', '/presence/playback', { paused: true })).status).toBe(409)
+    await call('POST', '/presence', { kind: 'code', id: seedId })
+
+    const faster = await call('PUT', '/presence/playback', { speed: 2.5 })
+    expect(faster.status).toBe(200)
+    expect(faster.body.speed).toBe(2.5)
+    expect((await call('GET', '/presence')).body.speed).toBe(2.5)
+    expect((await call('PUT', '/presence/playback', { speed: 0 })).status).toBe(400)
+    expect((await call('PUT', '/presence/playback', { speed: 4.1 })).status).toBe(400)
+    expect((await call('PUT', '/presence/playback', { paused: true, speed: 2 })).status).toBe(400)
+
+    const paused = await call('PUT', '/presence/playback', { paused: true })
+    expect(paused.status).toBe(200)
+    expect(paused.body.paused).toBe(true)
+    expect((await call('GET', '/presence')).body.paused).toBe(true)
+    expect((await call('PUT', '/presence/playback', { paused: 'true' })).status).toBe(400)
+
+    const revision = paused.body.revision
+    expect((await call('PUT', '/presence/playback', { paused: true })).body.revision).toBe(revision)
+    const selected = await call('POST', '/presence', { kind: 'code', id: firstLightSeed.id })
+    expect(selected.body.paused).toBe(false)
+    expect(selected.body.speed).toBe(1)
+  })
+
+  it('publishes playback changes through Presence events', async () => {
+    await call('POST', '/presence', { kind: 'code', id: seedId })
+    const response = await fetch(`${base}/api/v1/presence/events`)
+    const reader = response.body?.getReader()
+    expect(reader).toBeDefined()
+    const decoder = new TextDecoder()
+    const firstEvent = await reader!.read()
+    expect(decoder.decode(firstEvent.value)).toContain('"paused":false')
+
+    await call('PUT', '/presence/playback', { paused: true })
+    await call('PUT', '/presence/playback', { speed: 2.5 })
+    const pauseEvent = await reader!.read()
+    expect(decoder.decode(pauseEvent.value)).toContain('"paused":true')
+    await reader!.cancel()
+
+    const reconnected = await fetch(`${base}/api/v1/presence/events`)
+    const reconnectReader = reconnected.body?.getReader()
+    expect(reconnectReader).toBeDefined()
+    const initialEvent = await reconnectReader!.read()
+    expect(decoder.decode(initialEvent.value)).toContain('"paused":true')
+    await reconnectReader!.cancel()
+  })
+
+  it('resets transient playback state after a service restart', async () => {
+    await call('POST', '/presence', { kind: 'code', id: seedId })
+    await call('PUT', '/presence/playback', { paused: true })
+    await server.stop()
+
+    server = createControlServer({
+      archive,
+      modules,
+      sourceRevision: REVISION,
+      port: 0,
+      previewDirectory: join(directory, 'previews'),
+    })
+    base = (await server.start()).url
+    expect((await call('GET', '/presence')).body).toMatchObject({ paused: false, speed: 1 })
   })
 
   it('live Gene changes are kept in memory and never archived', async () => {

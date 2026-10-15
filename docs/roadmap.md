@@ -71,7 +71,7 @@ without interrupting fullscreen rendering.
    ([#12](https://github.com/hooman3030/physis/issues/12)).
 2. Build the remote studio
    ([#15](https://github.com/hooman3030/physis/issues/15)).
-3. Add Presence pause/resume controls
+3. Add shared Presence playback controls
    ([#34](https://github.com/hooman3030/physis/issues/34)).
 4. Specify the archive Lineage Explorer graph and preview model
    ([#50](https://github.com/hooman3030/physis/issues/50)).

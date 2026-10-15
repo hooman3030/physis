@@ -14,6 +14,8 @@
 - **Presence** – an artwork currently running in the browser: a pointer to the
   Seed or Mutation it runs and, optionally, the Imprint it started from. It is
   not part of any lineage; selecting anything in the archive starts a Presence.
+  Its transient playback state is authoritative in the local control service
+  and shared with connected clients.
 - **World** – an environment that can influence how a Presence's Gene values
   change over time. Its influence is adjustable; saved-Imprint-informed bias is
   a future direction, not yet a defined analysis.
