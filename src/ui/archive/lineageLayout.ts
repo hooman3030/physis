@@ -4,12 +4,18 @@ import {
   forceLink,
   forceManyBody,
   forceSimulation,
+  forceX,
+  forceY,
   type Simulation,
   type SimulationLinkDatum,
   type SimulationNodeDatum,
 } from 'd3-force'
 import type { GraphDimensions, GraphPosition, LineageGraph, LineageGraphNode } from './lineageGraph'
-import { createInitialLineagePositions } from './lineageGraph'
+import {
+  createChronologicalYTargets,
+  createInitialLineagePositions,
+  createLineageXTargets,
+} from './lineageGraph'
 
 export type LineageSimulationNode = LineageGraphNode & SimulationNodeDatum
 type LineageSimulationLink = SimulationLinkDatum<LineageSimulationNode>
@@ -24,28 +30,33 @@ export function createLineageLayoutSimulation(
   dimensions: GraphDimensions,
   savedPositions: ReadonlyMap<string, GraphPosition>,
 ): LineageLayoutSimulation {
-  const initialPositions = createInitialLineagePositions(graph.nodes, dimensions, savedPositions)
+  const initialPositions = createInitialLineagePositions(
+    graph.nodes,
+    dimensions,
+    savedPositions,
+    graph.edges,
+  )
   const nodes: LineageSimulationNode[] = graph.nodes.map((node) => {
     const position = initialPositions.get(node.key)
     if (position === undefined) throw new Error(`No initial graph position for ${node.key}`)
-    const isSaved = savedPositions.has(node.key)
     return {
       ...node,
       x: position.x,
       y: position.y,
-      ...(isSaved ? { fx: position.x, fy: position.y } : {}),
     }
   })
   const links: LineageSimulationLink[] = graph.edges.map((edge) => ({
     source: edge.from,
     target: edge.to,
   }))
+  const yTargets = createChronologicalYTargets(graph.nodes, dimensions.height)
+  const xTargets = createLineageXTargets(graph.nodes, graph.edges, dimensions.width)
   const simulation = forceSimulation<LineageSimulationNode>(nodes)
     .force(
       'link',
       forceLink<LineageSimulationNode, LineageSimulationLink>(links)
         .id((node) => node.key)
-        .distance(148)
+        .distance(188)
         .strength(0.85),
     )
     .force('charge', forceManyBody<LineageSimulationNode>().strength(-460).distanceMax(540))
@@ -61,9 +72,9 @@ export function createLineageLayoutSimulation(
       forceCenter<LineageSimulationNode>(dimensions.width / 2, dimensions.height / 2),
     )
     .alpha(0.95)
-    .alphaMin(0.018)
-    .alphaDecay(0.055)
-    .velocityDecay(0.38)
+    .alphaMin(0.015)
+    .alphaDecay(0.048)
+    .velocityDecay(0.32)
 
   return { nodes, simulation }
 }

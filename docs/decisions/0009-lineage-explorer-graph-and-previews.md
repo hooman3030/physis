@@ -27,11 +27,16 @@ decoding are poor defaults.
   parent edge: code parents, Imprint parents, and source-code-to-root-Imprint
   connections. Do not draw additional code-reference edges for descendant
   Imprints.
-- Seed the simulation with deterministic positions and stop it after settling.
-  Support dragging nodes, panning, zooming, and arrow-key movement. Persist
-  moved positions in browser local storage, not the archive, and provide a
-  reset control. Under reduced motion, calculate the settled layout without
-  visible movement.
+- Seed the simulation with deterministic positions ordered from older nodes
+  near the top to newer nodes near the bottom. Place each subtree in a
+  creation-time-ordered horizontal band and apply a soft branch-order force
+  alongside chronology, link, repulsion, centering, and collision forces.
+  Give Imprints stronger repulsion and a larger collision radius. Re-run the
+  force simulation from saved positions on each page load to let old layouts
+  relax, then stop it after settling. Support dragging nodes, panning,
+  zooming, and arrow-key movement. Persist positions in browser local
+  storage, not the archive, and provide a reset control. Under reduced motion,
+  calculate the settled layout without visible movement.
 - Fill the viewport and float the back link and heading over its upper-left
   corner. Do not show a detail inspector or explanatory graph copy. Use the
   selected node's poster as a softly blurred backdrop with a black overlay
