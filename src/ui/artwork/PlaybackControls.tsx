@@ -1,5 +1,6 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { DEFAULT_PLAYBACK_SPEED, MAX_PLAYBACK_SPEED, MIN_PLAYBACK_SPEED } from '../../playbackClock'
+import { useSurfaceTransition } from '../primitives/useSurfaceTransition'
 
 const SPEED_STEP = 0.1
 const SPEED_STEP_COUNT = Math.round((MAX_PLAYBACK_SPEED - MIN_PLAYBACK_SPEED) / SPEED_STEP)
@@ -33,6 +34,7 @@ export function PlaybackControls({
   controlStatus,
 }: PlaybackControlsProps) {
   const [open, setOpen] = useState(false)
+  const surfaceTransition = useSurfaceTransition(open)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const pointerActive = useRef(false)
   const controlsDisabled = controlStatus !== 'connected'
@@ -108,10 +110,15 @@ export function PlaybackControls({
         id="playback-controls-surface"
         className="playback-surface"
         aria-label="Playback controls"
-        hidden={!open}
+        aria-hidden={surfaceTransition.ariaHidden}
+        hidden={surfaceTransition.hidden}
+        inert={surfaceTransition.inert}
         onKeyDown={handleSurfaceKeyDown}
       >
-        <div className="playback-dial-shell surface">
+        <div
+          className={`playback-dial-shell surface ${surfaceTransition.className}`}
+          onAnimationEnd={surfaceTransition.onAnimationEnd}
+        >
           <button
             type="button"
             className="playback-toggle"

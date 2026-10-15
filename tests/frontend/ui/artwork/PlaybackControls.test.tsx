@@ -23,8 +23,11 @@ describe('playback controls', () => {
     expect(markup).toContain('aria-expanded="false"')
     expect(markup).toContain('id="playback-controls-surface"')
     expect(markup).toContain('hidden=""')
+    expect(markup).toContain('surface-transition--closed')
     expect(markup).toContain('role="slider"')
-    expect(markup).toContain('class="playback-dial-shell surface"')
+    expect(markup).toContain(
+      'class="playback-dial-shell surface surface-transition surface-transition--closed"',
+    )
     expect(markup).toContain('aria-label="Playback speed, double-click to reset to 1×"')
     expect(markup).toContain('aria-valuetext="1.0 times"')
     expect(markup).toContain('aria-label="Pause artwork"')

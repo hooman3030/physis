@@ -61,5 +61,10 @@ channels.
   across variants.
 - Keep component-specific layout and artwork-specific treatments local, but
   build their colors, spacing, borders, and focus states from shared tokens.
+- Revealable control panels share the `useSurfaceTransition` presence behavior:
+  they animate in and out, become inert as soon as closing begins, and skip
+  motion when reduced motion is requested.
+- Apply entrance motion to the element that owns `.surface`; animating an
+  ancestor with opacity or `filter` can interrupt its backdrop treatment.
 - Preserve visible keyboard focus, disabled states, responsive behavior, and
   reduced-motion support when reusing or refining these patterns.

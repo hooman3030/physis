@@ -188,6 +188,54 @@ main {
   display: none;
 }
 
+.surface-transition--opening,
+.surface-transition--closing {
+  will-change: opacity, translate, scale, filter;
+}
+
+.surface-transition--opening {
+  animation: surface-panel-enter 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.surface-transition--closing {
+  animation: surface-panel-exit 240ms cubic-bezier(0.4, 0, 0.8, 0.2) both;
+  pointer-events: none;
+}
+
+@keyframes surface-panel-enter {
+  from {
+    opacity: 0;
+    translate: 0 0.65rem;
+    scale: 0.97;
+    filter: blur(0.5rem);
+  }
+  65% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes surface-panel-exit {
+  from {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    translate: 0 0.35rem;
+    scale: 0.985;
+    filter: blur(0.3rem);
+  }
+}
+
 .remote-access-pairing {
   position: fixed;
   z-index: 3;
@@ -906,6 +954,41 @@ button {
     box-shadow 140ms ease;
 }
 
+.playback-dial-shell.surface-transition--opening,
+.playback-dial-shell.surface-transition--closing {
+  will-change: translate, scale;
+}
+
+.playback-dial-shell.surface-transition--opening {
+  animation-name: playback-surface-enter;
+}
+
+.playback-dial-shell.surface-transition--closing {
+  animation-name: playback-surface-exit;
+}
+
+@keyframes playback-surface-enter {
+  from {
+    translate: 0 0.65rem;
+    scale: 0.97;
+  }
+  to {
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes playback-surface-exit {
+  from {
+    translate: 0 0;
+    scale: 1;
+  }
+  to {
+    translate: 0 0.35rem;
+    scale: 0.985;
+  }
+}
+
 .playback-dial-shell:hover {
   border-color: var(--border-accent);
   box-shadow: var(--surface-sheen), var(--shadow-accent-subtle), var(--shadow-raised);
@@ -1151,6 +1234,8 @@ input:disabled {
   button,
   .range-control,
   .gene-action-icon--rolling,
+  .surface-transition--opening,
+  .surface-transition--closing,
   .primary-button__fill--animating,
   .save-imprint::before {
     transition: none;

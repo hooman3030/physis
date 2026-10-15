@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { P5Seed } from '../../seeds/p5/types'
 import type { ArtworkGene, ArtworkGeneValues } from '../../seeds/types'
 import { PrimaryButton } from '../primitives/PrimaryButton'
+import { useSurfaceTransition } from '../primitives/useSurfaceTransition'
 
 const diePipPositions: Readonly<Record<number, readonly (readonly [number, number])[]>> = {
   1: [[12, 12]],
@@ -90,6 +91,8 @@ export function SeedControls({
 }: SeedControlsProps) {
   const [diceRoll, setDiceRoll] = useState(0)
   const [diceFace, setDiceFace] = useState(5)
+  const [isRolling, setIsRolling] = useState(false)
+  const surfaceTransition = useSurfaceTransition(!hidden)
   const connectionLabel = {
     connected: 'API',
     connecting: 'Connecting',
@@ -99,9 +102,12 @@ export function SeedControls({
   return (
     <section
       id="artwork-controls"
-      className="studio-panel surface shape-panel"
+      className={`studio-panel surface shape-panel ${surfaceTransition.className}`}
       aria-label="Artwork controls"
-      hidden={hidden}
+      aria-hidden={surfaceTransition.ariaHidden}
+      hidden={surfaceTransition.hidden}
+      inert={surfaceTransition.inert}
+      onAnimationEnd={surfaceTransition.onAnimationEnd}
     >
       <div className="controls-heading">
         <div className="controls-header">
@@ -171,15 +177,19 @@ export function SeedControls({
             onClick={() => {
               setDiceRoll((roll) => roll + 1)
               setDiceFace(rollDie())
+              if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                setIsRolling(true)
+              }
               onGenesChange(randomizeGeneValues(activeSeed.genes))
             }}
           >
             <svg
               key={diceRoll}
-              className={`gene-action-icon${diceRoll > 0 ? ' gene-action-icon--rolling' : ''}`}
+              className={`gene-action-icon${isRolling ? ' gene-action-icon--rolling' : ''}`}
               viewBox="0 0 24 24"
               aria-hidden="true"
               focusable="false"
+              onAnimationEnd={() => setIsRolling(false)}
             >
               <rect
                 x="3.5"
