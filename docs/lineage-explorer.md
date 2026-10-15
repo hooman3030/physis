@@ -70,6 +70,19 @@ Imprint if it exists in the archive; when there is no active Imprint, leave
 the graph unselected. An unavailable Seed or Mutation can still be selected,
 but cannot be activated.
 
+Delete mode is a separate multi-selection state: selecting a node there does
+not change Presence. Only inactive Imprints can be selected for deletion; code
+nodes and the active Imprint remain protected. Enter the mode with the
+Select and delete switch; while active, an icon-and-count control deletes the
+selection. Deleting selected Imprints requires one confirmation for the batch
+and uses the archive API's existing
+behavior, which preserves descendants by reparenting them. Successful
+deletions disappear immediately and exit delete mode. Children are reparented
+to the deleted Imprint's former parent; when that parent is absent, the
+source-code lineage reconnects them to the Seed. Failed or unattempted
+deletions are reported; if the entire batch fails, its selection remains for
+retry.
+
 Keyboard and touch users can select every node, which automatically activates
 available nodes without relying on hover. Node type, active state, and parent
 direction must remain understandable without color alone. Respect

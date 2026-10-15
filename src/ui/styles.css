@@ -1513,6 +1513,79 @@ main[data-open-panels='both'] .archive-panel {
   font-size: var(--text-sm);
 }
 
+.lineage-graph-delete-switch {
+  gap: 0.35rem;
+}
+
+.lineage-graph-delete-switch-track {
+  position: relative;
+  width: 2rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+  border: 1px solid var(--border-default);
+  border-radius: 1rem;
+  background: var(--surface-control-background);
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.lineage-graph-delete-switch-thumb {
+  position: absolute;
+  top: 0.11rem;
+  left: 0.12rem;
+  width: 0.76rem;
+  height: 0.76rem;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  box-shadow: var(--shadow-control);
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease;
+}
+
+.lineage-graph-delete-switch-active .lineage-graph-delete-switch-track {
+  border-color: var(--border-accent);
+  background: var(--surface-accent-hover);
+}
+
+.lineage-graph-delete-switch-active .lineage-graph-delete-switch-thumb {
+  transform: translateX(0.86rem);
+  background: var(--color-accent);
+}
+
+.lineage-graph-delete-action {
+  gap: 0.3rem;
+  min-width: 3.9rem;
+  justify-content: center;
+}
+
+.lineage-graph-delete-action svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.lineage-graph-delete-action:not(:disabled):hover {
+  border-color: var(--border-accent);
+  color: var(--color-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lineage-graph-delete-switch-track,
+  .lineage-graph-delete-switch-thumb {
+    transition: none;
+  }
+}
+
+.lineage-graph-node-delete-selected .lineage-graph-selected-ring {
+  stroke: var(--color-accent);
+}
+
 .lineage-graph-viewport {
   position: absolute;
   z-index: 1;

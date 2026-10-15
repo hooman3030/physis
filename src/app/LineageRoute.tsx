@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   ControlApiError,
   completePairing,
+  deleteImprint,
   dismissPairingPin,
   getPairingStatus,
   getPresence,
@@ -17,6 +18,10 @@ import {
   type PresenceSnapshot,
 } from '../controlClient'
 import { reportApplicationError } from '../errorNotifications'
+import {
+  confirmAndDeleteLineageImprints,
+  removeDeletedImprintAndReparentChildren,
+} from './lineageImprintDeletion'
 import {
   getInitialLineageSelection,
   LineageExplorer,
@@ -162,6 +167,33 @@ export function LineageRoute() {
     }
   }
 
+  const handleDeleteImprints = (imprintIds: readonly string[]): Promise<readonly string[]> => {
+    if (imprintIds.length === 0) return Promise.resolve([])
+    if (controlStatus !== 'connected' || authenticationRequired) {
+      reportApplicationError(
+        'The local control API is unavailable; selected Imprints were not deleted.',
+      )
+      return Promise.resolve([])
+    }
+
+    return confirmAndDeleteLineageImprints(imprintIds, {
+      confirm: (message) => window.confirm(message),
+      deleteImprint,
+      onDeleted: (imprintId) => {
+        setImprints((current) => removeDeletedImprintAndReparentChildren(current, imprintId))
+        setSelection((current) =>
+          current?.kind === 'imprint' && current.id === imprintId ? null : current,
+        )
+      },
+      onAuthenticationRequired: () => {
+        setAuthenticationRequired(true)
+        setControlStatus('offline')
+      },
+      onControlApiUnavailable: () => setControlStatus('offline'),
+      reportError: reportApplicationError,
+    })
+  }
+
   return (
     <main className="lineage-page">
       <RemoteAccessPairing
@@ -182,6 +214,7 @@ export function LineageRoute() {
         authenticationRequired={authenticationRequired}
         onSelect={setSelection}
         onActivate={(selected) => void handleActivate(selected)}
+        onDeleteImprints={handleDeleteImprints}
         onRetry={() => setReloadVersion((version) => version + 1)}
       />
     </main>

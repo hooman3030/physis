@@ -30,7 +30,9 @@ type LineageGraphViewProps = {
   graph: LineageGraph
   presence: PresenceSnapshot | null
   selection: LineageSelection | null
+  canDeleteImprints: boolean
   onSelect: (selection: LineageSelection) => void
+  onDeleteImprints: (imprintIds: readonly string[]) => Promise<readonly string[]>
 }
 
 type Viewport = {
@@ -91,6 +93,39 @@ function isSelected(selection: LineageSelection | null, node: LineageGraphNode):
 
 function isActive(node: LineageGraphNode, presence: PresenceSnapshot | null): boolean {
   return node.kind === 'code' ? presence?.code?.id === node.id : presence?.imprint?.id === node.id
+}
+
+export function canDeleteLineageNode(
+  node: LineageGraphNode,
+  presence: PresenceSnapshot | null,
+): boolean {
+  return node.kind === 'imprint' && presence?.imprint?.id !== node.id
+}
+
+export function toggleDeleteSelection(selected: ReadonlySet<string>, id: string): Set<string> {
+  const next = new Set(selected)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  return next
+}
+
+export function getLineageGraphSelectionAction(
+  selection: LineageSelection,
+  deleteMode: boolean,
+  nodes: readonly LineageGraphNode[],
+  presence: PresenceSnapshot | null,
+):
+  | { type: 'activate'; selection: LineageSelection }
+  | { type: 'toggle-delete'; imprintId: string }
+  | { type: 'ignore' } {
+  if (!deleteMode) return { type: 'activate', selection }
+  if (selection.kind !== 'imprint') return { type: 'ignore' }
+  const node = nodes.find(
+    (candidate) => candidate.kind === 'imprint' && candidate.id === selection.id,
+  )
+  return node !== undefined && canDeleteLineageNode(node, presence)
+    ? { type: 'toggle-delete', imprintId: selection.id }
+    : { type: 'ignore' }
 }
 
 function selectionForNode(node: LineageGraphNode): LineageSelection {
@@ -223,6 +258,8 @@ function GraphNode({
   position,
   active,
   selected,
+  deleteMode,
+  deletable,
   animationActive,
   reducedMotion,
   onSelect,
@@ -236,6 +273,8 @@ function GraphNode({
   position: GraphPosition
   active: boolean
   selected: boolean
+  deleteMode: boolean
+  deletable: boolean
   animationActive: boolean
   reducedMotion: boolean
   onSelect: (selection: LineageSelection) => void
@@ -250,7 +289,16 @@ function GraphNode({
   const animationUrl = useAnimationUrl(node.kind, node.id, animationActive, reducedMotion)
   const imageUrl = animationActive && !reducedMotion ? (animationUrl ?? previewUrl) : previewUrl
   const clipId = `lineage-preview-clip-${useId().replace(/:/g, '')}`
-  const accessibleLabel = `${nodeLabel(node)} ${node.id}${active ? ', active Presence' : ''}${selected ? ', selected' : ''}${node.kind === 'code' && !node.available ? ', unavailable in this build' : ''}${previewUrl === null && animationUrl === null ? ', no saved preview' : ', saved preview available'}`
+  const selectionDescription = deleteMode
+    ? deletable
+      ? selected
+        ? ', selected for deletion'
+        : ', available for deletion'
+      : ', unavailable for deletion'
+    : selected
+      ? ', selected'
+      : ''
+  const accessibleLabel = `${nodeLabel(node)} ${node.id}${active ? ', active Presence' : ''}${selectionDescription}${node.kind === 'code' && !node.available ? ', unavailable in this build' : ''}${previewUrl === null && animationUrl === null ? ', no saved preview' : ', saved preview available'}`
   useEffect(() => {
     if (selected && preview.loaded) onSelectedPreviewChange(previewUrl)
   }, [onSelectedPreviewChange, preview.loaded, previewUrl, selected])
@@ -276,11 +324,12 @@ function GraphNode({
 
   return (
     <g
-      className={`lineage-graph-node lineage-graph-node-${node.role}${active ? ' lineage-graph-node-active' : ''}${selected ? ' lineage-graph-node-selected' : ''}`}
+      className={`lineage-graph-node lineage-graph-node-${node.role}${active ? ' lineage-graph-node-active' : ''}${selected ? ' lineage-graph-node-selected' : ''}${deleteMode ? ' lineage-graph-node-delete-mode' : ''}${deleteMode && !deletable ? ' lineage-graph-node-delete-unavailable' : ''}${deleteMode && selected ? ' lineage-graph-node-delete-selected' : ''}`}
       role="button"
       tabIndex={0}
       aria-label={accessibleLabel}
       aria-pressed={selected}
+      aria-disabled={deleteMode && !deletable}
       transform={`translate(${position.x} ${position.y})${node.role === 'seed' ? ' scale(1.33)' : ''}`}
       onClick={(event) => {
         if (event.detail === 0) onSelect(selectionForNode(node))
@@ -337,7 +386,14 @@ function GraphNode({
   )
 }
 
-export function LineageGraphView({ graph, presence, selection, onSelect }: LineageGraphViewProps) {
+export function LineageGraphView({
+  graph,
+  presence,
+  selection,
+  canDeleteImprints,
+  onSelect,
+  onDeleteImprints,
+}: LineageGraphViewProps) {
   const reducedMotion = usePrefersReducedMotion()
   const dimensions = useMemo(() => graphDimensions(graph.nodes.length), [graph.nodes.length])
   const initialPositions = useMemo(
@@ -349,6 +405,9 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
   const [layoutRevision, setLayoutRevision] = useState(0)
   const [activeAnimationKey, setActiveAnimationKey] = useState<string | null>(null)
   const [selectedPreviewUrl, setSelectedPreviewUrl] = useState<string | null>(null)
+  const [deleteMode, setDeleteMode] = useState(false)
+  const [deleteSelection, setDeleteSelection] = useState<ReadonlySet<string>>(() => new Set())
+  const [deleteRequestPending, setDeleteRequestPending] = useState(false)
   const [backdropLayers, setBackdropLayers] = useState<BackdropLayers>({
     previous: null,
     current: null,
@@ -549,6 +608,22 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
     [pointInGraph, pointInSvg, publishPositions],
   )
 
+  const handleNodeSelect = useCallback(
+    (nextSelection: LineageSelection) => {
+      const action = getLineageGraphSelectionAction(
+        nextSelection,
+        deleteMode,
+        graph.nodes,
+        presence,
+      )
+      if (action.type === 'activate') onSelect(action.selection)
+      if (action.type === 'toggle-delete') {
+        setDeleteSelection((current) => toggleDeleteSelection(current, action.imprintId))
+      }
+    },
+    [deleteMode, graph.nodes, onSelect, presence],
+  )
+
   const finishGesture = useCallback(
     (event: ReactPointerEvent<SVGSVGElement>, cancelled: boolean) => {
       const gesture = gestureRef.current
@@ -563,7 +638,7 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
       if (node === undefined) return
       if (!gesture.moved) {
         if (!cancelled) {
-          onSelect(selectionForNode(node))
+          handleNodeSelect(selectionForNode(node))
           if (event.pointerType === 'touch') playTouchAnimation(node.key)
         }
         return
@@ -579,7 +654,7 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
         saveCurrentPositions()
       }
     },
-    [onSelect, playTouchAnimation, publishPositions, reducedMotion, saveCurrentPositions],
+    [handleNodeSelect, playTouchAnimation, publishPositions, reducedMotion, saveCurrentPositions],
   )
 
   const onNodeMoveBy = useCallback(
@@ -645,6 +720,41 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
   const nodesByKey = useMemo(() => new Map(graph.nodes.map((node) => [node.key, node])), [graph])
 
   useEffect(() => {
+    if (!deleteMode) return
+    const deletableIds = new Set(
+      graph.nodes.filter((node) => canDeleteLineageNode(node, presence)).map((node) => node.id),
+    )
+    setDeleteSelection((current) => {
+      const next = new Set([...current].filter((id) => deletableIds.has(id)))
+      return next.size === current.size ? current : next
+    })
+  }, [deleteMode, graph.nodes, presence?.imprint?.id])
+
+  const handleToggleDeleteMode = useCallback(() => {
+    setDeleteMode((current) => !current)
+    setDeleteSelection(new Set())
+  }, [])
+
+  const handleDeleteSelected = useCallback(async () => {
+    const selectedIds = [...deleteSelection]
+    if (!canDeleteImprints || selectedIds.length === 0 || deleteRequestPending) return
+
+    setDeleteRequestPending(true)
+    try {
+      const requestedIds = new Set(selectedIds)
+      const deletedIds = new Set(
+        (await onDeleteImprints(selectedIds)).filter((id) => requestedIds.has(id)),
+      )
+      if (deletedIds.size > 0) {
+        setDeleteSelection(new Set())
+        setDeleteMode(false)
+      }
+    } finally {
+      setDeleteRequestPending(false)
+    }
+  }, [canDeleteImprints, deleteRequestPending, deleteSelection, onDeleteImprints])
+
+  useEffect(() => {
     if (reducedMotion) {
       backdropCurrentUrlRef.current = selectedPreviewUrl
       setBackdropLayers({ previous: null, current: selectedPreviewUrl })
@@ -686,6 +796,41 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
         <div className="lineage-graph-buttons">
           <button
             type="button"
+            className={`button--quiet lineage-graph-delete-switch${deleteMode ? ' lineage-graph-delete-switch-active' : ''}`}
+            role="switch"
+            aria-label="Select and delete"
+            aria-checked={deleteMode}
+            onClick={handleToggleDeleteMode}
+          >
+            <span className="lineage-graph-delete-switch-track" aria-hidden="true">
+              <span className="lineage-graph-delete-switch-thumb" />
+            </span>
+            <span>Select and delete</span>
+          </button>
+          {deleteMode && (
+            <button
+              type="button"
+              className="button--quiet lineage-graph-delete-action"
+              aria-label={`Delete ${deleteSelection.size} selected Imprint${deleteSelection.size === 1 ? '' : 's'}`}
+              aria-busy={deleteRequestPending}
+              disabled={deleteSelection.size === 0 || !canDeleteImprints || deleteRequestPending}
+              onClick={() => {
+                void handleDeleteSelected().catch((error: unknown) => {
+                  reportApplicationError(
+                    `Could not delete the selected Imprints: ${error instanceof Error ? error.message : String(error)}`,
+                  )
+                })
+              }}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m12 2 1.8 5.2 4.5-3-1.1 5.8 5.3 1.7-4.8 3.1 2.7 5.1-5.7-1L12 23l-2.4-5.1-5.3 2 1.2-5.8L1 11.2l5.8-.5L7 4.9l4 3.4L12 2Z" />
+                <path d="M12 10v3m0 3v.1" />
+              </svg>
+              <span aria-live="polite">{deleteSelection.size}x</span>
+            </button>
+          )}
+          <button
+            type="button"
             className="button--quiet"
             aria-label="Zoom out"
             onClick={() => zoomAtCenter(1 / 1.2)}
@@ -710,7 +855,11 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
           ref={svgRef}
           className="lineage-graph"
           role="group"
-          aria-label="Lineage graph; Tab to focus a node, Enter or Space to select and activate it in Presence, and arrow keys to move it"
+          aria-label={
+            deleteMode
+              ? 'Lineage graph delete mode; select inactive Imprints to delete, and use arrow keys to move nodes'
+              : 'Lineage graph; Tab to focus a node, Enter or Space to select and activate it in Presence, and arrow keys to move it'
+          }
           viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
           width="100%"
           height="100%"
@@ -772,10 +921,12 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
                   node={node}
                   position={positionFor(node)}
                   active={isActive(node, presence)}
-                  selected={isSelected(selection, node)}
+                  selected={deleteMode ? deleteSelection.has(node.id) : isSelected(selection, node)}
+                  deleteMode={deleteMode}
+                  deletable={canDeleteLineageNode(node, presence)}
                   animationActive={activeAnimationKey === node.key}
                   reducedMotion={reducedMotion}
-                  onSelect={onSelect}
+                  onSelect={handleNodeSelect}
                   onSelectedPreviewChange={setSelectedPreviewUrl}
                   onPointerDown={onNodePointerDown}
                   onAnimationStart={startAnimation}

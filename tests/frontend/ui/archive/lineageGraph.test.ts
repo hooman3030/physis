@@ -125,6 +125,25 @@ describe('lineage graph model', () => {
     )
   })
 
+  it('falls back to an Imprint’s source-code lineage when its parent is missing', () => {
+    const orphan = {
+      id: 'orphan',
+      parentId: 'deleted-imprint',
+      codeId: 'mutation-a',
+      sourceRevision: 'fedcba9876543210',
+      createdAt: '2026-10-14T13:00:00.000Z',
+      genes: {},
+    }
+    const graph = createLineageGraph(codeNodes, [...imprints, orphan])
+
+    expect(graph.edges).toEqual(
+      expect.arrayContaining([
+        { from: 'code:seed-a', to: 'code:mutation-a' },
+        { from: 'code:mutation-a', to: 'imprint:orphan' },
+      ]),
+    )
+  })
+
   it('creates deterministic organic positions without duplicating saved node coordinates', () => {
     const graph = createLineageGraph(codeNodes, imprints)
     const dimensions = graphDimensions(graph.nodes.length)
