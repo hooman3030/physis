@@ -307,18 +307,22 @@ h3 {
   gap: 0.35rem;
 }
 
+.button--compact,
 .button--quiet {
   display: inline-flex;
   min-height: 2rem;
   align-items: center;
   justify-content: center;
   padding: 0.35rem 0.55rem;
-  border: 1px solid var(--border-default);
-  color: var(--color-text);
-  background: var(--surface-control-background);
   font-size: var(--text-sm);
   line-height: 1;
   white-space: nowrap;
+}
+
+.button--quiet {
+  border: 1px solid var(--border-default);
+  color: var(--color-text);
+  background: var(--surface-control-background);
 }
 
 .button--quiet:not(:disabled):hover {
@@ -343,6 +347,25 @@ h3 {
   display: block;
   width: 1rem;
   height: 1rem;
+}
+
+.gene-action-icon--rolling {
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform;
+  animation: die-roll 560ms cubic-bezier(0.25, 0.8, 0.25, 1) both;
+}
+
+.save-imprint-icon {
+  display: block;
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .archive-empty {
@@ -688,14 +711,101 @@ button {
     filter 140ms ease;
 }
 
-.button--primary:not(:disabled):hover {
+.button--primary:not(:disabled):not(.save-imprint):hover {
   border-color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 88%, var(--color-text));
   filter: var(--filter-accent);
 }
 
+.button--primary:not(:disabled):not(.save-imprint):hover .primary-button__fill {
+  background: color-mix(in srgb, var(--color-accent) 88%, var(--color-text));
+}
+
+.button--primary {
+  --button-wipe-duration: 600ms;
+  --button-wipe-easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: transparent;
+}
+
+.primary-button__fill {
+  position: absolute;
+  z-index: 0;
+  background: var(--color-accent);
+  pointer-events: none;
+  inset: 0;
+  transform: scaleX(1);
+  transform-origin: left;
+  transition: background-color 140ms ease;
+}
+
+.primary-button__fill--animating {
+  animation: primary-button-click var(--button-wipe-duration) var(--button-wipe-easing) both;
+}
+
+.primary-button__content {
+  position: relative;
+  z-index: 1;
+}
+
 .save-imprint {
-  margin-top: 1rem;
+  width: 6rem;
+  flex: none;
+  color: var(--color-canvas);
+  background: transparent;
+  transition: color 160ms ease;
+}
+
+.save-imprint::before {
+  position: absolute;
+  z-index: 0;
+  background: var(--color-accent);
+  content: '';
+  pointer-events: none;
+  inset: 0;
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+.save-imprint--saving {
+  color: var(--color-text);
+}
+
+.save-imprint--saving:disabled {
+  opacity: 1;
+}
+
+.save-imprint--saving::before {
+  transform-origin: right;
+  animation: save-background-exit var(--button-wipe-duration) var(--button-wipe-easing) forwards;
+}
+
+.save-imprint--saved {
+  color: var(--color-canvas);
+  transition-delay: 220ms;
+}
+
+.save-imprint--saved::before {
+  transform: scaleX(0);
+  animation: save-background-enter var(--button-wipe-duration) var(--button-wipe-easing) both;
+}
+
+.save-imprint:not(:disabled):hover {
+  border-color: var(--color-accent);
+  filter: var(--filter-accent);
+}
+
+.save-imprint .save-feedback {
+  position: relative;
+  width: 100%;
+  justify-content: center;
+}
+
+.save-imprint .primary-button__content {
+  display: flex;
+  width: 100%;
+  justify-content: center;
 }
 
 .playback-toggle {
@@ -875,26 +985,16 @@ button {
 .save-feedback {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.3rem;
 }
 
-.save-feedback-saving::before {
-  width: 0.7rem;
-  height: 0.7rem;
-  border: 2px solid var(--spinner-border);
-  border-top-color: var(--color-canvas);
-  border-radius: var(--radius-circle);
-  content: '';
-  animation: save-spin 700ms linear infinite;
-}
-
-.save-feedback-saved {
-  animation: save-feedback-pop 180ms ease-out;
-}
-
-.save-feedback-saved::before {
-  color: var(--color-success);
-  content: '✓';
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 @keyframes connection-pulse {
@@ -914,21 +1014,63 @@ button {
   }
 }
 
-@keyframes save-spin {
-  to {
-    transform: rotate(360deg);
+@keyframes die-roll {
+  0% {
+    transform: translateY(0) rotate(0) scale(1);
+  }
+
+  55% {
+    transform: translateY(-0.3rem) rotate(225deg) scale(1.16);
+  }
+
+  82% {
+    transform: translateY(0.04rem) rotate(330deg) scale(0.97);
+  }
+
+  100% {
+    transform: translateY(0) rotate(360deg) scale(1);
   }
 }
 
-@keyframes save-feedback-pop {
+@keyframes primary-button-click {
+  0% {
+    transform: scaleX(1);
+    transform-origin: right;
+  }
+
+  49% {
+    transform: scaleX(0);
+    transform-origin: right;
+  }
+
+  50% {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+
+  100% {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+@keyframes save-background-exit {
   from {
-    opacity: 0;
-    transform: scale(0.9);
+    transform: scaleX(1);
   }
 
   to {
-    opacity: 1;
-    transform: scale(1);
+    transform: scaleX(0);
+  }
+}
+
+@keyframes save-background-enter {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
   }
 }
 
@@ -1008,8 +1150,9 @@ input:disabled {
   .connection-indicator[data-status] .connection-indicator-dot,
   button,
   .range-control,
-  .save-feedback-saving::before,
-  .save-feedback-saved {
+  .gene-action-icon--rolling,
+  .primary-button__fill--animating,
+  .save-imprint::before {
     transition: none;
     animation: none;
   }

@@ -15,9 +15,11 @@ applyTo:
   token declarations; derive translucent backgrounds, borders, and effects
   from semantic tokens instead of repeating RGB values in component rules.
 - Follow the small token → primitive → composition hierarchy. Use the shared
-  `.surface`, `.shape-*`, `.control`, `.button--primary`,
-  `.button--quiet`, and `.range-control` patterns before adding another
-  visual variant.
+  `.surface`, `.shape-*`, `.control`, `PrimaryButton`, `.button--quiet`,
+  `.button--compact`, and `.range-control` patterns before adding another
+  visual variant. `PrimaryButton` provides click wipe-and-refill feedback by
+  default; disable it only when a state-driven animation already handles the
+  same interaction.
 - Prefer CSS classes for presentation-only elements. Add React components
   when they own useful semantics or behavior; do not wrap elements only to
   forward styles.

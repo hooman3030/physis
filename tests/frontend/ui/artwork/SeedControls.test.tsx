@@ -1,10 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import {
-  getDefaultGeneValues,
-  randomizeGeneValues,
-  SeedControls,
-} from '../../../../src/ui/artwork/SeedControls'
+import { randomizeGeneValues, rollDie, SeedControls } from '../../../../src/ui/artwork/SeedControls'
 import { driftingFilamentsSeed } from '../../../../src/seeds/p5/drifting-filaments/seed'
 import { artworkSeeds, defaultArtworkSeed } from '../../../../src/seeds/registry'
 
@@ -57,18 +53,24 @@ describe('seed controls', () => {
     expect(markup).toContain('Trail length')
     expect(markup).toContain('Flow scale')
     expect(markup).toContain('Step length')
-    expect(markup).toContain('aria-label="Reset genes to defaults"')
+    expect(markup).not.toContain('Reset genes to defaults')
     expect(markup).toContain('aria-label="Randomize all genes"')
     const geneActionsStart = markup.indexOf('class="gene-actions"')
     const rebirthButtonIndex = markup.indexOf('aria-label="rebirth, R key"')
-    const resetGenesButtonIndex = markup.indexOf('aria-label="Reset genes to defaults"')
+    const saveButtonIndex = markup.indexOf(
+      'class="button--primary button--compact save-imprint save-imprint--idle"',
+    )
     const geneActionsEnd = markup.indexOf('</div>', geneActionsStart)
     const geneActionsMarkup = markup.slice(geneActionsStart, geneActionsEnd)
 
     expect(rebirthButtonIndex).toBeGreaterThan(geneActionsStart)
-    expect(rebirthButtonIndex).toBeLessThan(resetGenesButtonIndex)
     expect(rebirthButtonIndex).toBeLessThan(geneActionsEnd)
+    expect(saveButtonIndex).toBeGreaterThan(geneActionsStart)
+    expect(saveButtonIndex).toBeLessThan(geneActionsEnd)
     expect(geneActionsMarkup).toContain('<kbd class="gene-action-key">r</kbd>')
+    expect(geneActionsMarkup).toContain('class="gene-action-icon"')
+    expect(geneActionsMarkup).toContain('aria-label="Save Imprint"')
+    expect(geneActionsMarkup).toContain('class="save-imprint-icon"')
     expect(markup).toContain('Save Imprint')
     expect(markup).not.toContain('playback-toggle')
     expect(markup).not.toContain('playback-speed')
@@ -93,7 +95,15 @@ describe('seed controls', () => {
     )
 
     expect(markup).toContain('class="save-feedback save-feedback-saved"')
-    expect(markup).toContain('aria-live="polite">Saved')
+    expect(markup).toContain(
+      'class="button--primary button--compact save-imprint save-imprint--saved"',
+    )
+    expect(markup).toContain(
+      'd="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-3.5L6 21z"',
+    )
+    expect(markup).toContain('aria-live="polite">')
+    expect(markup).toContain('<span aria-hidden="true">Save</span>')
+    expect(markup).toContain('<span class="visually-hidden">Imprint saved</span>')
   })
 
   it('keeps playback controls out of the Seeds surface', () => {
@@ -116,14 +126,6 @@ describe('seed controls', () => {
     expect(markup).not.toContain('playback-speed')
   })
 
-  it('returns the declared defaults for every Gene', () => {
-    expect(getDefaultGeneValues(driftingFilamentsSeed.genes)).toEqual(
-      Object.fromEntries(
-        driftingFilamentsSeed.genes.map(({ id, defaultValue }) => [id, defaultValue]),
-      ),
-    )
-  })
-
   it('randomizes every Gene to a step-aligned value in its declared range', () => {
     const values = randomizeGeneValues(driftingFilamentsSeed.genes, () => 0.5)
 
@@ -133,5 +135,11 @@ describe('seed controls', () => {
       expect(value).toBeLessThanOrEqual(gene.max)
       expect((value - gene.min) / gene.step).toBeCloseTo(Math.round((value - gene.min) / gene.step))
     }
+  })
+
+  it('lands the die on each possible face', () => {
+    const randomValues = [0, 0.17, 0.34, 0.5, 0.67, 0.99]
+
+    expect(randomValues.map((value) => rollDie(() => value))).toEqual([1, 2, 3, 4, 5, 6])
   })
 })

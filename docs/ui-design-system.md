@@ -12,8 +12,8 @@ Keep the system small and progress from foundations to compositions:
 1. **Tokens** define the palette, typography, spacing, shape, borders, depth,
    and motion.
 2. **Primitives** provide reusable visual behavior: `.surface`, the
-   `.shape-*` classes, `.control`, `.button--primary`, `.button--quiet`, and
-   `.range-control`.
+   `.shape-*` classes, `.control`, `PrimaryButton`, `.button--quiet`,
+   `.button--compact`, and `.range-control`.
 3. **Compositions** arrange those primitives into panels, archive entries,
    overlays, and other UI features.
 
@@ -54,9 +54,11 @@ channels.
   filter, and sheen. Pair it with `.shape-panel`, `.shape-card`, or
   `.shape-control` for the appropriate shared shape.
 - Use `.control` on form controls and `.range-control` for Gene sliders.
-- Native buttons use the shared accent treatment by default. Use
-  `.button--primary` for the shared primary hover state and `.button--quiet`
-  for compact secondary actions.
+- Use `PrimaryButton` for all primary actions. It owns the default click
+  wipe-and-refill feedback; use `animateOnClick={false}` only when a
+  state-driven animation already provides equivalent feedback. `.button--quiet`
+  remains the subdued action, and `.button--compact` shares compact sizing
+  across variants.
 - Keep component-specific layout and artwork-specific treatments local, but
   build their colors, spacing, borders, and focus states from shared tokens.
 - Preserve visible keyboard focus, disabled states, responsive behavior, and

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import type { PairingStatus } from '../../controlClient'
+import { PrimaryButton } from '../primitives/PrimaryButton'
 
 type RemoteAccessPairingProps = {
   required: boolean
@@ -50,14 +51,9 @@ export function RemoteAccessPairing({
           <p>
             Request a PIN. It will appear on the installation display; enter it here to connect.
           </p>
-          <button
-            type="button"
-            className="button--primary"
-            disabled={busy}
-            onClick={() => void requestPin()}
-          >
+          <PrimaryButton type="button" disabled={busy} onClick={() => void requestPin()}>
             {requested ? 'Request another PIN' : 'Request PIN'}
-          </button>
+          </PrimaryButton>
           {requested && (
             <>
               <p>Check the installation display. The PIN expires after five minutes.</p>
@@ -73,9 +69,9 @@ export function RemoteAccessPairing({
                 value={pin}
                 onChange={(event) => setPin(event.target.value.replace(/\D/g, ''))}
               />
-              <button type="submit" className="button--primary" disabled={busy || pin.length !== 6}>
+              <PrimaryButton type="submit" disabled={busy || pin.length !== 6}>
                 Connect
-              </button>
+              </PrimaryButton>
             </>
           )}
         </form>

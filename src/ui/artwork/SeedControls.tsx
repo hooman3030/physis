@@ -1,8 +1,44 @@
+import { useState } from 'react'
 import type { P5Seed } from '../../seeds/p5/types'
 import type { ArtworkGene, ArtworkGeneValues } from '../../seeds/types'
+import { PrimaryButton } from '../primitives/PrimaryButton'
 
-export function getDefaultGeneValues(genes: readonly ArtworkGene[]): ArtworkGeneValues {
-  return Object.fromEntries(genes.map(({ id, defaultValue }) => [id, defaultValue]))
+const diePipPositions: Readonly<Record<number, readonly (readonly [number, number])[]>> = {
+  1: [[12, 12]],
+  2: [
+    [8, 8],
+    [16, 16],
+  ],
+  3: [
+    [8, 8],
+    [12, 12],
+    [16, 16],
+  ],
+  4: [
+    [8, 8],
+    [16, 8],
+    [8, 16],
+    [16, 16],
+  ],
+  5: [
+    [8, 8],
+    [16, 8],
+    [12, 12],
+    [8, 16],
+    [16, 16],
+  ],
+  6: [
+    [8, 8],
+    [16, 8],
+    [8, 12],
+    [16, 12],
+    [8, 16],
+    [16, 16],
+  ],
+}
+
+export function rollDie(random: () => number = Math.random): number {
+  return Math.floor(random() * 6) + 1
 }
 
 export function randomizeGeneValues(
@@ -52,6 +88,8 @@ export function SeedControls({
   controlsDisabled = false,
   hidden = false,
 }: SeedControlsProps) {
+  const [diceRoll, setDiceRoll] = useState(0)
+  const [diceFace, setDiceFace] = useState(5)
   const connectionLabel = {
     connected: 'API',
     connecting: 'Connecting',
@@ -126,24 +164,19 @@ export function SeedControls({
           </button>
           <button
             type="button"
-            className="button--quiet"
-            title="Reset genes to defaults"
-            aria-label="Reset genes to defaults"
-            disabled={controlsDisabled}
-            onClick={() => onGenesChange(getDefaultGeneValues(activeSeed.genes))}
-          >
-            reset
-          </button>
-          <button
-            type="button"
-            className="button--quiet"
+            className="button--quiet gene-randomize-button"
             title="Randomize all genes"
             aria-label="Randomize all genes"
             disabled={controlsDisabled}
-            onClick={() => onGenesChange(randomizeGeneValues(activeSeed.genes))}
+            onClick={() => {
+              setDiceRoll((roll) => roll + 1)
+              setDiceFace(rollDie())
+              onGenesChange(randomizeGeneValues(activeSeed.genes))
+            }}
           >
             <svg
-              className="gene-action-icon"
+              key={diceRoll}
+              className={`gene-action-icon${diceRoll > 0 ? ' gene-action-icon--rolling' : ''}`}
               viewBox="0 0 24 24"
               aria-hidden="true"
               focusable="false"
@@ -158,13 +191,31 @@ export function SeedControls({
                 stroke="currentColor"
                 strokeWidth="1.8"
               />
-              <circle cx="8" cy="8" r="1.3" fill="currentColor" />
-              <circle cx="12" cy="12" r="1.3" fill="currentColor" />
-              <circle cx="16" cy="16" r="1.3" fill="currentColor" />
-              <circle cx="16" cy="8" r="1.3" fill="currentColor" />
-              <circle cx="8" cy="16" r="1.3" fill="currentColor" />
+              {diePipPositions[diceFace].map(([cx, cy]) => (
+                <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.3" fill="currentColor" />
+              ))}
             </svg>
           </button>
+          <PrimaryButton
+            type="button"
+            className={`button--compact save-imprint save-imprint--${saveStatus}`}
+            animateOnClick={false}
+            aria-label="Save Imprint"
+            title="Save Imprint"
+            aria-busy={saveStatus === 'saving'}
+            disabled={controlsDisabled || controlStatus !== 'connected' || saveStatus === 'saving'}
+            onClick={onSaveImprint}
+          >
+            <span className={`save-feedback save-feedback-${saveStatus}`} aria-live="polite">
+              <svg className="save-imprint-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-3.5L6 21z" />
+              </svg>
+              <span aria-hidden={saveStatus === 'saved'}>
+                {saveStatus === 'saving' ? 'Saving…' : 'Save'}
+              </span>
+              {saveStatus === 'saved' && <span className="visually-hidden">Imprint saved</span>}
+            </span>
+          </PrimaryButton>
         </div>
       </div>
       {activeSeed.genes.map((gene) => {
@@ -198,16 +249,6 @@ export function SeedControls({
           </div>
         )
       })}
-      <button
-        type="button"
-        className="button--primary save-imprint"
-        disabled={controlsDisabled || controlStatus !== 'connected' || saveStatus === 'saving'}
-        onClick={onSaveImprint}
-      >
-        <span className={`save-feedback save-feedback-${saveStatus}`} aria-live="polite">
-          {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save Imprint'}
-        </span>
-      </button>
     </section>
   )
 }

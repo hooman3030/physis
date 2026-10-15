@@ -27,6 +27,10 @@ The active seed ID identifies a program module, not a guarantee of identical
 pixels across runs. The first-slice controls expose the active module ID and
 label and allow switching among registered modules.
 
+Use the shared `PrimaryButton` primitive for primary actions. It plays a
+wipe-and-refill animation on each click; a primary action with equivalent
+state-driven feedback may opt out of the default click animation.
+
 Keep the controls compact, with slimmer Gene sliders. Archive cards show
 the module and creation time without Gene values. When both panels are
 open, keep at least a 1rem gap between them on wider screens; at viewport
