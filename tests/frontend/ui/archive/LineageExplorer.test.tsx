@@ -13,6 +13,7 @@ import {
   getLineageGraphSelectionAction,
   lineageGrainPatternTransforms,
   lineageGrainViewBox,
+  shouldPlayLineageNodeAnimation,
   toggleDeleteSelection,
   wheelZoomFactor,
   zoomedScale,
@@ -222,6 +223,32 @@ describe('Lineage Explorer', () => {
     expect(markup).toContain('aria-label="Delete mode selection count"')
     expect(markup).toContain('aria-checked="false"')
     expect(markup).toContain('disabled=""')
+  })
+
+  it('automatically animates active Presence nodes and uses coronas instead of selection rings', () => {
+    const markup = renderToStaticMarkup(
+      <LineageExplorer
+        codeNodes={codeNodes}
+        imprints={imprints}
+        presence={presenceWithImprint}
+        selection={{ kind: 'imprint', id: 'imprint-root' }}
+        controlStatus="connected"
+        loading={false}
+        loadFailed={false}
+        authenticationRequired={false}
+        onDeleteImprints={vi.fn(async () => [])}
+        onSelect={vi.fn()}
+        onActivate={vi.fn()}
+        onRetry={vi.fn()}
+      />,
+    )
+
+    expect(markup.match(/class="lineage-graph-presence-corona-ring/g) ?? []).toHaveLength(8)
+    expect(markup).not.toContain('lineage-graph-active-ring')
+    expect(markup).not.toContain('lineage-graph-selected-ring')
+    expect(shouldPlayLineageNodeAnimation(true, false)).toBe(true)
+    expect(shouldPlayLineageNodeAnimation(false, true)).toBe(true)
+    expect(shouldPlayLineageNodeAnimation(false, false)).toBe(false)
   })
 
   it('uses gentle, delta-scaled wheel zoom', () => {
