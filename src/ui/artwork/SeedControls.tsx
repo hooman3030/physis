@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { P5Seed } from '../../seeds/p5/types'
 import type { ArtworkGene, ArtworkGeneValues } from '../../seeds/types'
+import type { ArtworkSeed } from '../../seeds/registry'
 import { PrimaryButton } from '../primitives/PrimaryButton'
 import { useSurfaceTransition } from '../primitives/useSurfaceTransition'
 
@@ -61,9 +61,9 @@ export function randomizeGeneValues(
 }
 
 type SeedControlsProps = {
-  activeSeed: P5Seed
-  seeds: readonly P5Seed[]
-  onSeedChange: (seed: P5Seed) => void
+  activeSeed: ArtworkSeed
+  seeds: readonly ArtworkSeed[]
+  onSeedChange: (seed: ArtworkSeed) => void
   geneValues: ArtworkGeneValues
   onGeneChange: (id: string, value: number) => void
   onGenesChange: (values: ArtworkGeneValues) => void

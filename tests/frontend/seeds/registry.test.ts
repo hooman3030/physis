@@ -13,5 +13,7 @@ describe('artwork seeds', () => {
     const ids = artworkSeeds.map((seed) => seed.id)
     expect(new Set(ids).size).toBe(ids.length)
     expect(ids).toContain('drifting-filaments')
+    expect(ids).toContain('first-orbit')
+    expect(artworkSeeds.find((seed) => seed.id === 'first-orbit')?.runtime).toBe('three')
   })
 })
