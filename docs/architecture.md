@@ -57,7 +57,9 @@ records both lineages; a rejected Mutation never replaces the active Seed.
 Use browser-based procedural graphics. p5.js remains available for 2D Seeds;
 Three.js is the 3D runtime. Three Seeds use `WebGPURenderer`, which selects
 WebGPU when available and falls back to WebGL 2, with TSL as the only shading
-language. Do not add a direct `WebGLRenderer` or raw shader path. See
+language. Seeds that require WebGPU compute declare that capability and the
+runtime reports an error if initialization selects the WebGL 2 fallback.
+Do not add a direct `WebGLRenderer` or raw shader path. See
 [`three-seeds.md`](three-seeds.md) for the Seed contract and import guidance.
 Supporting arbitrary video feeds would add complexity without helping the
 artwork runtime.

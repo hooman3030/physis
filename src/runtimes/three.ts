@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { ArtworkGeneValues } from '../seeds/types'
-import type { ThreeSeed } from '../seeds/three/types'
+import type { ThreeSeed, ThreeSeedContext } from '../seeds/three/types'
 import { DEFAULT_PLAYBACK_SPEED, PlaybackClock, type PlaybackClockOptions } from '../playbackClock'
 import { reportApplicationError } from '../errorNotifications'
 
@@ -15,7 +15,15 @@ export function mountThreeRuntime(
   const renderer = new THREE.WebGPURenderer({ antialias: true })
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100)
-  const update = seed.createScene(scene, camera, getGenes)
+  let viewportWidth = Math.max(1, container.clientWidth)
+  let viewportHeight = Math.max(1, container.clientHeight)
+  const seedCleanupHandlers: Array<() => void> = []
+  const seedContext: ThreeSeedContext = {
+    renderer,
+    getViewportSize: () => ({ width: viewportWidth, height: viewportHeight }),
+    registerCleanup: (cleanup) => seedCleanupHandlers.push(cleanup),
+  }
+  const update = seed.createScene(scene, camera, getGenes, seedContext)
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.target.set(0, 0, 0)
   controls.enableDamping = true
@@ -33,10 +41,10 @@ export function mountThreeRuntime(
   container.append(renderer.domElement)
 
   const resize = () => {
-    const width = Math.max(1, container.clientWidth)
-    const height = Math.max(1, container.clientHeight)
-    renderer.setSize(width, height)
-    camera.aspect = width / height
+    viewportWidth = Math.max(1, container.clientWidth)
+    viewportHeight = Math.max(1, container.clientHeight)
+    renderer.setSize(viewportWidth, viewportHeight)
+    camera.aspect = viewportWidth / viewportHeight
     camera.updateProjectionMatrix()
   }
   const resizeObserver = new ResizeObserver(resize)
@@ -69,7 +77,17 @@ export function mountThreeRuntime(
   void renderer
     .init()
     .then(() => {
-      if (!disposed) frameRequest = requestAnimationFrame(render)
+      if (disposed) return
+      if (
+        seed.requiresWebGPUCompute &&
+        !('isWebGPUBackend' in renderer.backend && renderer.backend.isWebGPUBackend === true)
+      ) {
+        reportApplicationError(
+          `${seed.label} requires WebGPU compute; the WebGL 2 fallback cannot run this Seed.`,
+        )
+        return
+      }
+      frameRequest = requestAnimationFrame(render)
     })
     .catch((error: unknown) => {
       if (!disposed) reportApplicationError(`Could not initialize Three.js: ${String(error)}`)
@@ -91,6 +109,7 @@ export function mountThreeRuntime(
       resizeObserver.disconnect()
       controls.removeEventListener('change', renderOnControlChange)
       controls.dispose()
+      for (const cleanup of seedCleanupHandlers.reverse()) cleanup()
       renderer.dispose()
       const geometries = new Set<THREE.BufferGeometry>()
       const materials = new Set<THREE.Material>()
