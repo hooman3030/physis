@@ -1808,6 +1808,15 @@ main[data-open-panels='both'] .archive-panel {
   inset: 0;
 }
 
+.lineage-graph-grain-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  pointer-events: none;
+}
+
 .lineage-graph {
   position: absolute;
   inset: 0;
