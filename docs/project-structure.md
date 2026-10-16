@@ -14,6 +14,8 @@ packages or workspaces just for organization.
   and registration. Put each bundled Seed at
   `src/seeds/<runtime>/<seed-id>/seed.ts`; keep runtime-specific Seed types
   with that runtime. Add a runtime directory when it has an implementation.
+- Three Seed authors should follow [`three-seeds.md`](three-seeds.md) for the
+  WebGPU renderer, TSL imports, Gene uniforms, and playback contract.
 - `src/runtimes/` contains rendering adapters. React components should depend
   on the runtime boundary, not renderer-specific implementation details.
 - Keep cross-cutting non-UI modules outside `src/ui/`. Add a named folder when

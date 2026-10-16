@@ -54,11 +54,15 @@ records both lineages; a rejected Mutation never replaces the active Seed.
 
 ## Runtime and rendering
 
-Start with browser-based procedural graphics. Canvas 2D or p5.js is the
-preferred first rendering surface because it is approachable and lightweight.
-Three.js can be introduced for 3D scenes, and raw shaders can follow when the
-project has a concrete need. Supporting arbitrary video feeds from the
-beginning would add complexity without helping the first milestone.
+Use browser-based procedural graphics. p5.js remains available for 2D Seeds;
+Three.js is the 3D runtime. Three Seeds use `WebGPURenderer`, which selects
+WebGPU when available and falls back to WebGL 2, with TSL as the only shading
+language. Seeds that require WebGPU compute declare that capability and the
+runtime reports an error if initialization selects the WebGL 2 fallback.
+Do not add a direct `WebGLRenderer` or raw shader path. See
+[`three-seeds.md`](three-seeds.md) for the Seed contract and import guidance.
+Supporting arbitrary video feeds would add complexity without helping the
+artwork runtime.
 
 The browser should render algorithmically. AI should intervene only between
 iterations, never once per animation frame.
@@ -144,7 +148,8 @@ unauthenticated for local development. See
 
 The notes point toward a small TypeScript-based system:
 
-- browser frontend: Vite, with p5.js first and Three.js later if needed;
+- browser frontend: Vite, with p5.js for existing 2D Seeds and Three.js
+  `WebGPURenderer` plus TSL for 3D Seeds;
 - local API: Node.js and a lightweight TypeScript HTTP framework;
 - metadata: SQLite plus the local filesystem;
 - validation: browser runtime checks, build checks, and screenshots;

@@ -40,10 +40,9 @@ import { LineageRoute } from './LineageRoute'
 import { removeDeletedImprintAndReparentChildren } from './imprintDeletion'
 import { captureArtworkPreview } from '../ui/archive/previewCapture'
 import { resolveAppRoute } from './routes'
-import type { P5Seed } from '../seeds/p5/types'
 import type { ArtworkGeneValues } from '../seeds/types'
 import { DEFAULT_PLAYBACK_SPEED } from '../playbackClock'
-import { artworkSeeds, defaultArtworkSeed } from '../seeds/registry'
+import { artworkSeeds, defaultArtworkSeed, type ArtworkSeed } from '../seeds/registry'
 import '../ui/styles.css'
 
 type ControlStatus = 'connecting' | 'connected' | 'offline'
@@ -82,7 +81,7 @@ function ArtworkApp() {
     )
     return { settings, errors }
   })
-  const [settings, setSettings] = useState<ArtworkSettings<P5Seed>>(initialSettings.settings)
+  const [settings, setSettings] = useState<ArtworkSettings<ArtworkSeed>>(initialSettings.settings)
   const [controlsOpen, setControlsOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [canvasResetVersion, setCanvasResetVersion] = useState(0)
@@ -454,7 +453,7 @@ function ArtworkApp() {
     }
   }
 
-  const handleSeedChange = (nextSeed: P5Seed) => {
+  const handleSeedChange = (nextSeed: ArtworkSeed) => {
     setSettings((current) => ({ ...current, seed: nextSeed }))
     clearSaveFeedback()
     if (statusRef.current === 'connected') {

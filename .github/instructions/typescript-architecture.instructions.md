@@ -14,6 +14,8 @@ applyTo: ['src/**/*.ts', 'src/**/*.tsx', 'server/**/*.ts']
 - Keep the browser runtime, control API, archive, and evolution concerns
   separated. Prefer existing domain types and helpers over parallel
   representations.
+- Three Seeds that require WebGPU compute must declare that capability and
+  rely on the runtime to report unsupported WebGL 2 fallback explicitly.
 - Validate external input at the boundary, return explicit errors using the
   surrounding module's established error handling, and avoid broad catches or
   silent fallbacks.

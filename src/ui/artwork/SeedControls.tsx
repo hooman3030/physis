@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { P5Seed } from '../../seeds/p5/types'
-import type { ArtworkGene, ArtworkGeneValues } from '../../seeds/types'
+import { isBipolarGene, type ArtworkGene, type ArtworkGeneValues } from '../../seeds/types'
+import type { ArtworkSeed } from '../../seeds/registry'
 import { PrimaryButton } from '../primitives/PrimaryButton'
 import { useSurfaceTransition } from '../primitives/useSurfaceTransition'
 
@@ -61,9 +61,9 @@ export function randomizeGeneValues(
 }
 
 type SeedControlsProps = {
-  activeSeed: P5Seed
-  seeds: readonly P5Seed[]
-  onSeedChange: (seed: P5Seed) => void
+  activeSeed: ArtworkSeed
+  seeds: readonly ArtworkSeed[]
+  onSeedChange: (seed: ArtworkSeed) => void
   geneValues: ArtworkGeneValues
   onGeneChange: (id: string, value: number) => void
   onGenesChange: (values: ArtworkGeneValues) => void
@@ -221,7 +221,7 @@ export function SeedControls({
                 <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-3.5L6 21z" />
               </svg>
               <span aria-hidden={saveStatus === 'saved'}>
-                {saveStatus === 'saving' ? 'Saving…' : 'Save'}
+                {saveStatus === 'saving' ? '…' : 'Save'}
               </span>
               {saveStatus === 'saved' && <span className="visually-hidden">Imprint saved</span>}
             </span>
@@ -235,6 +235,10 @@ export function SeedControls({
           100,
           Math.max(0, ((value - gene.min) / (gene.max - gene.min)) * 100),
         )
+
+        const fill = isBipolarGene(gene)
+          ? `var(--track-background) ${Math.min(progress, 50)}%, var(--color-accent) ${Math.min(progress, 50)}%, var(--color-accent) ${Math.max(progress, 50)}%, var(--track-background) ${Math.max(progress, 50)}%`
+          : `var(--color-accent) ${progress}%, var(--track-background) ${progress}%`
 
         return (
           <div className="gene-control" key={gene.id}>
@@ -251,7 +255,7 @@ export function SeedControls({
               step={gene.step}
               value={value}
               style={{
-                background: `linear-gradient(90deg, var(--color-accent) ${progress}%, var(--track-background) ${progress}%) center / 100% var(--range-track-height) no-repeat`,
+                background: `linear-gradient(90deg, ${fill}) center / 100% var(--range-track-height) no-repeat`,
               }}
               disabled={controlsDisabled}
               onChange={(event) => onGeneChange(gene.id, Number(event.target.value))}
