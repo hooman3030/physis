@@ -7,10 +7,10 @@
   Selected Mutations may be promoted to Seeds; a Seed is a promoted code node.
 - **Gene** – a bounded, Seed-declared artistic trait that influences how the
   artwork is rendered. A Gene has a current value in a Presence.
-- **Imprint** – an immutable capture of an artwork's Genes (and random
-  seed when applicable) at a point in time. It references the Seed and source
-  revision used to render it and may have a parent Imprint. It is data, not a
-  screenshot.
+- **Imprint** – an immutable capture of an artwork's Genes, selected Aura, and
+  random seed when applicable at a point in time. It references the Seed and
+  source revision used to render it and may have a parent Imprint. It is data,
+  not a screenshot.
 - **Presence** – an artwork currently running in the browser: a pointer to the
   Seed or Mutation it runs and, optionally, the Imprint it started from. It is
   not part of any lineage; selecting anything in the archive starts a Presence.

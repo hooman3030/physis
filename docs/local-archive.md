@@ -14,16 +14,18 @@ import { artworkSeeds } from './src/seeds/registry'
 
 const archive = openArchive({ path: 'data/archive.sqlite', modules: artworkSeeds })
 archive.registerSeed({ id: 'drifting-filaments', sourceRevision: '<git commit hash>' })
-archive.selectCode('drifting-filaments') // the Presence now runs this Seed at its defaults
+archive.selectCode('drifting-filaments') // the Presence starts at Seed defaults, including its default Aura
 const imprint = archive.saveImprint({
   codeId: 'drifting-filaments',
   sourceRevision: '<git commit hash>',
   genes: { filamentCount: 240 },
+  auraId: 'soft-bloom',
 })
 ```
 
 Seed Gene declarations are supplied by the caller and used to validate
-Imprints (known Genes, finite values, within bounds).
+Imprints (known Genes, finite values, within bounds). Aura IDs must refer to a
+known Aura preset compatible with the Seed's runtime.
 
 ## Data model
 
@@ -36,10 +38,12 @@ under. Both lineages share the same core (`id`, `parent_id`, `created_at`),
 exposed as `LineageNode` in TypeScript.
 
 The **Presence** is a single mutable pointer (`code_id`, `imprint_id`) plus
-transient playback state, not a lineage node. Selecting any Seed, Mutation, or
-Imprint (`selectCode`, `selectImprint`) moves the pointer and starts playback
-at 1× speed. Pause and the 0.1×–4× speed multiplier are shared by connected
-clients, are not archived, and default to running at 1× after a service
+transient playback and Aura selection state, not a lineage node. Selecting a
+Seed or Mutation starts with its default Aura, or Off if it has none. Selecting
+an Imprint restores its captured Aura; older Imprints without an Aura use the
+Seed default or Off. Playback and an unsaved Aura change are shared by
+connected clients but are not independently archived; saving an Imprint
+captures the active Aura. Playback defaults to running at 1× after a service
 restart. An Imprint's parent must belong to the same code node, so a lineage
 never crosses code.
 
@@ -105,7 +109,7 @@ Routes under `/api/v1`:
 - `POST /pairing/request`, `GET /pairing/status`,
   `POST /pairing/complete` with `{pin}`, and local-only `POST /pairing/dismiss`
 - `GET /presence`, `GET /presence/events` (SSE; current state on connect, then
-  `event: presence` on every change)
+  `event: presence` on every change, including Aura selection)
 - `POST /presence` with `{kind: "code" | "imprint", id}` selects anything from
   the archive; `PUT /presence/genes` with `{genes}` tweaks live
   values in memory only
@@ -116,12 +120,13 @@ Routes under `/api/v1`:
   `/code-nodes/:id/ancestry`
 - `GET /imprints[?codeId=]`, `/imprints/:id`, `/imprints/:id/ancestry`
 - `POST /imprints` with optional `{parentId, randomSeed}` archives the current
-  Genes; the server stamps `sourceRevision` and a `sourceDirty` flag
+  Genes and Aura; the server stamps `sourceRevision` and a `sourceDirty` flag
 - `DELETE /imprints/:id` deletes an inactive Imprint and reparents its children
   to its former parent; deleting the active Imprint returns a conflict
 
-Live Gene tweaks and playback controls are never archived and are lost on
-restart. Browser runtimes use a renderer-neutral playback clock that exposes
+Live Gene tweaks, playback controls, and Aura changes are never archived until
+an Imprint is saved; after restart, the selected Imprint's Aura or the Seed
+default is restored. Browser runtimes use a renderer-neutral playback clock that exposes
 scaled elapsed and delta time; renderers may map that time to simulation steps
 or shader uniforms. If the control API is unavailable, each browser keeps
 rendering in its last locally known playback state; playback controls cannot

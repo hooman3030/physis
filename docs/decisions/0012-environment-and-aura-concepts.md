@@ -22,20 +22,27 @@ exclusively to one Seed.
   Presences.
 - An Aura is a presentation treatment, not a Gene or an Environment. It does
   not itself change Gene values.
+- A Presence has an active Aura selection, synchronized with connected clients.
+  Selecting a Seed starts with its declared default Aura, or Off if it has no
+  default. Saving an Imprint captures the active Aura ID; selecting that
+  Imprint restores its Aura.
+- When an Imprint has no Aura ID, as with Imprints created before Aura capture
+  is supported, use the Seed's default Aura or Off. This gives Imprint-specific
+  Aura state precedence over the Seed default.
 - For the current Three.js runtime, Aura processing is renderer-specific and
   should be applied by the runtime after the Seed creates its scene. Reuse is
   across compatible Seeds and Presences; cross-runtime portability is not
   implied.
 
-This decision establishes the concepts and their relationship. Persistence,
-Seed defaults, and whether an Imprint captures an Aura remain implementation
-questions.
+This decision establishes the concepts and selection behavior. The effect
+catalog and its editing experience remain implementation questions.
 
 ## Consequences
 
 - Documentation uses **Environment** instead of **World** for Gene drift.
 - An Aura can be selected independently of the Seed that first introduced or
   recommended it.
+- Imprints preserve their own Aura selection, with a Seed default as fallback.
 - Aura compatibility must be considered when selecting one for a Presence.
 
 ## Alternatives considered
