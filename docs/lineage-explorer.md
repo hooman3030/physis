@@ -65,7 +65,8 @@ sparse, subtle accent and warm-colored grain dots over the graph's existing
 dotted background. Give the dots a depth effect by shifting and scaling each
 layer at a different rate from the graph during pan and zoom, with the smallest
 dots moving least, the foreground dots slightly larger, and all layers close to
-the background. Center the grain
+the background. Cover the full graph viewport, including space outside the
+content-sized graph viewBox. Center the grain
 layers when the graph is at rest, and keep their parallax aligned with the
 graph's zoom point. Keep them still when reduced motion is requested. Use a
 1.15x centered default zoom and a noticeable zoom-in when the graph first loads

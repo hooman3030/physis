@@ -12,6 +12,7 @@ import {
   getActivePresenceNodeKey,
   getLineageGraphSelectionAction,
   lineageGrainPatternTransforms,
+  lineageGrainViewBox,
   toggleDeleteSelection,
   wheelZoomFactor,
   zoomedScale,
@@ -240,6 +241,18 @@ describe('Lineage Explorer', () => {
       'translate(4 -2) scale(1)',
       'translate(2 -1) scale(1)',
     ])
+  })
+
+  it('extends the grain viewBox to fill wide and narrow viewports at the graph scale', () => {
+    const graph = { width: 1000, height: 800 }
+    const wideViewBox = lineageGrainViewBox(graph, { width: 1600, height: 900 })
+    const narrowViewBox = lineageGrainViewBox(graph, { width: 375, height: 812 })
+
+    expect(wideViewBox.height).toBe(graph.height)
+    expect(wideViewBox.width / wideViewBox.height).toBeCloseTo(1600 / 900)
+    expect(wideViewBox.width).toBeGreaterThan(graph.width)
+    expect(narrowViewBox.width).toBe(graph.width)
+    expect(narrowViewBox.height / narrowViewBox.width).toBeCloseTo(812 / 375)
   })
 
   it('preserves small pattern transform changes during zoom', () => {

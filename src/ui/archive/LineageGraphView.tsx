@@ -122,6 +122,21 @@ export function lineageGrainPatternTransforms(
   })
 }
 
+export function lineageGrainViewBox(
+  graphDimensions: GraphDimensions,
+  viewportDimensions: GraphDimensions,
+): GraphDimensions {
+  const scale = Math.min(
+    viewportDimensions.width / graphDimensions.width,
+    viewportDimensions.height / graphDimensions.height,
+  )
+  if (!Number.isFinite(scale) || scale <= 0) return graphDimensions
+  return {
+    width: viewportDimensions.width / scale,
+    height: viewportDimensions.height / scale,
+  }
+}
+
 export function getActivePresenceNodeKey(
   graph: LineageGraph,
   presence: PresenceSnapshot | null,
@@ -484,6 +499,11 @@ export function LineageGraphView({
   const edgeGradientId = `${grainPatternPrefix}-edge-gradient`
   const parentArrowId = `${grainPatternPrefix}-parent-arrow`
   const dimensions = useMemo(() => graphDimensions(graph.nodes.length), [graph.nodes.length])
+  const [viewportDimensions, setViewportDimensions] = useState<GraphDimensions>({
+    width: 0,
+    height: 0,
+  })
+  const grainViewBox = lineageGrainViewBox(dimensions, viewportDimensions)
   const initialPositions = useMemo(
     () => createInitialLineagePositions(graph.nodes, dimensions, new Map(), graph.edges),
     [dimensions, graph],
@@ -503,6 +523,7 @@ export function LineageGraphView({
     previous: null,
     current: null,
   })
+  const viewportRef = useRef<HTMLDivElement | null>(null)
   const svgRef = useRef<SVGSVGElement | null>(null)
   const graphContentRef = useRef<SVGGElement | null>(null)
   const graphGroupRef = useRef<SVGGElement | null>(null)
@@ -516,6 +537,21 @@ export function LineageGraphView({
   const persistOnEndRef = useRef(false)
   const touchAnimationTimer = useRef<number | null>(null)
   const backdropCurrentUrlRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const element = viewportRef.current
+    if (element === null) return
+
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry === undefined) return
+      const { width, height } = entry.contentRect
+      setViewportDimensions((current) =>
+        current.width === width && current.height === height ? current : { width, height },
+      )
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
 
   const playGraphZoomIn = useCallback(() => {
     if (reducedMotion) return
@@ -1024,7 +1060,45 @@ export function LineageGraphView({
           </button>
         </div>
       </div>
-      <div className="lineage-graph-viewport">
+      <div ref={viewportRef} className="lineage-graph-viewport">
+        <svg
+          className="lineage-graph-grain-overlay"
+          viewBox={`0 0 ${grainViewBox.width} ${grainViewBox.height}`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <defs>
+            {LINEAGE_GRAIN_LAYERS.map((layer, index) => (
+              <pattern
+                key={`grain-pattern-${index}`}
+                id={`${grainPatternPrefix}-${index}`}
+                width={layer.width}
+                height={layer.height}
+                patternUnits="userSpaceOnUse"
+                patternTransform={grainPatternTransforms[index]}
+                x={grainViewBox.width / 2 - layer.width / 2}
+                y={grainViewBox.height / 2 - layer.height / 2}
+              >
+                <circle
+                  cx={layer.width / 2}
+                  cy={layer.height / 2}
+                  r={layer.radius}
+                  fill={layer.fill}
+                  opacity={layer.opacity}
+                />
+              </pattern>
+            ))}
+          </defs>
+          {LINEAGE_GRAIN_LAYERS.map((_, index) => (
+            <rect
+              key={`grain-layer-${index}`}
+              className="lineage-graph-grain"
+              width={grainViewBox.width}
+              height={grainViewBox.height}
+              fill={`url(#${grainPatternPrefix}-${index})`}
+            />
+          ))}
+        </svg>
         <svg
           ref={svgRef}
           className="lineage-graph"
@@ -1043,26 +1117,6 @@ export function LineageGraphView({
           onPointerCancel={(event) => finishGesture(event, true)}
         >
           <defs>
-            {LINEAGE_GRAIN_LAYERS.map((layer, index) => (
-              <pattern
-                key={`grain-pattern-${index}`}
-                id={`${grainPatternPrefix}-${index}`}
-                width={layer.width}
-                height={layer.height}
-                patternUnits="userSpaceOnUse"
-                patternTransform={grainPatternTransforms[index]}
-                x={dimensions.width / 2 - layer.width / 2}
-                y={dimensions.height / 2 - layer.height / 2}
-              >
-                <circle
-                  cx={layer.width / 2}
-                  cy={layer.height / 2}
-                  r={layer.radius}
-                  fill={layer.fill}
-                  opacity={layer.opacity}
-                />
-              </pattern>
-            ))}
             <radialGradient id={nodeSheenId} cx="32%" cy="18%" r="88%">
               <stop offset="0" stopColor="var(--color-text)" stopOpacity="0.2" />
               <stop offset="0.58" stopColor="var(--color-accent)" stopOpacity="0.08" />
@@ -1091,16 +1145,6 @@ export function LineageGraphView({
               <path d="M0 0 L2.8 1.4 L0 2.8 Z" className="lineage-arrow-parent" />
             </marker>
           </defs>
-          {LINEAGE_GRAIN_LAYERS.map((_, index) => (
-            <rect
-              key={`grain-layer-${index}`}
-              className="lineage-graph-grain"
-              width={dimensions.width}
-              height={dimensions.height}
-              fill={`url(#${grainPatternPrefix}-${index})`}
-              aria-hidden="true"
-            />
-          ))}
           <g transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.scale})`}>
             <rect
               className="lineage-graph-background"
