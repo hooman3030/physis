@@ -186,6 +186,13 @@ function isActive(node: LineageGraphNode, presence: PresenceSnapshot | null): bo
   return node.kind === 'code' ? presence?.code?.id === node.id : presence?.imprint?.id === node.id
 }
 
+export function shouldPlayLineageNodeAnimation(
+  active: boolean,
+  hoveredOrFocused: boolean,
+): boolean {
+  return active || hoveredOrFocused
+}
+
 export function canDeleteLineageNode(
   node: LineageGraphNode,
   presence: PresenceSnapshot | null,
@@ -443,9 +450,16 @@ function GraphNode({
       onKeyDown={handleKeyDown}
     >
       <title>{accessibleLabel}</title>
-      {active && <circle className="lineage-graph-active-ring" r="51" />}
-      {selected && <circle className="lineage-graph-selected-ring" r="48" />}
-      {selected && <circle className="lineage-graph-node-orbit" r="44" />}
+      {active && (
+        <g className="lineage-graph-presence-corona" aria-hidden="true">
+          <circle className="lineage-graph-presence-corona-ring" r="45" />
+          <circle className="lineage-graph-presence-corona-ring" r="52" />
+          <circle className="lineage-graph-presence-corona-ring" r="59" />
+          <circle className="lineage-graph-presence-corona-ring" r="66" />
+        </g>
+      )}
+      {selected && !active && <circle className="lineage-graph-selected-ring" r="48" />}
+      {selected && !active && <circle className="lineage-graph-node-orbit" r="44" />}
       <circle className={`lineage-graph-shape lineage-graph-shape-${node.role}`} r="39" />
       {imageUrl === null ? (
         <>
@@ -1206,7 +1220,10 @@ export function LineageGraphView({
                     }
                     deleteMode={deleteMode}
                     deletable={canDeleteLineageNode(node, presence)}
-                    animationActive={activeAnimationKey === node.key}
+                    animationActive={shouldPlayLineageNodeAnimation(
+                      isActive(node, presence),
+                      activeAnimationKey === node.key,
+                    )}
                     reducedMotion={reducedMotion}
                     sheenId={nodeSheenId}
                     onSelect={handleNodeSelect}

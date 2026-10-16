@@ -92,6 +92,14 @@ active Imprint. Reset immediately centers and zooms to that node using the
 reset layout's initial position, keeps it centered while the force simulation
 settles, then recenters without replaying the zoom. Fall back to the graph
 center when Presence has no archived node.
+
+The active Presence node always plays its saved animation preview without
+requiring hover or focus. When reduced motion is requested, or no animation is
+available, it uses the static preview. Mark active Presence with a subtle
+dotted corona whose rings become smaller and fainter outward; gently rotate
+and wave the dots only when motion is allowed. Do not duplicate selection rings
+around the active node.
+
 An unavailable Seed or Mutation can still be selected, but cannot be
 activated.
 

@@ -1544,7 +1544,8 @@ main[data-open-panels='both'] .archive-panel {
   flex: 0 0 auto;
   border: 1px solid var(--border-default);
   border-radius: 1rem;
-  background: var(--surface-control-background);
+  background: var(--surface-background);
+  backdrop-filter: var(--surface-backdrop-filter);
   transition:
     border-color 160ms ease,
     background-color 160ms ease;
@@ -1557,8 +1558,8 @@ main[data-open-panels='both'] .archive-panel {
   width: 0.76rem;
   height: 0.76rem;
   border-radius: 50%;
-  background: var(--color-text-muted);
-  box-shadow: var(--shadow-control);
+  background: var(--color-text);
+  box-shadow: var(--shadow-thumb);
   transition:
     transform 160ms ease,
     background-color 160ms ease;
@@ -1964,12 +1965,35 @@ main[data-open-panels='both'] .archive-panel {
   pointer-events: none;
 }
 
-.lineage-graph-active-ring {
+.lineage-graph-presence-corona {
   fill: none;
+  pointer-events: none;
+}
+
+.lineage-graph-presence-corona-ring {
   stroke: var(--color-accent);
-  stroke-width: 1.4;
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-accent) 70%, transparent));
+  stroke-dasharray: 1.1 3.8;
+  stroke-width: 1.2;
+  opacity: 0.88;
   vector-effect: non-scaling-stroke;
+}
+
+.lineage-graph-presence-corona-ring:nth-child(2) {
+  stroke-dasharray: 0.95 4;
+  stroke-width: 1;
+  opacity: 0.65;
+}
+
+.lineage-graph-presence-corona-ring:nth-child(3) {
+  stroke-dasharray: 0.8 4.2;
+  stroke-width: 0.8;
+  opacity: 0.44;
+}
+
+.lineage-graph-presence-corona-ring:nth-child(4) {
+  stroke-dasharray: 0.65 4.4;
+  stroke-width: 0.65;
+  opacity: 0.27;
 }
 
 .lineage-graph-node-orbit {
@@ -1992,10 +2016,52 @@ main[data-open-panels='both'] .archive-panel {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .lineage-graph-presence-corona {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: lineage-presence-corona-spin 90s linear infinite;
+  }
+
+  .lineage-graph-presence-corona-ring {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: lineage-presence-corona-wave 4.8s ease-in-out infinite alternate;
+  }
+
+  .lineage-graph-presence-corona-ring:nth-child(2) {
+    animation-delay: -1.2s;
+  }
+
+  .lineage-graph-presence-corona-ring:nth-child(3) {
+    animation-delay: -2.4s;
+  }
+
+  .lineage-graph-presence-corona-ring:nth-child(4) {
+    animation-delay: -3.6s;
+  }
+
   .lineage-graph-node-selected .lineage-graph-node-orbit {
     animation: lineage-selected-sun-wave 4.5s ease-in-out infinite;
     transform-box: fill-box;
     transform-origin: center;
+  }
+
+  @keyframes lineage-presence-corona-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes lineage-presence-corona-wave {
+    from {
+      stroke-dashoffset: 0;
+      transform: scale(0.985);
+    }
+
+    to {
+      stroke-dashoffset: -2;
+      transform: scale(1.025);
+    }
   }
 
   @keyframes lineage-selected-sun-wave {
