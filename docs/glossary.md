@@ -16,9 +16,12 @@
   not part of any lineage; selecting anything in the archive starts a Presence.
   Its transient playback state is authoritative in the local control service
   and shared with connected clients.
-- **World** – an environment that can influence how a Presence's Gene values
-  change over time. Its influence is adjustable; saved-Imprint-informed bias is
-  a future direction, not yet a defined analysis.
+- **Environment** – an adjustable influence on how a Presence's Gene values
+  change over time. Saved-Imprint-informed bias is a future direction, not yet
+  a defined analysis.
+- **Aura** – a reusable post-processing treatment applied to a Presence's
+  rendered output. An Aura may be associated with a Seed, but is not owned by
+  it and may be reused with other compatible Seeds and Presences.
 - **Source revision** – a Git commit hash identifying the build that
   contained a Seed or Mutation's code. It is provenance only; Seed modules
   are immutable, so each Seed ID always resolves to its original code.
@@ -33,11 +36,11 @@
 
 ## Naming convention
 
-Use **Seed**, **Mutation**, **Imprint**, **Presence**, and **Gene** consistently
-for their artwork-domain meanings above. These terms form the project's
-biological, mystical, and neural-network-inspired metaphor: apply them to
-abstract concepts and domain-level modules or components when that improves
-the model's clarity.
+Use **Seed**, **Mutation**, **Imprint**, **Presence**, **Gene**,
+**Environment**, and **Aura** consistently for their artwork-domain meanings
+above. These terms form the project's biological, mystical, and
+neural-network-inspired metaphor: apply them to abstract concepts and
+domain-level modules or components when that improves the model's clarity.
 
 Do not force the metaphor onto concrete UI elements or standard technical
 terms. Names such as `input`, `slider`, `button`, `API`, and
