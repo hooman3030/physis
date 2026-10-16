@@ -2,6 +2,7 @@ import {
   BufferAttribute,
   BufferGeometry,
   InstancedMesh,
+  Vector4,
   MeshBasicNodeMaterial,
   PerspectiveCamera,
   Scene,
@@ -12,6 +13,7 @@ import {
   Loop,
   color,
   cos,
+  exp,
   float,
   floor,
   fract,
@@ -33,7 +35,10 @@ import type { ThreeSeedContext } from '../types'
 import type StorageBufferNode from 'three/src/nodes/accessors/StorageBufferNode.js'
 import type UniformNode from 'three/src/nodes/core/UniformNode.js'
 
-const MAX_BOIDS = 256
+export const MAX_BOID_COUNT = 8192
+const CLICK_BOOST = 3
+// Speeds up to this share of the maximum are untouched; above it they taper exponentially.
+const SPEED_TAPER_START = 0.6
 const MINIMUM_SPEED = 0.04
 const SEPARATION_STRENGTH_MULTIPLIER = 2.5
 const SEPARATION_DISTANCE_MULTIPLIER = 1.5
@@ -46,8 +51,8 @@ function random01(index: number, salt: number): number {
 }
 
 function createInitialState(aspect: number): Float32Array {
-  const state = new Float32Array(MAX_BOIDS * 4)
-  for (let index = 0; index < MAX_BOIDS; index += 1) {
+  const state = new Float32Array(MAX_BOID_COUNT * 4)
+  for (let index = 0; index < MAX_BOID_COUNT; index += 1) {
     const offset = index * 4
     const angle = random01(index, 1) * Math.PI * 2
     const speed = 0.08 + random01(index, 2) * 0.04
@@ -79,6 +84,8 @@ function createUpdatePass(
   maximumSpeed: UniformNode<'float', number>,
   maximumForce: UniformNode<'float', number>,
   deltaSeconds: UniformNode<'float', number>,
+  cursor: UniformNode<'vec4', import('three/webgpu').Vector4>,
+  burst: UniformNode<'float', number>,
 ) {
   return Fn(() => {
     const index = instanceIndex
@@ -92,7 +99,7 @@ function createUpdatePass(
     const cohesionSum = vec2(0).toVar()
     const cohesionCount = float(0).toVar()
 
-    Loop({ start: int(0), end: int(MAX_BOIDS), type: 'int', condition: '<' }, ({ i }) => {
+    Loop({ start: int(0), end: count, type: 'int', condition: '<' }, ({ i }) => {
       If(i.lessThan(count), () => {
         If(i.notEqual(index), () => {
           const other = input.element(i)
@@ -174,9 +181,27 @@ function createUpdatePass(
       })
     })
 
+    // cursor = (x, y, radius, strength); positive attracts, negative repels, 0 is off or no pointer.
+    // Its force bypasses the steering-force limit, and a held click (burst = 1) lifts the speed
+    // ceiling for boids in reach so the push reads as an explosion.
+    const cursorSteering = vec2(0).toVar()
+    const speedCeiling = maximumSpeed.toVar()
+    const cursorOffset = cursor.xy.sub(position)
+    const cursorDistance = cursorOffset.length()
+    If(cursor.w.notEqual(0).and(cursorDistance.lessThan(cursor.z)), () => {
+      const falloff = float(1).sub(cursorDistance.div(cursor.z))
+      speedCeiling.assign(maximumSpeed.mul(float(1).add(burst.mul(falloff).mul(CLICK_BOOST - 1))))
+      const desiredVelocity = cursorOffset
+        .div(cursorDistance.max(0.0001))
+        .mul(select(cursor.w.greaterThan(0), float(1), float(-1)))
+        .mul(speedCeiling)
+        .sub(velocity)
+      cursorSteering.assign(desiredVelocity.mul(cursor.w.abs().mul(falloff)))
+    })
+
     const steering = separationSteering.add(socialSteering.mul(float(1).sub(separationPressure)))
     const limitedSteering = steering.mul(maximumForce.div(steering.length().max(maximumForce)))
-    const candidateVelocity = velocity.add(limitedSteering.mul(deltaSeconds))
+    const candidateVelocity = velocity.add(limitedSteering.add(cursorSteering).mul(deltaSeconds))
     const candidateSpeed = candidateVelocity.length()
     const fallbackAngle = float(index).mul(12.9898)
     const fallbackDirection = vec2(sin(fallbackAngle), cos(fallbackAngle))
@@ -185,7 +210,16 @@ function createUpdatePass(
       candidateVelocity.div(candidateSpeed.max(0.0001)),
       fallbackDirection,
     )
-    const speed = candidateSpeed.max(MINIMUM_SPEED).min(maximumSpeed)
+    const taperStart = speedCeiling.mul(SPEED_TAPER_START)
+    const taperRange = speedCeiling.sub(taperStart)
+    const unclampedSpeed = candidateSpeed.max(MINIMUM_SPEED)
+    const speed = select(
+      unclampedSpeed.greaterThan(taperStart),
+      taperStart.add(
+        taperRange.mul(float(1).sub(exp(unclampedSpeed.sub(taperStart).div(taperRange).negate()))),
+      ),
+      unclampedSpeed,
+    )
     const nextVelocity = direction.mul(speed)
     const nextPosition = position.add(nextVelocity.mul(deltaSeconds))
     const wrappedPosition = vec2(
@@ -199,7 +233,7 @@ function createUpdatePass(
     }).Else(() => {
       output.element(index).assign(state)
     })
-  })().compute(MAX_BOIDS)
+  })().compute(MAX_BOID_COUNT)
 }
 
 export function createBoidSimulation(
@@ -221,6 +255,8 @@ export function createBoidSimulation(
   const maximumSpeed = uniform(0.18)
   const maximumForce = uniform(0.35)
   const deltaSeconds = uniform(0)
+  const cursor = uniform(new Vector4(0, 0, 0.3, 0))
+  const burst = uniform(0)
   const viewHeight = uniform(2 * Math.tan((camera.fov * Math.PI) / 360))
   const size = uniform(8)
   const viewportSize = uniform(vec2(1, 1))
@@ -239,6 +275,8 @@ export function createBoidSimulation(
     maximumSpeed,
     maximumForce,
     deltaSeconds,
+    cursor,
+    burst,
   )
   const updateBtoA = createUpdatePass(
     stateB,
@@ -254,6 +292,8 @@ export function createBoidSimulation(
     maximumSpeed,
     maximumForce,
     deltaSeconds,
+    cursor,
+    burst,
   )
 
   const index = instanceIndex
@@ -285,7 +325,7 @@ export function createBoidSimulation(
     positionNode: position,
     colorNode: mix(colorPrimary, colorAccent, colorMix),
   })
-  const boids = new InstancedMesh(createBoidGeometry(), material, MAX_BOIDS)
+  const boids = new InstancedMesh(createBoidGeometry(), material, MAX_BOID_COUNT)
   boids.count = 128
   boids.frustumCulled = false
   boids.position.z = -1
@@ -297,6 +337,7 @@ export function createBoidSimulation(
   const backgroundColor = uniform(color('#101820'))
   let stateIsA = true
   let disposed = false
+  let seededAspect: number | null = null
 
   const update = (frame: PlaybackFrame, genes: ArtworkGeneValues): void => {
     if (disposed) return
@@ -304,6 +345,14 @@ export function createBoidSimulation(
 
     const viewport = context.getViewportSize()
     const aspect = camera.aspect
+    // The camera aspect is only final after the runtime's first resize, so seed positions here.
+    if (seededAspect === null) {
+      seededAspect = aspect
+      for (const buffer of [stateA.value, stateB.value]) {
+        buffer.array.set(createInitialState(aspect))
+        buffer.needsUpdate = true
+      }
+    }
     count.value = genes.boidCount
     bounds.value.set(aspect, 1)
     separationRadius.value = genes.separationRadius
@@ -315,6 +364,14 @@ export function createBoidSimulation(
     maximumSpeed.value = genes.maximumSpeed
     maximumForce.value = genes.maxForce
     deltaSeconds.value = Math.min(frame.deltaSeconds, 0.05)
+    const pointer = context.getPointer()
+    cursor.value.set(
+      (pointer?.x ?? 0) * aspect,
+      pointer?.y ?? 0,
+      genes.cursorRadius,
+      pointer === null ? 0 : genes.cursorAttraction * (pointer.pressed ? CLICK_BOOST : 1),
+    )
+    burst.value = pointer?.pressed === true ? 1 : 0
     viewHeight.value = 2 * Math.tan((camera.fov * Math.PI) / 360)
     size.value = genes.boidSize
     viewportSize.value.set(viewport.width, viewport.height)
@@ -331,7 +388,7 @@ export function createBoidSimulation(
     )
     scene.background = backgroundColor.value
 
-    renderer.compute(stateIsA ? updateAtoB : updateBtoA)
+    renderer.compute(stateIsA ? updateAtoB : updateBtoA, genes.boidCount)
     stateIsA = !stateIsA
     activeStateIsA.value = stateIsA ? 1 : 0
     boids.count = genes.boidCount

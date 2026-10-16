@@ -6,6 +6,9 @@ import type { ThreeSeed, ThreeSeedContext } from '../../../src/seeds/three/types
 const controlsState = vi.hoisted(() => ({
   changeListener: undefined as (() => void) | undefined,
 }))
+const canvasState = vi.hoisted(() => ({
+  listeners: new Map<string, (event: unknown) => void>(),
+}))
 const rendererState = vi.hoisted(() => ({ isWebGPUBackend: true }))
 
 vi.mock('../../../src/errorNotifications', () => ({
@@ -14,7 +17,13 @@ vi.mock('../../../src/errorNotifications', () => ({
 
 vi.mock('three/webgpu', () => ({
   WebGPURenderer: class MockRenderer {
-    domElement = { remove: vi.fn() } as HTMLCanvasElement
+    domElement = {
+      remove: vi.fn(),
+      addEventListener: (type: string, listener: (event: unknown) => void) =>
+        canvasState.listeners.set(type, listener),
+      removeEventListener: (type: string) => canvasState.listeners.delete(type),
+      getBoundingClientRect: () => ({ left: 100, top: 50, width: 400, height: 200 }),
+    } as unknown as HTMLCanvasElement
     backend = {
       get isWebGPUBackend() {
         return rendererState.isWebGPUBackend
@@ -60,6 +69,7 @@ vi.mock('three/addons/controls/OrbitControls.js', () => ({
 afterEach(() => {
   controlsState.changeListener = undefined
   rendererState.isWebGPUBackend = true
+  canvasState.listeners.clear()
   vi.clearAllMocks()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
@@ -171,5 +181,59 @@ describe('Three runtime rendering', () => {
     )
     expect(requestFrame).not.toHaveBeenCalled()
     runtime.dispose()
+  })
+
+  it('exposes the pointer over the canvas as normalized coordinates with y up', async () => {
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      vi.fn(() => 1),
+    )
+    vi.stubGlobal('cancelAnimationFrame', vi.fn())
+    vi.stubGlobal('window', { devicePixelRatio: 1 })
+    vi.stubGlobal(
+      'ResizeObserver',
+      class MockResizeObserver {
+        constructor(_callback: ResizeObserverCallback) {}
+        observe() {}
+        disconnect() {}
+      },
+    )
+
+    let seedContext: ThreeSeedContext | undefined
+    const seed: ThreeSeed = {
+      id: 'pointer-seed',
+      label: 'Pointer Seed',
+      runtime: 'three',
+      genes: [],
+      createScene: (_scene, _camera, _getGenes, context) => {
+        seedContext = context
+        return () => {}
+      },
+    }
+    const container = {
+      clientWidth: 800,
+      clientHeight: 600,
+      append: vi.fn(),
+    } as unknown as HTMLDivElement
+    const runtime = mountThreeRuntime(container, seed, () => ({}))
+    await Promise.resolve()
+
+    expect(seedContext?.getPointer()).toBeNull()
+    canvasState.listeners.get('pointermove')?.({ clientX: 200, clientY: 100 })
+    expect(seedContext?.getPointer()).toEqual({ x: 0.25, y: 0.75, pressed: false })
+    canvasState.listeners.get('pointerdown')?.({ clientX: 200, clientY: 100, buttons: 1 })
+    expect(seedContext?.getPointer()?.pressed).toBe(true)
+    canvasState.listeners.get('pointerup')?.({
+      clientX: 200,
+      clientY: 100,
+      buttons: 0,
+      pointerType: 'mouse',
+    })
+    expect(seedContext?.getPointer()?.pressed).toBe(false)
+    canvasState.listeners.get('pointerleave')?.({})
+    expect(seedContext?.getPointer()).toBeNull()
+
+    runtime.dispose()
+    expect(canvasState.listeners.size).toBe(0)
   })
 })

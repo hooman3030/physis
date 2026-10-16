@@ -1,5 +1,6 @@
 import { PerspectiveCamera } from 'three/webgpu'
-import { createBoidSimulation } from './simulation'
+import { createBoidSimulation, MAX_BOID_COUNT } from './simulation'
+import { bipolarGene } from '../../types'
 import type { ThreeSeed } from '../types'
 
 export const boidsThreeSeed: ThreeSeed = {
@@ -8,7 +9,14 @@ export const boidsThreeSeed: ThreeSeed = {
   runtime: 'three',
   requiresWebGPUCompute: true,
   genes: [
-    { id: 'boidCount', label: 'Boid count', defaultValue: 128, min: 16, max: 8192, step: 16 },
+    {
+      id: 'boidCount',
+      label: 'Boid count',
+      defaultValue: 128,
+      min: 16,
+      max: MAX_BOID_COUNT,
+      step: 16,
+    },
     {
       id: 'separationRadius',
       label: 'Separation radius',
@@ -73,19 +81,41 @@ export const boidsThreeSeed: ThreeSeed = {
       max: 2,
       step: 0.05,
     },
-    { id: 'boidSize', label: 'Boid size', defaultValue: 8, min: 3, max: 18, step: 1 },
-    { id: 'hue', label: 'Hue', defaultValue: 190, min: 0, max: 360, step: 1 },
-    { id: 'hueSpread', label: 'Hue spread', defaultValue: 35, min: 0, max: 180, step: 1 },
-    { id: 'saturation', label: 'Saturation', defaultValue: 72, min: 0, max: 100, step: 1 },
-    { id: 'brightness', label: 'Brightness', defaultValue: 85, min: 0, max: 100, step: 1 },
-    { id: 'backgroundHue', label: 'Background hue', defaultValue: 220, min: 0, max: 360, step: 1 },
+    bipolarGene({
+      id: 'cursorAttraction',
+      label: 'Cursor attraction',
+      defaultValue: 1.5,
+      limit: 20,
+      step: 0.1,
+    }),
+    {
+      id: 'cursorRadius',
+      label: 'Cursor reach',
+      defaultValue: 0.35,
+      min: 0.05,
+      max: 1,
+      step: 0.05,
+    },
+    { id: 'boidSize', label: 'Boid size', defaultValue: 8, min: 3, max: 18, step: 0.5 },
+    { id: 'hue', label: 'Hue', defaultValue: 190, min: 0, max: 360, step: 0.5 },
+    { id: 'hueSpread', label: 'Hue spread', defaultValue: 35, min: 0, max: 180, step: 0.5 },
+    { id: 'saturation', label: 'Saturation', defaultValue: 72, min: 0, max: 100, step: 0.5 },
+    { id: 'brightness', label: 'Brightness', defaultValue: 85, min: 0, max: 100, step: 0.5 },
+    {
+      id: 'backgroundHue',
+      label: 'Background hue',
+      defaultValue: 220,
+      min: 0,
+      max: 360,
+      step: 0.5,
+    },
     {
       id: 'backgroundSaturation',
       label: 'Background saturation',
       defaultValue: 45,
       min: 0,
       max: 100,
-      step: 1,
+      step: 0.5,
     },
     {
       id: 'backgroundBrightness',
@@ -93,7 +123,7 @@ export const boidsThreeSeed: ThreeSeed = {
       defaultValue: 7,
       min: 0,
       max: 25,
-      step: 1,
+      step: 0.1,
     },
   ],
   createScene: (scene, camera, getGenes, context) => {

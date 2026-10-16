@@ -17,10 +17,12 @@ export function mountThreeRuntime(
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100)
   let viewportWidth = Math.max(1, container.clientWidth)
   let viewportHeight = Math.max(1, container.clientHeight)
+  let pointer: { x: number; y: number; pressed: boolean } | null = null
   const seedCleanupHandlers: Array<() => void> = []
   const seedContext: ThreeSeedContext = {
     renderer,
     getViewportSize: () => ({ width: viewportWidth, height: viewportHeight }),
+    getPointer: () => pointer,
     registerCleanup: (cleanup) => seedCleanupHandlers.push(cleanup),
   }
   const update = seed.createScene(scene, camera, getGenes, seedContext)
@@ -74,6 +76,27 @@ export function mountThreeRuntime(
   }
   controls.addEventListener('change', renderOnControlChange)
 
+  const trackPointer = (event: PointerEvent) => {
+    const bounds = renderer.domElement.getBoundingClientRect()
+    if (bounds.width === 0 || bounds.height === 0) return
+    pointer = {
+      x: (event.clientX - bounds.left) / bounds.width,
+      y: 1 - (event.clientY - bounds.top) / bounds.height,
+      pressed: event.buttons > 0,
+    }
+  }
+  const clearPointer = () => {
+    pointer = null
+  }
+  renderer.domElement.addEventListener('pointermove', trackPointer)
+  renderer.domElement.addEventListener('pointerdown', trackPointer)
+  renderer.domElement.addEventListener('pointerleave', clearPointer)
+  const releaseTouchPointer = (event: PointerEvent) => {
+    if (event.pointerType === 'mouse') trackPointer(event)
+    else clearPointer()
+  }
+  renderer.domElement.addEventListener('pointerup', releaseTouchPointer)
+
   void renderer
     .init()
     .then(() => {
@@ -108,6 +131,10 @@ export function mountThreeRuntime(
       cancelAnimationFrame(frameRequest)
       resizeObserver.disconnect()
       controls.removeEventListener('change', renderOnControlChange)
+      renderer.domElement.removeEventListener('pointermove', trackPointer)
+      renderer.domElement.removeEventListener('pointerdown', trackPointer)
+      renderer.domElement.removeEventListener('pointerleave', clearPointer)
+      renderer.domElement.removeEventListener('pointerup', releaseTouchPointer)
       controls.dispose()
       for (const cleanup of seedCleanupHandlers.reverse()) cleanup()
       renderer.dispose()
