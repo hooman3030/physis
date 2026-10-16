@@ -198,14 +198,20 @@ describe('Lineage Explorer', () => {
     expect(markup).not.toContain('Selected archive node')
     expect(markup).toContain('lineage-graph-backdrop')
     expect(markup).toContain('role="switch"')
-    expect(markup).toContain('aria-label="Select and delete"')
+    expect(markup).toContain('aria-label="Delete"')
     expect(markup).toContain('lineage-graph-node-selected')
     expect(markup).toContain('scale(1.33)')
     expect(markup).toContain('markerWidth="2"')
     expect(markup).toContain('class="button--quiet"')
     expect(markup).not.toContain('Use in Presence')
     expect(markup).toContain('Reset layout')
-    expect(markup).not.toContain('disabled=""')
+    expect(markup).toContain(
+      'class="button--quiet lineage-graph-delete-action lineage-graph-delete-action-hidden"',
+    )
+    expect(markup).toContain('aria-hidden="true"')
+    expect(markup).toContain('aria-label="Delete mode selection count"')
+    expect(markup).toContain('aria-checked="false"')
+    expect(markup).toContain('disabled=""')
   })
 
   it('uses gentle, delta-scaled wheel zoom', () => {

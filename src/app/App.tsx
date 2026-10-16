@@ -33,9 +33,11 @@ import { ImprintArchive } from '../ui/archive/ImprintArchive'
 import { captureArtworkAnimation } from '../ui/archive/animationCapture'
 import { DevelopmentOverlay } from '../ui/overlays/DevelopmentOverlay'
 import { RemoteAccessPairing } from '../ui/overlays/RemoteAccessPairing'
+import { ConfirmDialog } from '../ui/overlays/ConfirmDialog'
 import { SeedControls } from '../ui/artwork/SeedControls'
 import { PlaybackControls } from '../ui/artwork/PlaybackControls'
 import { LineageRoute } from './LineageRoute'
+import { removeDeletedImprintAndReparentChildren } from './imprintDeletion'
 import { captureArtworkPreview } from '../ui/archive/previewCapture'
 import { resolveAppRoute } from './routes'
 import type { P5Seed } from '../seeds/p5/types'
@@ -51,6 +53,11 @@ const SAVE_FEEDBACK_DURATION_MS = 650
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+function formatImprintDate(value: string): string {
+  const timestamp = new Date(value)
+  return Number.isNaN(timestamp.getTime()) ? value : timestamp.toLocaleString()
 }
 
 export function App() {
@@ -90,6 +97,7 @@ function ArtworkApp() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [imprints, setImprints] = useState<readonly ImprintRecord[]>([])
   const [activeImprintId, setActiveImprintId] = useState<string | null>(null)
+  const [pendingImprintDeletion, setPendingImprintDeletion] = useState<ImprintRecord | null>(null)
   const [archiveLoading, setArchiveLoading] = useState(false)
   const [archiveLoadFailed, setArchiveLoadFailed] = useState(false)
   const [canvasRevision, setCanvasRevision] = useState(0)
@@ -604,21 +612,23 @@ function ArtworkApp() {
     }
   }
 
-  const handleDeleteImprint = async (imprint: ImprintRecord) => {
+  const handleDeleteImprint = (imprint: ImprintRecord) => {
     if (activeImprintId === imprint.id) return
-    const createdAt = new Date(imprint.createdAt)
-    const label = Number.isNaN(createdAt.getTime()) ? imprint.createdAt : createdAt.toLocaleString()
-    if (
-      !window.confirm(
-        `Delete the Imprint from ${label}? Its descendants will be kept and attached to its parent.`,
-      )
-    ) {
+    setPendingImprintDeletion(imprint)
+  }
+
+  const confirmDeleteImprint = async () => {
+    const imprint = pendingImprintDeletion
+    if (imprint === null) return
+    if (activeImprintId === imprint.id) {
+      setPendingImprintDeletion(null)
+      reportApplicationError('Select another Imprint before deleting the active one.')
       return
     }
 
     try {
       await deleteImprint(imprint.id)
-      setImprints((current) => current.filter((candidate) => candidate.id !== imprint.id))
+      setImprints((current) => removeDeletedImprintAndReparentChildren(current, imprint.id))
     } catch (error) {
       if (!requirePairing(error)) {
         reportApplicationError(`Could not delete Imprint ${imprint.id}: ${errorMessage(error)}`)
@@ -627,6 +637,8 @@ function ArtworkApp() {
         statusRef.current = 'offline'
         setControlStatus('offline')
       }
+    } finally {
+      setPendingImprintDeletion(null)
     }
   }
 
@@ -717,6 +729,15 @@ function ArtworkApp() {
         onDelete={handleDeleteImprint}
         hidden={!archiveOpen}
       />
+      {pendingImprintDeletion !== null && (
+        <ConfirmDialog
+          title="Delete this Imprint?"
+          description={`Delete the Imprint from ${formatImprintDate(pendingImprintDeletion.createdAt)}? Its descendants will be kept and attached to its parent.`}
+          confirmLabel="Delete Imprint"
+          onConfirm={confirmDeleteImprint}
+          onCancel={() => setPendingImprintDeletion(null)}
+        />
+      )}
     </main>
   )
 }

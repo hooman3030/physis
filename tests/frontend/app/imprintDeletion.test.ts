@@ -2,15 +2,14 @@ import { describe, expect, it, vi } from 'vitest'
 import { ControlApiError } from '../../../src/controlClient'
 import type { ImprintRecord } from '../../../src/controlClient'
 import {
-  confirmAndDeleteLineageImprints,
+  deleteLineageImprints,
   removeDeletedImprintAndReparentChildren,
-} from '../../../src/app/lineageImprintDeletion'
+} from '../../../src/app/imprintDeletion'
 
 function handlers(
-  overrides: Partial<Parameters<typeof confirmAndDeleteLineageImprints>[1]> = {},
-): Parameters<typeof confirmAndDeleteLineageImprints>[1] {
+  overrides: Partial<Parameters<typeof deleteLineageImprints>[1]> = {},
+): Parameters<typeof deleteLineageImprints>[1] {
   return {
-    confirm: vi.fn(() => true),
     deleteImprint: vi.fn(async () => {}),
     onDeleted: vi.fn(),
     onAuthenticationRequired: vi.fn(),
@@ -31,8 +30,8 @@ function imprint(id: string, parentId: string | null): ImprintRecord {
   }
 }
 
-describe('confirmAndDeleteLineageImprints', () => {
-  it('confirms the entire batch once and deletes each Imprint sequentially', async () => {
+describe('deleteLineageImprints', () => {
+  it('deletes each Imprint sequentially', async () => {
     let activeRequests = 0
     let maximumConcurrentRequests = 0
     const callbacks = handlers({
@@ -44,26 +43,16 @@ describe('confirmAndDeleteLineageImprints', () => {
       }),
     })
 
-    await expect(
-      confirmAndDeleteLineageImprints(['one', 'two', 'one'], callbacks),
-    ).resolves.toEqual(['one', 'two'])
+    await expect(deleteLineageImprints(['one', 'two', 'one'], callbacks)).resolves.toEqual([
+      'one',
+      'two',
+    ])
 
-    expect(callbacks.confirm).toHaveBeenCalledTimes(1)
-    expect(callbacks.confirm).toHaveBeenCalledWith(expect.stringContaining('2 selected'))
     expect(callbacks.deleteImprint).toHaveBeenNthCalledWith(1, 'one')
     expect(callbacks.deleteImprint).toHaveBeenNthCalledWith(2, 'two')
     expect(callbacks.onDeleted).toHaveBeenCalledTimes(2)
     expect(maximumConcurrentRequests).toBe(1)
     expect(callbacks.reportError).not.toHaveBeenCalled()
-  })
-
-  it('does not delete when confirmation is declined', async () => {
-    const callbacks = handlers({ confirm: vi.fn(() => false) })
-
-    await expect(confirmAndDeleteLineageImprints(['one'], callbacks)).resolves.toEqual([])
-
-    expect(callbacks.confirm).toHaveBeenCalledTimes(1)
-    expect(callbacks.deleteImprint).not.toHaveBeenCalled()
   })
 
   it('returns successful IDs and reports per-Imprint failures', async () => {
@@ -73,9 +62,10 @@ describe('confirmAndDeleteLineageImprints', () => {
       }),
     })
 
-    await expect(
-      confirmAndDeleteLineageImprints(['first', 'failed', 'last'], callbacks),
-    ).resolves.toEqual(['first', 'last'])
+    await expect(deleteLineageImprints(['first', 'failed', 'last'], callbacks)).resolves.toEqual([
+      'first',
+      'last',
+    ])
 
     expect(callbacks.onDeleted).toHaveBeenCalledTimes(2)
     expect(callbacks.reportError).toHaveBeenCalledWith(
@@ -91,7 +81,7 @@ describe('confirmAndDeleteLineageImprints', () => {
     })
 
     await expect(
-      confirmAndDeleteLineageImprints(['first', 'unauthorized', 'last'], callbacks),
+      deleteLineageImprints(['first', 'unauthorized', 'last'], callbacks),
     ).resolves.toEqual(['first'])
 
     expect(callbacks.deleteImprint).toHaveBeenCalledTimes(2)

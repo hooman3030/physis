@@ -2,7 +2,6 @@ import { ControlApiError } from '../controlClient'
 import type { ImprintRecord } from '../controlClient'
 
 type LineageImprintDeletionHandlers = {
-  confirm: (message: string) => boolean
   deleteImprint: (imprintId: string) => Promise<void>
   onDeleted: (imprintId: string) => void
   onAuthenticationRequired: () => void
@@ -26,19 +25,12 @@ export function removeDeletedImprintAndReparentChildren(
   )
 }
 
-export async function confirmAndDeleteLineageImprints(
+export async function deleteLineageImprints(
   imprintIds: readonly string[],
   handlers: LineageImprintDeletionHandlers,
 ): Promise<readonly string[]> {
   const selectedIds = [...new Set(imprintIds)]
   if (selectedIds.length === 0) return []
-  if (
-    !handlers.confirm(
-      `Delete ${selectedIds.length} selected inactive Imprint${selectedIds.length === 1 ? '' : 's'}? Descendant Imprints will be preserved and reparented. This cannot be undone.`,
-    )
-  ) {
-    return []
-  }
 
   const deletedIds: string[] = []
   const failures: string[] = []

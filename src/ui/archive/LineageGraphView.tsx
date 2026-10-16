@@ -796,39 +796,48 @@ export function LineageGraphView({
         <div className="lineage-graph-buttons">
           <button
             type="button"
-            className={`button--quiet lineage-graph-delete-switch${deleteMode ? ' lineage-graph-delete-switch-active' : ''}`}
+            className={`button--quiet lineage-graph-delete-action${
+              deleteMode ? '' : ' lineage-graph-delete-action-hidden'
+            }`}
+            aria-hidden={!deleteMode}
+            aria-label={
+              deleteMode
+                ? `Delete ${deleteSelection.size} selected Imprint${deleteSelection.size === 1 ? '' : 's'}`
+                : 'Delete mode selection count'
+            }
+            aria-busy={deleteRequestPending}
+            disabled={
+              !deleteMode ||
+              deleteSelection.size === 0 ||
+              !canDeleteImprints ||
+              deleteRequestPending
+            }
+            onClick={() => {
+              void handleDeleteSelected().catch((error: unknown) => {
+                reportApplicationError(
+                  `Could not delete the selected Imprints: ${error instanceof Error ? error.message : String(error)}`,
+                )
+              })
+            }}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5" />
+            </svg>
+            <span aria-live="polite">{deleteSelection.size}x</span>
+          </button>
+          <button
+            type="button"
+            className={`lineage-graph-delete-switch${deleteMode ? ' lineage-graph-delete-switch-active' : ''}`}
             role="switch"
-            aria-label="Select and delete"
+            aria-label="Delete"
             aria-checked={deleteMode}
             onClick={handleToggleDeleteMode}
           >
             <span className="lineage-graph-delete-switch-track" aria-hidden="true">
               <span className="lineage-graph-delete-switch-thumb" />
             </span>
-            <span>Select and delete</span>
+            <span>Delete</span>
           </button>
-          {deleteMode && (
-            <button
-              type="button"
-              className="button--quiet lineage-graph-delete-action"
-              aria-label={`Delete ${deleteSelection.size} selected Imprint${deleteSelection.size === 1 ? '' : 's'}`}
-              aria-busy={deleteRequestPending}
-              disabled={deleteSelection.size === 0 || !canDeleteImprints || deleteRequestPending}
-              onClick={() => {
-                void handleDeleteSelected().catch((error: unknown) => {
-                  reportApplicationError(
-                    `Could not delete the selected Imprints: ${error instanceof Error ? error.message : String(error)}`,
-                  )
-                })
-              }}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m12 2 1.8 5.2 4.5-3-1.1 5.8 5.3 1.7-4.8 3.1 2.7 5.1-5.7-1L12 23l-2.4-5.1-5.3 2 1.2-5.8L1 11.2l5.8-.5L7 4.9l4 3.4L12 2Z" />
-                <path d="M12 10v3m0 3v.1" />
-              </svg>
-              <span aria-live="polite">{deleteSelection.size}x</span>
-            </button>
-          )}
           <button
             type="button"
             className="button--quiet"
