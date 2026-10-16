@@ -29,10 +29,11 @@ Do not draw additional Imprint-to-code reference edges for Imprints that
 already have an Imprint parent. The archive's `codeId` remains provenance and
 is still available in the inspector.
 
-Use `d3-force` for link, repulsion, centering, collision, and gentle
-chronological positioning while keeping React and SVG responsible for
-rendering, accessible node controls, and preview images. Start from
-deterministic positions spread from oldest at the top toward newest at the
+Use `d3-force` for light link attraction, repulsion, centering, collision, and
+damped chronological positioning while keeping React and SVG responsible for
+rendering, accessible node controls, and preview images. Allow noticeable but
+damped drift from the deterministic starting positions without springy settling.
+Start from deterministic positions spread from oldest at the top toward newest at the
 bottom; use a deterministic, creation-time-ordered horizontal subtree layout
 to keep sibling branches in order. Let the force simulation organically make
 room without losing those overall time and branch relationships, then stop
@@ -41,9 +42,12 @@ previews and labels have room. Re-run the force layout from saved positions
 on each page load, allowing existing layouts to relax; users can still drag
 nodes, pan the graph, and zoom the viewport, and arrow keys also move a
 focused node. Save the latest node positions locally in the browser and
-provide a reset control. Use small wheel-zoom increments. Never persist layout
-in the archive. Presence is current runtime state, not an archived node, and
+provide a reset control. Use small wheel-zoom increments and a 1.15x default
+zoom. Never persist layout in the archive. Presence is current runtime state, not an archived node, and
 is indicated without changing the graph relationships.
+Allow zooming up to 3x. Only selected nodes have dotted sun-like selection
+rings with a subtle wave animation; active Presence uses a solid ring. Keep the
+wave still when reduced motion is requested.
 
 The existing archive API already exposes code nodes, Imprints, their parents,
 and each Imprint's `codeId`. The browser client will need validated list
@@ -56,9 +60,23 @@ Open the explorer at `/lineage`; keep `/` as the artwork route. The graph
 fills the viewport, with the back link and heading floating over its upper-left corner.
 Use the selected node's poster as a softly blurred backdrop with a black
 overlay that fades from 90% opacity at the top to transparent at one-third of
-the viewport height; use a dark fallback when the node has no poster. Do not
-show a detail inspector or explanatory graph copy. Crossfade poster changes
-over 450 ms, except when reduced motion is requested. Keep the graph view
+the viewport height; use a dark fallback when the node has no poster. Layer
+sparse, subtle accent and warm-colored grain dots over the graph's existing
+dotted background. Give the dots a depth effect by shifting and scaling each
+layer at a different rate from the graph during pan and zoom, with the smallest
+dots moving least, the foreground dots slightly larger, and all layers close to
+the background. Center the grain
+layers when the graph is at rest, and keep their parallax aligned with the
+graph's zoom point. Keep them still when reduced motion is requested. Use a
+1.15x centered default zoom and a noticeable zoom-in when the graph first loads
+and after resetting its layout,
+except when reduced motion is requested. Use translucent, blurred surfaces for
+the graph controls. Do not show a detail inspector or explanatory graph copy.
+Style lineage nodes with layered role-specific rims, a soft glass sheen, and
+clear active and selected states. Keep parent lines crisp and directional over
+a restrained glow, and preserve legible labels against the backdrop.
+Crossfade poster changes over 450 ms, except when reduced motion is requested.
+Keep the graph view
 independent of the route shell so the same view can later be hosted in a modal
 without changing the graph model.
 
@@ -67,8 +85,14 @@ the backdrop, and activates it in the Presence when the control API is
 connected and its code is available. Do not issue another activation request
 when the selected node is already active. On initial load, select the active
 Imprint if it exists in the archive; when there is no active Imprint, leave
-the graph unselected. An unavailable Seed or Mutation can still be selected,
-but cannot be activated.
+the graph unselected. On initial load and after resetting the layout, center
+the active archived Imprint, or the active archived code node when there is no
+active Imprint. Reset immediately centers and zooms to that node using the
+reset layout's initial position, keeps it centered while the force simulation
+settles, then recenters without replaying the zoom. Fall back to the graph
+center when Presence has no archived node.
+An unavailable Seed or Mutation can still be selected, but cannot be
+activated.
 
 Delete mode is a separate multi-selection state: selecting a node there does
 not change Presence. Only inactive Imprints can be selected for deletion; code

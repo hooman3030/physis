@@ -270,6 +270,18 @@ describe('lineage graph model', () => {
     )
   })
 
+  it('starts with more visible movement while keeping strong damping', () => {
+    const graph = createLineageGraph(codeNodes, imprints)
+    const layout = createLineageLayoutSimulation(
+      graph,
+      graphDimensions(graph.nodes.length),
+      new Map(),
+    )
+    expect(layout.simulation.alpha()).toBe(0.9)
+    expect(layout.simulation.velocityDecay()).toBe(0.58)
+    layout.simulation.stop()
+  })
+
   it('spreads a larger lineage while keeping older nodes generally higher', () => {
     const graph = createLineageGraph(makeChronologicalCodeNodes(16), [])
     const dimensions = graphDimensions(graph.nodes.length)

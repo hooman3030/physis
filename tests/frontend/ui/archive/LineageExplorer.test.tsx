@@ -8,9 +8,13 @@ import {
 } from '../../../../src/ui/archive/LineageExplorer'
 import {
   canDeleteLineageNode,
+  centeredViewportAt,
+  getActivePresenceNodeKey,
   getLineageGraphSelectionAction,
+  lineageGrainPatternTransforms,
   toggleDeleteSelection,
   wheelZoomFactor,
+  zoomedScale,
 } from '../../../../src/ui/archive/LineageGraphView'
 import { createLineageGraph } from '../../../../src/ui/archive/lineageGraph'
 
@@ -200,9 +204,14 @@ describe('Lineage Explorer', () => {
     expect(markup).toContain('role="switch"')
     expect(markup).toContain('aria-label="Delete"')
     expect(markup).toContain('lineage-graph-node-selected')
+    expect(markup.match(/class="lineage-graph-node-orbit/g) ?? []).toHaveLength(1)
+    expect(markup).toContain('lineage-graph-selected-ring')
+    expect(markup).toContain('lineage-graph-edge-glow')
+    expect(markup).toContain('lineage-graph-inner-rim')
+    expect(markup).toContain('r="1.55"')
     expect(markup).toContain('scale(1.33)')
-    expect(markup).toContain('markerWidth="2"')
-    expect(markup).toContain('class="button--quiet"')
+    expect(markup).toContain('markerWidth="2.8"')
+    expect(markup).toContain('class="button--quiet surface shape-control"')
     expect(markup).not.toContain('Use in Presence')
     expect(markup).toContain('Reset layout')
     expect(markup).toContain(
@@ -217,6 +226,78 @@ describe('Lineage Explorer', () => {
   it('uses gentle, delta-scaled wheel zoom', () => {
     expect(wheelZoomFactor(100)).toBeCloseTo(0.9512, 3)
     expect(wheelZoomFactor(-100)).toBeCloseTo(1.0513, 3)
+  })
+
+  it('allows zooming to three times while respecting both scale limits', () => {
+    expect(zoomedScale(2.5, 1.2)).toBe(3)
+    expect(zoomedScale(3, 1.2)).toBe(3)
+    expect(zoomedScale(0.6, 0.5)).toBe(0.5)
+  })
+
+  it('moves each grain layer at its own parallax depth', () => {
+    expect(lineageGrainPatternTransforms({ x: 100, y: -50, scale: 1 }, false)).toEqual([
+      'translate(8 -4) scale(1)',
+      'translate(4 -2) scale(1)',
+      'translate(2 -1) scale(1)',
+    ])
+  })
+
+  it('preserves small pattern transform changes during zoom', () => {
+    expect(lineageGrainPatternTransforms({ x: 0, y: 0, scale: 1.0005 }, false)).toEqual([
+      'translate(0 0) scale(1.00004)',
+      'translate(0 0) scale(1.00002)',
+      'translate(0 0) scale(1.00001)',
+    ])
+  })
+
+  it('scales each grain layer around the graph zoom anchor', () => {
+    expect(lineageGrainPatternTransforms({ x: -150, y: -100, scale: 1.5 }, false)).toEqual([
+      'translate(-12 -8) scale(1.04)',
+      'translate(-6 -4) scale(1.02)',
+      'translate(-3 -2) scale(1.01)',
+    ])
+  })
+
+  it('centers all grain layers when the graph is at rest', () => {
+    expect(lineageGrainPatternTransforms({ x: 0, y: 0, scale: 1 }, false)).toEqual([
+      'translate(0 0) scale(1)',
+      'translate(0 0) scale(1)',
+      'translate(0 0) scale(1)',
+    ])
+  })
+
+  it('keeps the grain background still when reduced motion is requested', () => {
+    expect(lineageGrainPatternTransforms({ x: 100, y: -50, scale: 2 }, true)).toEqual([
+      'translate(0 0) scale(1)',
+      'translate(0 0) scale(1)',
+      'translate(0 0) scale(1)',
+    ])
+  })
+
+  it('centers the active Imprint before its code node', () => {
+    const graph = createLineageGraph(codeNodes, imprints)
+    expect(getActivePresenceNodeKey(graph, presenceWithImprint)).toBe('imprint:imprint-root')
+  })
+
+  it('falls back to the active code node when no active Imprint is archived', () => {
+    const graph = createLineageGraph(codeNodes, imprints)
+    expect(getActivePresenceNodeKey(graph, { ...presenceWithImprint, imprint: null })).toBe(
+      'code:first-light',
+    )
+    expect(
+      getActivePresenceNodeKey(graph, {
+        ...presenceWithImprint,
+        imprint: { id: 'missing' },
+      }),
+    ).toBe('code:first-light')
+    expect(getActivePresenceNodeKey(graph, null)).toBeNull()
+  })
+
+  it('places the active graph node at the viewport center', () => {
+    const viewport = centeredViewportAt({ x: 420, y: 260 }, { width: 1000, height: 800 })
+    expect(viewport.x).toBeCloseTo(17)
+    expect(viewport.y).toBe(101)
+    expect(viewport.scale).toBe(1.15)
   })
 
   it('keeps the artwork on its own route and provides a route back', () => {
