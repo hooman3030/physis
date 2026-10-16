@@ -10,9 +10,20 @@ const canvasState = vi.hoisted(() => ({
   listeners: new Map<string, (event: unknown) => void>(),
 }))
 const rendererState = vi.hoisted(() => ({ isWebGPUBackend: true }))
+const auraPipelineState = vi.hoisted(() => ({
+  render: vi.fn(),
+  setAura: vi.fn(),
+  setToneMapping: vi.fn(),
+  setSize: vi.fn(),
+  dispose: vi.fn(),
+}))
 
 vi.mock('../../../src/errorNotifications', () => ({
   reportApplicationError: vi.fn(),
+}))
+
+vi.mock('../../../src/runtimes/threeAuraPipeline', () => ({
+  createThreeAuraPipeline: vi.fn(() => auraPipelineState),
 }))
 
 vi.mock('three/webgpu', () => ({
@@ -121,9 +132,11 @@ describe('Three runtime rendering', () => {
       },
       append: vi.fn(),
     } as HTMLDivElement
-    const runtime = mountThreeRuntime(container, seed, () => ({}))
+    const runtime = mountThreeRuntime(container, seed, () => ({}), undefined, {}, 'soft-bloom')
     await Promise.resolve()
 
+    expect(auraPipelineState.setAura).toHaveBeenCalledWith('soft-bloom')
+    expect(auraPipelineState.setToneMapping).toHaveBeenCalledWith('none')
     expect(seedContext?.getViewportSize()).toEqual({ width: 800, height: 600 })
     const cleanup = vi.fn()
     seedContext?.registerCleanup(cleanup)
@@ -134,6 +147,11 @@ describe('Three runtime rendering', () => {
     frame?.(16)
 
     expect(pendingFrames.size).toBe(1)
+    expect(auraPipelineState.render).toHaveBeenCalledOnce()
+    runtime.setAura('warm-film')
+    expect(auraPipelineState.setAura).toHaveBeenLastCalledWith('warm-film')
+    runtime.setToneMapping('agx')
+    expect(auraPipelineState.setToneMapping).toHaveBeenLastCalledWith('agx')
 
     containerWidth = 1024
     containerHeight = 768
@@ -142,6 +160,7 @@ describe('Three runtime rendering', () => {
 
     runtime.dispose()
     expect(pendingFrames.size).toBe(0)
+    expect(auraPipelineState.dispose).toHaveBeenCalledOnce()
     expect(cleanup).toHaveBeenCalledOnce()
   })
 

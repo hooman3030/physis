@@ -39,6 +39,8 @@ const imprint = {
   sourceRevision: '0123456789abcdef',
   createdAt: '2026-10-14T11:00:00.000Z',
   genes: { glow: 0.75 },
+  auraId: null,
+  toneMappingId: null,
 }
 
 const codeNode = {
@@ -85,8 +87,9 @@ describe('control API client', () => {
   })
 
   it('loads and validates the current Presence', async () => {
+    const legacySnapshot = { ...snapshot, auraId: 'warm-film', toneMappingId: 'agx' }
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(JSON.stringify(snapshot), {
+      new Response(JSON.stringify(legacySnapshot), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       }),

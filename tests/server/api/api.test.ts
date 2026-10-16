@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { driftingFilamentsSeed } from '../../../src/seeds/p5/drifting-filaments/seed'
 import { firstLightSeed } from '../../../src/seeds/p5/first-light/seed'
+import { firstOrbitSeed } from '../../../src/seeds/three/first-orbit/seed'
 import { openArchive, type Archive } from '../../../server/archive'
 import { registerBundledSeeds } from '../../../server/bootstrap'
 import { createControlServer, type ControlServer } from '../../../server/api'
@@ -12,7 +13,7 @@ import { encodePingPongGif } from '../../../src/ui/archive/encodePingPongGif'
 
 const REVISION = 'a1b2c3d4e5f6'
 const REMOTE_TOKEN = 'a'.repeat(64)
-const modules = [driftingFilamentsSeed, firstLightSeed]
+const modules = [driftingFilamentsSeed, firstLightSeed, firstOrbitSeed]
 const seedId = driftingFilamentsSeed.id
 const [firstGene] = driftingFilamentsSeed.genes
 
@@ -73,6 +74,8 @@ describe('presence', () => {
       paused: false,
       speed: 1,
     })
+    expect((await call('GET', '/presence')).body).not.toHaveProperty('auraId')
+    expect((await call('GET', '/presence')).body).not.toHaveProperty('toneMappingId')
 
     const { status, body } = await call('POST', '/presence', { kind: 'code', id: seedId })
     expect(status).toBe(200)
@@ -81,6 +84,17 @@ describe('presence', () => {
     expect(body.genes[firstGene.id]).toBe(firstGene.defaultValue)
     expect(body.module.runtime).toBe('p5')
     expect(body.module.genes).toHaveLength(driftingFilamentsSeed.genes.length)
+  })
+
+  it('keeps Aura and tone mapping out of shared Presence state and the API', async () => {
+    const selected = await call('POST', '/presence', {
+      kind: 'code',
+      id: firstOrbitSeed.id,
+    })
+    expect(selected.body).not.toHaveProperty('auraId')
+    expect(selected.body).not.toHaveProperty('toneMappingId')
+    expect((await call('PUT', '/presence/aura', { auraId: 'prismatic' })).status).toBe(405)
+    expect((await call('PUT', '/presence/tone-mapping', { toneMappingId: 'agx' })).status).toBe(405)
   })
 
   it('shares transient playback controls and resets them for newly selected artwork', async () => {
@@ -186,6 +200,21 @@ describe('presence', () => {
     expect(body.genes[firstGene.id]).toBe(firstGene.max)
   })
 
+  it('does not capture Aura or tone mapping in newly created Imprints', async () => {
+    await call('POST', '/presence', { kind: 'code', id: firstOrbitSeed.id })
+    const saved = await call('POST', '/imprints', {})
+    expect(saved.body.auraId).toBeNull()
+    expect(saved.body.toneMappingId).toBeNull()
+
+    await call('POST', '/presence', { kind: 'code', id: firstLightSeed.id })
+    const restored = await call('POST', '/presence', {
+      kind: 'imprint',
+      id: saved.body.id,
+    })
+    expect(restored.body).not.toHaveProperty('auraId')
+    expect(restored.body).not.toHaveProperty('toneMappingId')
+  })
+
   it('validates selection requests', async () => {
     expect((await call('POST', '/presence', { kind: 'nope', id: seedId })).status).toBe(400)
     expect((await call('POST', '/presence', { kind: 'code' })).status).toBe(400)
@@ -260,7 +289,7 @@ describe('imprints and lineage', () => {
   it('lists and reads code nodes with availability', async () => {
     const seeds = await call('GET', '/code-nodes?role=seed')
     expect(seeds.body.map((node: any) => node.id).sort()).toEqual(
-      [firstLightSeed.id, seedId].sort(),
+      [firstLightSeed.id, firstOrbitSeed.id, seedId].sort(),
     )
     expect(seeds.body.every((node: any) => node.available)).toBe(true)
     expect((await call('GET', `/code-nodes/${seedId}`)).body.role).toBe('seed')

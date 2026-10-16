@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { loadSettings, sanitizeGeneValues, saveSettings } from '../../src/persistence'
 import { driftingFilamentsSeed } from '../../src/seeds/p5/drifting-filaments/seed'
 import { firstLightSeed } from '../../src/seeds/p5/first-light/seed'
+import { firstOrbitSeed } from '../../src/seeds/three/first-orbit/seed'
 
 const seeds = [firstLightSeed, driftingFilamentsSeed]
 
@@ -70,6 +71,8 @@ describe('settings storage', () => {
             trailLength: 50,
           },
         },
+        auraId: 'vhs',
+        toneMappingId: 'agx',
       },
       ignoreError,
       storage,
@@ -83,6 +86,8 @@ describe('settings storage', () => {
       stepLength: 3,
       trailLength: 50,
     })
+    expect(settings.auraId).toBe('vhs')
+    expect(settings.toneMappingId).toBe('agx')
   })
 
   it('uses defaults when storage is empty, corrupted, or unavailable', () => {
@@ -100,7 +105,76 @@ describe('settings storage', () => {
         stepLength: 1.4,
         trailLength: 24,
       })
+      expect(settings.auraId).toBe('off')
+      expect(settings.toneMappingId).toBe('none')
     }
+  })
+
+  it('uses the selected Seed default only when no local Aura preference is saved', () => {
+    const settings = loadSettings(
+      [firstOrbitSeed],
+      firstOrbitSeed,
+      ignoreError,
+      memoryStorage(JSON.stringify({ seedId: firstOrbitSeed.id, genes: {} })),
+    )
+
+    expect(settings.auraId).toBe(firstOrbitSeed.defaultAuraId)
+    expect(settings.toneMappingId).toBe('none')
+  })
+
+  it('keeps locally saved Aura preferences when the active Seed changes', () => {
+    const storage = memoryStorage(
+      JSON.stringify({
+        seedId: firstLightSeed.id,
+        genes: {},
+        auraId: 'warm-film',
+        toneMappingId: 'agx',
+      }),
+    )
+
+    const settings = loadSettings(
+      [firstOrbitSeed, firstLightSeed],
+      firstLightSeed,
+      ignoreError,
+      storage,
+    )
+    const switchedSeed = { ...settings, seed: firstOrbitSeed }
+
+    saveSettings(switchedSeed, ignoreError, storage)
+    const restored = loadSettings(
+      [firstOrbitSeed, firstLightSeed],
+      firstLightSeed,
+      ignoreError,
+      storage,
+    )
+
+    expect(restored.seed).toBe(firstOrbitSeed)
+    expect(restored.auraId).toBe('warm-film')
+    expect(restored.toneMappingId).toBe('agx')
+  })
+
+  it('reports invalid local Aura preferences and uses defaults', () => {
+    const errors: string[] = []
+    const settings = loadSettings(
+      [firstOrbitSeed],
+      firstOrbitSeed,
+      (message) => errors.push(message),
+      memoryStorage(
+        JSON.stringify({
+          seedId: firstOrbitSeed.id,
+          genes: {},
+          auraId: 'unknown',
+          toneMappingId: 'unknown',
+        }),
+      ),
+    )
+
+    expect(settings.auraId).toBe(firstOrbitSeed.defaultAuraId)
+    expect(settings.toneMappingId).toBe('none')
+    expect(errors).toEqual([
+      'Saved Aura preference is invalid; the Seed default will be used.',
+      'Saved tone-mapping preference is invalid; None will be used.',
+    ])
   })
 
   it('migrates saved parameter values to Genes', () => {
@@ -158,7 +232,7 @@ describe('settings storage', () => {
     ).not.toThrow()
     expect(() =>
       saveSettings(
-        { seed: firstLightSeed, genesBySeed: {} },
+        { seed: firstLightSeed, genesBySeed: {}, auraId: 'off', toneMappingId: 'none' },
         (message) => errors.push(message),
         failing,
       ),

@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import { isBipolarGene, type ArtworkGene, type ArtworkGeneValues } from '../../seeds/types'
 import type { ArtworkSeed } from '../../seeds/registry'
+import type { AuraId } from '../../auras/types'
+import { auraPresets, isAuraId } from '../../auras/registry'
+import type { ToneMappingId } from '../../auras/toneMapping'
+import { isToneMappingId, toneMappingOptions } from '../../auras/toneMapping'
+import { reportApplicationError } from '../../errorNotifications'
 import { PrimaryButton } from '../primitives/PrimaryButton'
 import { useSurfaceTransition } from '../primitives/useSurfaceTransition'
 
@@ -64,6 +69,10 @@ type SeedControlsProps = {
   activeSeed: ArtworkSeed
   seeds: readonly ArtworkSeed[]
   onSeedChange: (seed: ArtworkSeed) => void
+  auraId: AuraId | null
+  onAuraChange: (auraId: AuraId) => void
+  toneMappingId: ToneMappingId | null
+  onToneMappingChange: (toneMappingId: ToneMappingId) => void
   geneValues: ArtworkGeneValues
   onGeneChange: (id: string, value: number) => void
   onGenesChange: (values: ArtworkGeneValues) => void
@@ -79,6 +88,10 @@ export function SeedControls({
   activeSeed,
   seeds,
   onSeedChange,
+  auraId,
+  onAuraChange,
+  toneMappingId,
+  onToneMappingChange,
   geneValues,
   onGeneChange,
   onGenesChange,
@@ -156,6 +169,54 @@ export function SeedControls({
           </option>
         ))}
       </select>
+      {activeSeed.runtime === 'three' && (
+        <div className="presentation-selectors">
+          <div className="presentation-selector">
+            <label htmlFor="aura">Aura</label>
+            <select
+              id="aura"
+              className="control"
+              value={auraId ?? 'off'}
+              onChange={(event) => {
+                const value = event.currentTarget.value
+                if (isAuraId(value)) {
+                  onAuraChange(value)
+                } else {
+                  reportApplicationError(`Unknown Aura selection: ${value}`)
+                }
+              }}
+            >
+              {auraPresets.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="presentation-selector">
+            <label htmlFor="tone-mapping">Tone mapping</label>
+            <select
+              id="tone-mapping"
+              className="control"
+              value={toneMappingId ?? 'none'}
+              onChange={(event) => {
+                const value = event.currentTarget.value
+                if (isToneMappingId(value)) {
+                  onToneMappingChange(value)
+                } else {
+                  reportApplicationError(`Unknown tone mapping selection: ${value}`)
+                }
+              }}
+            >
+              {toneMappingOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
       <div className="genes-heading">
         <h3>Genes</h3>
         <div className="gene-actions">

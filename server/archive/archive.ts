@@ -2,6 +2,10 @@ import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { backup as sqliteBackup, DatabaseSync } from 'node:sqlite'
 import type { SeedDeclaration } from '../../src/seeds/types'
+import { isAuraCompatible, isAuraId } from '../../src/auras/registry'
+import type { AuraId } from '../../src/auras/types'
+import { isToneMappingId } from '../../src/auras/toneMapping'
+import type { ToneMappingId } from '../../src/auras/toneMapping'
 import { ArchiveError } from './errors'
 import { migrate } from './migrations'
 
@@ -29,6 +33,8 @@ export interface ImprintRecord extends LineageNode {
   codeId: string
   sourceRevision: string
   genes: GeneValues
+  auraId: AuraId | null
+  toneMappingId: ToneMappingId | null
   randomSeed: number | null
   validation: unknown
 }
@@ -93,12 +99,22 @@ function parseGenes(text: string, imprintId: string): GeneValues {
 
 function toImprint(row: Row): ImprintRecord {
   const id = row.id as string
+  const auraId = row.aura_id as string | null
+  if (auraId !== null && !isAuraId(auraId)) {
+    throw new ArchiveError('corrupt', `Aura of imprint ${id} is not registered`)
+  }
+  const toneMappingId = row.tone_mapping_id as string | null
+  if (toneMappingId !== null && !isToneMappingId(toneMappingId)) {
+    throw new ArchiveError('corrupt', `Tone mapping of imprint ${id} is not registered`)
+  }
   return {
     id,
     parentId: row.parent_id as string | null,
     codeId: row.code_id as string,
     sourceRevision: row.source_revision as string,
     genes: parseGenes(row.genes as string, id),
+    auraId,
+    toneMappingId,
     randomSeed: row.random_seed as number | null,
     validation: parseJson(row.validation as string | null, `validation of imprint ${id}`),
     createdAt: row.created_at as string,
@@ -164,6 +180,12 @@ export class Archive {
     const declaration = this.#declarations.get(id)
     if (declaration === undefined) {
       throw invalid(`Module ${id} has no registered Gene declarations`)
+    }
+    if (
+      declaration.defaultAuraId !== undefined &&
+      !isAuraCompatible(declaration.defaultAuraId, declaration.runtime)
+    ) {
+      throw invalid(`Default Aura ${declaration.defaultAuraId} is incompatible with ${id}`)
     }
     return declaration
   }
@@ -251,7 +273,8 @@ export class Archive {
 
     return this.#transaction(() => {
       this.getCodeNode(input.codeId)
-      validateGenes(this.#declaration(input.codeId), input.genes)
+      const declaration = this.#declaration(input.codeId)
+      validateGenes(declaration, input.genes)
 
       const presence = this.getPresence()
       const parentId =
@@ -271,9 +294,9 @@ export class Archive {
       this.#db
         .prepare(
           `INSERT INTO imprints
-             (id, parent_id, code_id, source_revision, genes, random_seed,
-              validation, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+             (id, parent_id, code_id, source_revision, genes, aura_id, tone_mapping_id,
+              random_seed, validation, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -281,6 +304,8 @@ export class Archive {
           input.codeId,
           input.sourceRevision,
           JSON.stringify(input.genes),
+          null,
+          null,
           randomSeed,
           input.validation === undefined ? null : JSON.stringify(input.validation),
           this.#timestamp(),
@@ -408,11 +433,17 @@ export class Archive {
     for (const row of this.#db.prepare('PRAGMA foreign_key_check').all() as Row[]) {
       problems.push(`foreign key: ${row.table} row ${row.rowid} references missing ${row.parent}`)
     }
-    for (const row of this.#db.prepare('SELECT id, genes FROM imprints').all() as Row[]) {
+    for (const row of this.#db
+      .prepare('SELECT id, genes, tone_mapping_id FROM imprints')
+      .all() as Row[]) {
       try {
         parseGenes(row.genes as string, row.id as string)
       } catch (error) {
         problems.push((error as Error).message)
+      }
+      const toneMappingId = row.tone_mapping_id as string | null
+      if (toneMappingId !== null && !isToneMappingId(toneMappingId)) {
+        problems.push(`Tone mapping of imprint ${row.id as string} is not registered`)
       }
     }
     return problems

@@ -41,6 +41,8 @@ import { removeDeletedImprintAndReparentChildren } from './imprintDeletion'
 import { captureArtworkPreview } from '../ui/archive/previewCapture'
 import { resolveAppRoute } from './routes'
 import type { ArtworkGeneValues } from '../seeds/types'
+import type { AuraId } from '../auras/types'
+import type { ToneMappingId } from '../auras/toneMapping'
 import { DEFAULT_PLAYBACK_SPEED } from '../playbackClock'
 import { artworkSeeds, defaultArtworkSeed, type ArtworkSeed } from '../seeds/registry'
 import '../ui/styles.css'
@@ -471,6 +473,14 @@ function ArtworkApp() {
     }
   }
 
+  const handleAuraChange = (nextAuraId: AuraId) => {
+    setSettings((current) => ({ ...current, auraId: nextAuraId }))
+  }
+
+  const handleToneMappingChange = (nextToneMappingId: ToneMappingId) => {
+    setSettings((current) => ({ ...current, toneMappingId: nextToneMappingId }))
+  }
+
   const handleGenesChange = (values: ArtworkGeneValues) => {
     setSettings((current) => ({
       ...current,
@@ -663,6 +673,8 @@ function ArtworkApp() {
         genes={geneValues}
         paused={paused}
         speed={speed}
+        auraId={settings.auraId}
+        toneMappingId={settings.toneMappingId}
         onFpsChange={import.meta.env.DEV ? setFps : undefined}
         onCanvasReady={handleCanvasReady}
       />
@@ -708,6 +720,10 @@ function ArtworkApp() {
         activeSeed={seed}
         seeds={artworkSeeds}
         onSeedChange={handleSeedChange}
+        auraId={settings.auraId}
+        onAuraChange={handleAuraChange}
+        toneMappingId={settings.toneMappingId}
+        onToneMappingChange={handleToneMappingChange}
         geneValues={geneValues}
         onGeneChange={handleGeneChange}
         onGenesChange={handleGenesChange}

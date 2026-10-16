@@ -1,4 +1,7 @@
 import type { ArtworkGene, ArtworkGeneValues, RuntimeKind, SeedDeclaration } from './seeds/types'
+import { isAuraCompatible, isAuraId } from './auras/registry'
+import type { AuraId } from './auras/types'
+import { isToneMappingId, type ToneMappingId } from './auras/toneMapping'
 import { isPlaybackSpeed } from './playbackClock'
 
 const API_BASE_URL = '/api/v1'
@@ -21,6 +24,8 @@ export type ImprintRecord = {
   sourceRevision: string
   createdAt: string
   genes: ArtworkGeneValues
+  auraId: AuraId | null
+  toneMappingId: ToneMappingId | null
 }
 
 export type CodeNodeRecord = {
@@ -138,7 +143,9 @@ function parseModule(value: unknown): PresenceSnapshot['module'] {
     typeof value.id !== 'string' ||
     typeof value.label !== 'string' ||
     !isRuntimeKind(value.runtime) ||
-    !Array.isArray(value.genes)
+    !Array.isArray(value.genes) ||
+    (value.defaultAuraId !== undefined &&
+      (!isAuraId(value.defaultAuraId) || !isAuraCompatible(value.defaultAuraId, value.runtime)))
   ) {
     throw new Error('Control API returned an invalid module declaration')
   }
@@ -148,6 +155,7 @@ function parseModule(value: unknown): PresenceSnapshot['module'] {
     label: value.label,
     genes: value.genes.map(parseGene),
     runtime: value.runtime,
+    ...(value.defaultAuraId === undefined ? {} : { defaultAuraId: value.defaultAuraId }),
   }
 }
 
@@ -172,7 +180,9 @@ function parseImprint(value: unknown): ImprintRecord {
     (value.parentId !== null && typeof value.parentId !== 'string') ||
     typeof value.codeId !== 'string' ||
     typeof value.sourceRevision !== 'string' ||
-    typeof value.createdAt !== 'string'
+    typeof value.createdAt !== 'string' ||
+    (value.auraId !== null && !isAuraId(value.auraId)) ||
+    (value.toneMappingId !== null && !isToneMappingId(value.toneMappingId))
   ) {
     throw new Error('Control API returned an invalid Imprint')
   }
@@ -186,6 +196,8 @@ function parseImprint(value: unknown): ImprintRecord {
     sourceRevision: value.sourceRevision,
     createdAt: value.createdAt,
     genes,
+    auraId: value.auraId,
+    toneMappingId: value.toneMappingId,
   }
 }
 
@@ -225,13 +237,15 @@ function parsePresenceSnapshot(value: unknown): PresenceSnapshot {
     throw new Error('Control API returned an invalid Presence snapshot')
   }
 
+  const module = parseModule(value.module)
+
   return {
     revision: value.revision,
     paused: value.paused,
     speed: value.speed,
     code: parseIdentity(value.code, 'code node'),
     imprint: parseIdentity(value.imprint, 'Imprint'),
-    module: parseModule(value.module),
+    module,
     genes: parseGeneValues(value.genes),
   }
 }

@@ -1,14 +1,14 @@
-# Art direction: World and Gene bias
+# Art direction: Environment and Gene bias
 
 Status: artist-authored direction; implementation and bias analysis remain
 future work.
 
-## World-driven Gene drift
+## Environment-driven Gene drift
 
-A **World** is an environment that influences how the Gene values of the active
-Presence change over its lifetime. The artist can adjust the strength of that
-influence with a slider. The World changes the Presence's current values; it
-does not rewrite the Seed's authored defaults.
+An **Environment** influences how the Gene values of the active Presence
+change over its lifetime. The artist can adjust the strength of that influence
+with a slider. The Environment changes the Presence's current values; it does
+not rewrite the Seed's authored defaults.
 
 The first increment uses randomized low-frequency-oscillator (LFO) shapes to
 make Gene values drift over time. It does not use saved-Imprint bias. Drift
@@ -28,18 +28,18 @@ to consider each Gene independently, relationships between Genes, or both.
 Saving an Imprint is intended to signal that the result is worth keeping, but
 whether all saved Imprints carry equal weight also remains open.
 
-This bias should eventually apply both to World-driven drift and to the Gene
+This bias should eventually apply both to Environment-driven drift and to the Gene
 randomize action. The randomize action should retain an unbiased option so its
 current behavior remains available.
 
 ## Planned work
 
 - [#44](https://github.com/hooman3030/physis/issues/44) adds the first,
-  unbiased random-LFO World drift.
+  unbiased random-LFO Environment drift.
 - [#45](https://github.com/hooman3030/physis/issues/45) researches an
   Imprint-informed bias model, including per-Gene versus relational analysis.
 - [#46](https://github.com/hooman3030/physis/issues/46) applies that model to
-  World drift.
+  Environment-driven drift.
 - [#47](https://github.com/hooman3030/physis/issues/47) applies that model to
   Gene randomization.
 

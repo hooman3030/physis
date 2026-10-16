@@ -85,6 +85,7 @@ export class LivePresence {
               label: module.label,
               genes: module.genes,
               runtime: module.runtime,
+              defaultAuraId: module.defaultAuraId,
             },
       genes: this.#genes,
     }
