@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { randomizeGeneValues, rollDie, SeedControls } from '../../../../src/ui/artwork/SeedControls'
 import { driftingFilamentsSeed } from '../../../../src/seeds/p5/drifting-filaments/seed'
+import { firstOrbitSeed } from '../../../../src/seeds/three/first-orbit/seed'
 import { artworkSeeds, defaultArtworkSeed } from '../../../../src/seeds/registry'
 
 describe('seed controls', () => {
@@ -11,6 +12,10 @@ describe('seed controls', () => {
         activeSeed={defaultArtworkSeed}
         seeds={artworkSeeds}
         onSeedChange={vi.fn()}
+        auraId={null}
+        onAuraChange={vi.fn()}
+        toneMappingId={null}
+        onToneMappingChange={vi.fn()}
         geneValues={{}}
         onGeneChange={vi.fn()}
         onGenesChange={vi.fn()}
@@ -29,6 +34,41 @@ describe('seed controls', () => {
     expect(markup).not.toContain('Active module:')
     expect(markup).not.toContain('browser-only controls are active')
     expect(markup).toContain('disabled=""')
+    expect(markup).not.toContain('for="aura"')
+  })
+
+  it('offers Aura presets only for compatible Three Seeds', () => {
+    const markup = renderToStaticMarkup(
+      <SeedControls
+        activeSeed={firstOrbitSeed}
+        seeds={artworkSeeds}
+        onSeedChange={vi.fn()}
+        auraId="soft-bloom"
+        onAuraChange={vi.fn()}
+        toneMappingId="agx"
+        onToneMappingChange={vi.fn()}
+        geneValues={{}}
+        onGeneChange={vi.fn()}
+        onGenesChange={vi.fn()}
+        onResetCanvas={vi.fn()}
+        onSaveImprint={vi.fn()}
+        controlStatus="connected"
+        saveStatus="idle"
+      />,
+    )
+
+    expect(markup).toContain('class="presentation-selectors"')
+    expect(markup).toContain('<label for="aura">Aura</label>')
+    expect(markup).toContain('<option value="off">Off</option>')
+    expect(markup).toContain('value="soft-bloom" selected="">Soft bloom</option>')
+    expect(markup).toContain('<option value="warm-film">Warm film</option>')
+    expect(markup).toContain('<option value="prismatic">Prismatic</option>')
+    expect(markup).toContain('<option value="vhs">VHS</option>')
+    expect(markup).toContain('<option value="dream-haze">Dream haze</option>')
+    expect(markup).toContain('<option value="noir">Noir</option>')
+    expect(markup).toContain('<label for="tone-mapping">Tone mapping</label>')
+    expect(markup).toContain('<option value="agx" selected="">AgX</option>')
+    expect(markup).toContain('<option value="neutral">Neutral</option>')
   })
 
   it('renders Gene sliders for the active module', () => {
@@ -37,6 +77,10 @@ describe('seed controls', () => {
         activeSeed={driftingFilamentsSeed}
         seeds={artworkSeeds}
         onSeedChange={vi.fn()}
+        auraId={null}
+        onAuraChange={vi.fn()}
+        toneMappingId={null}
+        onToneMappingChange={vi.fn()}
         geneValues={{ filamentCount: 200, noiseScale: 0.002, stepLength: 2 }}
         onGeneChange={vi.fn()}
         onGenesChange={vi.fn()}
@@ -86,6 +130,10 @@ describe('seed controls', () => {
         activeSeed={defaultArtworkSeed}
         seeds={artworkSeeds}
         onSeedChange={vi.fn()}
+        auraId={null}
+        onAuraChange={vi.fn()}
+        toneMappingId={null}
+        onToneMappingChange={vi.fn()}
         geneValues={{}}
         onGeneChange={vi.fn()}
         onGenesChange={vi.fn()}
@@ -114,6 +162,10 @@ describe('seed controls', () => {
         activeSeed={defaultArtworkSeed}
         seeds={artworkSeeds}
         onSeedChange={vi.fn()}
+        auraId={null}
+        onAuraChange={vi.fn()}
+        toneMappingId={null}
+        onToneMappingChange={vi.fn()}
         geneValues={{}}
         onGeneChange={vi.fn()}
         onGenesChange={vi.fn()}

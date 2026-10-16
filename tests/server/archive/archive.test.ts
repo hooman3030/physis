@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { driftingFilamentsSeed } from '../../../src/seeds/p5/drifting-filaments/seed'
 import { firstLightSeed } from '../../../src/seeds/p5/first-light/seed'
+import { firstOrbitSeed } from '../../../src/seeds/three/first-orbit/seed'
 import {
   ArchiveError,
   openArchive,
@@ -21,7 +22,12 @@ const mutantDeclaration: ModuleDeclaration = {
   genes: driftingFilamentsSeed.genes,
   runtime: 'p5',
 }
-const declarations: ModuleDeclaration[] = [driftingFilamentsSeed, firstLightSeed, mutantDeclaration]
+const declarations: ModuleDeclaration[] = [
+  driftingFilamentsSeed,
+  firstLightSeed,
+  firstOrbitSeed,
+  mutantDeclaration,
+]
 
 function defaults(seed: { genes: readonly { id: string; defaultValue: number }[] }) {
   return Object.fromEntries(seed.genes.map(({ id, defaultValue }) => [id, defaultValue]))
@@ -74,6 +80,34 @@ describe('imprints', () => {
     expect(archive.getPresence()).toEqual({ code: archive.getCodeNode(seedId), imprint: saved })
     expect(saved.randomSeed).toBe(42)
     expect(saved.validation).toEqual({ ok: true })
+  })
+
+  it('stores registered Auras with compatible Three Imprints', () => {
+    archive.registerSeed({ id: firstOrbitSeed.id, sourceRevision: REV_A })
+    const saved = archive.saveImprint({
+      codeId: firstOrbitSeed.id,
+      sourceRevision: REV_A,
+      genes: defaults(firstOrbitSeed),
+      auraId: 'soft-bloom',
+      toneMappingId: 'agx',
+    })
+
+    expect(saved.auraId).toBe('soft-bloom')
+    expect(saved.toneMappingId).toBe('agx')
+    expect(archive.selectImprint(saved.id).imprint?.auraId).toBe('soft-bloom')
+    expect(archive.selectImprint(saved.id).imprint?.toneMappingId).toBe('agx')
+    expectCode(() => save({ auraId: 'soft-bloom' }), 'invalid-input')
+    expectCode(() => save({ toneMappingId: 'agx' }), 'invalid-input')
+    expectCode(
+      () =>
+        archive.saveImprint({
+          codeId: firstOrbitSeed.id,
+          sourceRevision: REV_A,
+          genes: defaults(firstOrbitSeed),
+          toneMappingId: 'unregistered',
+        }),
+      'invalid-input',
+    )
   })
 
   it('chains saves as parent/child lineage without losing ancestors', () => {
@@ -270,6 +304,12 @@ describe('immutability and integrity', () => {
     expect(attempt('UPDATE imprints SET genes = ? WHERE id = ?', '{}', saved.id)).toThrow(
       /immutable/,
     )
+    expect(attempt('UPDATE imprints SET aura_id = ? WHERE id = ?', 'off', saved.id)).toThrow(
+      /immutable/,
+    )
+    expect(
+      attempt('UPDATE imprints SET tone_mapping_id = ? WHERE id = ?', 'agx', saved.id),
+    ).toThrow(/immutable/)
     expect(attempt('UPDATE imprints SET parent_id = NULL WHERE id = ?', saved.id)).not.toThrow()
     expect(attempt('DELETE FROM imprints WHERE id = ?', saved.id)).not.toThrow()
     expect(attempt('UPDATE code_nodes SET source_revision = ?', REV_B)).toThrow(/immutable/)
@@ -288,6 +328,8 @@ describe('immutability and integrity', () => {
     const db = new DatabaseSync(path)
     db.exec(`
       DROP TRIGGER imprints_content_immutable_update;
+      ALTER TABLE imprints DROP COLUMN tone_mapping_id;
+      ALTER TABLE imprints DROP COLUMN aura_id;
       ALTER TABLE imprints RENAME COLUMN genes TO parameters;
       CREATE TRIGGER imprints_immutable_update BEFORE UPDATE ON imprints
         BEGIN SELECT RAISE(ABORT, 'imprints are immutable'); END;
@@ -313,6 +355,8 @@ describe('immutability and integrity', () => {
     const db = new DatabaseSync(join(directory, 'archive.sqlite'))
     db.exec(`
       DROP TRIGGER imprints_content_immutable_update;
+      ALTER TABLE imprints DROP COLUMN tone_mapping_id;
+      ALTER TABLE imprints DROP COLUMN aura_id;
       ALTER TABLE imprints RENAME COLUMN genes TO parameters;
       CREATE TRIGGER imprints_content_immutable_update BEFORE UPDATE ON imprints
         WHEN NEW.parameters IS NOT OLD.parameters
@@ -323,6 +367,8 @@ describe('immutability and integrity', () => {
 
     archive = open()
     expect(archive.getImprint(saved.id).genes).toEqual(saved.genes)
+    expect(archive.getImprint(saved.id).auraId).toBeNull()
+    expect(archive.getImprint(saved.id).toneMappingId).toBeNull()
     expect(archive.verify()).toEqual([])
   })
 
@@ -338,6 +384,26 @@ describe('immutability and integrity', () => {
     archive = open()
 
     expect(archive.verify()).toHaveLength(1)
+    expectCode(() => archive.getImprint(saved.id), 'corrupt')
+  })
+
+  it('detects corrupt stored tone-mapping IDs', () => {
+    archive.registerSeed({ id: firstOrbitSeed.id, sourceRevision: REV_A })
+    const saved = archive.saveImprint({
+      codeId: firstOrbitSeed.id,
+      sourceRevision: REV_A,
+      genes: defaults(firstOrbitSeed),
+      toneMappingId: 'agx',
+    })
+    archive.close()
+
+    const db = new DatabaseSync(join(directory, 'archive.sqlite'))
+    db.exec('DROP TRIGGER imprints_content_immutable_update')
+    db.prepare('UPDATE imprints SET tone_mapping_id = ? WHERE id = ?').run('unregistered', saved.id)
+    db.close()
+    archive = open()
+
+    expect(archive.verify()).toContain(`Tone mapping of imprint ${saved.id} is not registered`)
     expectCode(() => archive.getImprint(saved.id), 'corrupt')
   })
 

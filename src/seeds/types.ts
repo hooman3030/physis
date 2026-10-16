@@ -1,3 +1,5 @@
+import type { AuraId } from '../auras/types'
+
 export type ArtworkGene = {
   id: string
   label: string
@@ -27,4 +29,5 @@ export type SeedDeclaration = {
   label: string
   genes: readonly ArtworkGene[]
   runtime: RuntimeKind
+  defaultAuraId?: AuraId
 }

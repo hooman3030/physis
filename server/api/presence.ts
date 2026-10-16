@@ -1,5 +1,9 @@
 import type { Archive, CodeNodeRecord, GeneValues, ImprintRecord } from '../archive'
 import type { ArtworkGene, SeedDeclaration } from '../../src/seeds/types'
+import { isAuraCompatible, isAuraId } from '../../src/auras/registry'
+import type { AuraId } from '../../src/auras/types'
+import { isToneMappingCompatible, isToneMappingId } from '../../src/auras/toneMapping'
+import type { ToneMappingId } from '../../src/auras/toneMapping'
 import { DEFAULT_PLAYBACK_SPEED, isPlaybackSpeed } from '../../src/playbackClock'
 import { HttpError } from './http'
 
@@ -10,6 +14,8 @@ export type PresenceSnapshot = {
   revision: number
   paused: boolean
   speed: number
+  auraId: AuraId | null
+  toneMappingId: ToneMappingId | null
   code: CodeNodeRecord | null
   imprint: ImprintRecord | null
   module: SeedDeclaration | null
@@ -24,6 +30,19 @@ function defaultsOf(module: ControlModule): GeneValues {
   return Object.fromEntries(module.genes.map(({ id, defaultValue }) => [id, defaultValue]))
 }
 
+function auraOf(module: ControlModule, imprintAuraId: AuraId | null): AuraId | null {
+  if (module.runtime !== 'three') return null
+  return imprintAuraId ?? module.defaultAuraId ?? 'off'
+}
+
+function toneMappingOf(
+  module: ControlModule,
+  imprintToneMappingId: ToneMappingId | null,
+): ToneMappingId | null {
+  if (module.runtime !== 'three') return null
+  return imprintToneMappingId ?? 'none'
+}
+
 // The one running artwork. The archive stores which code and Imprint it points
 // to; the live Gene values exist only here until they are saved as an
 // Imprint.
@@ -36,6 +55,8 @@ export class LivePresence {
   #genes: GeneValues | null = null
   #paused = false
   #speed = DEFAULT_PLAYBACK_SPEED
+  #auraId: AuraId | null = null
+  #toneMappingId: ToneMappingId | null = null
   #revision = 0
 
   constructor(archive: Archive, modules: readonly ControlModule[]) {
@@ -53,6 +74,8 @@ export class LivePresence {
     this.#code = code
     this.#imprint = imprint
     this.#genes = imprint === null ? defaultsOf(module) : { ...imprint.genes }
+    this.#auraId = auraOf(module, imprint?.auraId ?? null)
+    this.#toneMappingId = toneMappingOf(module, imprint?.toneMappingId ?? null)
   }
 
   #module(id: string): ControlModule {
@@ -75,6 +98,8 @@ export class LivePresence {
       revision: this.#revision,
       paused: this.#paused,
       speed: this.#speed,
+      auraId: this.#auraId,
+      toneMappingId: this.#toneMappingId,
       code: this.#code,
       imprint: this.#imprint,
       module:
@@ -85,6 +110,7 @@ export class LivePresence {
               label: module.label,
               genes: module.genes,
               runtime: module.runtime,
+              defaultAuraId: module.defaultAuraId,
             },
       genes: this.#genes,
     }
@@ -107,6 +133,8 @@ export class LivePresence {
       this.#code = code
       this.#imprint = null
       this.#genes = defaultsOf(module)
+      this.#auraId = auraOf(module, null)
+      this.#toneMappingId = toneMappingOf(module, null)
     } else {
       const imprint = this.#archive.getImprint(id)
       this.#module(imprint.codeId)
@@ -114,6 +142,8 @@ export class LivePresence {
       this.#code = presence.code
       this.#imprint = presence.imprint
       this.#genes = { ...imprint.genes }
+      this.#auraId = auraOf(this.#module(imprint.codeId), imprint.auraId)
+      this.#toneMappingId = toneMappingOf(this.#module(imprint.codeId), imprint.toneMappingId)
     }
     this.#paused = false
     this.#speed = DEFAULT_PLAYBACK_SPEED
@@ -136,6 +166,36 @@ export class LivePresence {
     }
     if (this.#speed === speed) return this.snapshot()
     this.#speed = speed
+    this.#notify()
+    return this.snapshot()
+  }
+
+  setAura(auraId: AuraId): PresenceSnapshot {
+    if (this.#code === null) throw new HttpError(409, 'No artwork is selected')
+    const module = this.#module(this.#code.id)
+    if (!isAuraId(auraId)) {
+      throw new HttpError(400, `Aura ${String(auraId)} is not registered`)
+    }
+    if (!isAuraCompatible(auraId, module.runtime)) {
+      throw new HttpError(400, `Aura ${auraId} is incompatible with ${module.id}`)
+    }
+    if (this.#auraId === auraId) return this.snapshot()
+    this.#auraId = auraId
+    this.#notify()
+    return this.snapshot()
+  }
+
+  setToneMapping(toneMappingId: ToneMappingId): PresenceSnapshot {
+    if (this.#code === null) throw new HttpError(409, 'No artwork is selected')
+    const module = this.#module(this.#code.id)
+    if (!isToneMappingId(toneMappingId)) {
+      throw new HttpError(400, `Tone mapping ${String(toneMappingId)} is not registered`)
+    }
+    if (!isToneMappingCompatible(toneMappingId, module.runtime)) {
+      throw new HttpError(400, `Tone mapping ${toneMappingId} is incompatible with ${module.id}`)
+    }
+    if (this.#toneMappingId === toneMappingId) return this.snapshot()
+    this.#toneMappingId = toneMappingId
     this.#notify()
     return this.snapshot()
   }
@@ -181,6 +241,8 @@ export class LivePresence {
       codeId: this.#code.id,
       sourceRevision: options.sourceRevision,
       genes: this.#genes,
+      auraId: this.#auraId,
+      toneMappingId: this.#toneMappingId,
       parentId: options.parentId,
       randomSeed: options.randomSeed,
       validation: { sourceDirty: options.sourceDirty },

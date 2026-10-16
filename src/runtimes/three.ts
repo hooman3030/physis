@@ -2,8 +2,11 @@ import * as THREE from 'three/webgpu'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { ArtworkGeneValues } from '../seeds/types'
 import type { ThreeSeed, ThreeSeedContext } from '../seeds/three/types'
+import type { AuraId } from '../auras/types'
+import type { ToneMappingId } from '../auras/toneMapping'
 import { DEFAULT_PLAYBACK_SPEED, PlaybackClock, type PlaybackClockOptions } from '../playbackClock'
 import { reportApplicationError } from '../errorNotifications'
+import { createThreeAuraPipeline } from './threeAuraPipeline'
 
 export function mountThreeRuntime(
   container: HTMLDivElement,
@@ -11,6 +14,8 @@ export function mountThreeRuntime(
   getGenes: () => ArtworkGeneValues,
   onFpsChange?: (fps: number) => void,
   initialPlayback: PlaybackClockOptions = {},
+  initialAuraId: AuraId | null = null,
+  initialToneMappingId: ToneMappingId | null = null,
 ) {
   const renderer = new THREE.WebGPURenderer({ antialias: true })
   const scene = new THREE.Scene()
@@ -38,6 +43,9 @@ export function mountThreeRuntime(
   let previousSampleTime = performance.now()
   let frameCount = 0
   let currentPaused = initialPlayback.paused ?? false
+  const auraPipeline = createThreeAuraPipeline(renderer, scene, camera)
+  auraPipeline.setAura(initialAuraId ?? 'off')
+  auraPipeline.setToneMapping(initialToneMappingId ?? 'none')
 
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   container.append(renderer.domElement)
@@ -46,6 +54,7 @@ export function mountThreeRuntime(
     viewportWidth = Math.max(1, container.clientWidth)
     viewportHeight = Math.max(1, container.clientHeight)
     renderer.setSize(viewportWidth, viewportHeight)
+    auraPipeline.setSize(viewportWidth, viewportHeight)
     camera.aspect = viewportWidth / viewportHeight
     camera.updateProjectionMatrix()
   }
@@ -59,7 +68,7 @@ export function mountThreeRuntime(
     const playbackFrame = clock.advance()
     update(playbackFrame)
     controls.update()
-    renderer.render(scene, camera)
+    auraPipeline.render()
     frameCount += 1
     if (timestamp - previousSampleTime >= 1000) {
       onFpsChange?.(Math.round((frameCount * 1000) / (timestamp - previousSampleTime)))
@@ -126,6 +135,16 @@ export function mountThreeRuntime(
     setSpeed(speed: number) {
       if (!disposed) clock.setSpeed(speed)
     },
+    setAura(auraId: AuraId) {
+      if (disposed) return
+      auraPipeline.setAura(auraId)
+      if (currentPaused) scheduleRender()
+    },
+    setToneMapping(toneMappingId: ToneMappingId) {
+      if (disposed) return
+      auraPipeline.setToneMapping(toneMappingId)
+      if (currentPaused) scheduleRender()
+    },
     dispose() {
       disposed = true
       cancelAnimationFrame(frameRequest)
@@ -137,6 +156,7 @@ export function mountThreeRuntime(
       renderer.domElement.removeEventListener('pointerup', releaseTouchPointer)
       controls.dispose()
       for (const cleanup of seedCleanupHandlers.reverse()) cleanup()
+      auraPipeline.dispose()
       renderer.dispose()
       const geometries = new Set<THREE.BufferGeometry>()
       const materials = new Set<THREE.Material>()

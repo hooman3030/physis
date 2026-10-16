@@ -16,6 +16,8 @@ import {
   selectImprint,
   setPresencePaused,
   setPresenceSpeed as updatePresenceSpeed,
+  setPresenceAura,
+  setPresenceToneMapping,
   setGenes as updateApiGenes,
   subscribeToPresence,
   type ImprintRecord,
@@ -41,6 +43,8 @@ import { removeDeletedImprintAndReparentChildren } from './imprintDeletion'
 import { captureArtworkPreview } from '../ui/archive/previewCapture'
 import { resolveAppRoute } from './routes'
 import type { ArtworkGeneValues } from '../seeds/types'
+import type { AuraId } from '../auras/types'
+import type { ToneMappingId } from '../auras/toneMapping'
 import { DEFAULT_PLAYBACK_SPEED } from '../playbackClock'
 import { artworkSeeds, defaultArtworkSeed, type ArtworkSeed } from '../seeds/registry'
 import '../ui/styles.css'
@@ -88,6 +92,14 @@ function ArtworkApp() {
   const [controlStatus, setControlStatus] = useState<ControlStatus>('connecting')
   const [paused, setPaused] = useState(false)
   const [speed, setSpeed] = useState(DEFAULT_PLAYBACK_SPEED)
+  const [auraId, setAuraId] = useState<AuraId | null>(
+    initialSettings.settings.seed.runtime === 'three'
+      ? (initialSettings.settings.seed.defaultAuraId ?? 'off')
+      : null,
+  )
+  const [toneMappingId, setToneMappingId] = useState<ToneMappingId | null>(
+    initialSettings.settings.seed.runtime === 'three' ? 'none' : null,
+  )
   const [playbackUpdating, setPlaybackUpdating] = useState(false)
   const [fps, setFps] = useState<number | null>(null)
   const [authenticationRequired, setAuthenticationRequired] = useState(false)
@@ -149,6 +161,8 @@ function ArtworkApp() {
     setPaused(snapshot.paused)
     authoritativeSpeedRef.current = snapshot.speed
     if (pendingSpeedRef.current === null) setSpeed(snapshot.speed)
+    setAuraId(snapshot.auraId)
+    setToneMappingId(snapshot.toneMappingId)
     setActiveImprintId(snapshot.imprint?.id ?? null)
     if (snapshot.code === null) return
     const activeSeed = artworkSeeds.find((candidate) => candidate.id === snapshot.code?.id)
@@ -455,6 +469,8 @@ function ArtworkApp() {
 
   const handleSeedChange = (nextSeed: ArtworkSeed) => {
     setSettings((current) => ({ ...current, seed: nextSeed }))
+    setAuraId(nextSeed.runtime === 'three' ? (nextSeed.defaultAuraId ?? 'off') : null)
+    setToneMappingId(nextSeed.runtime === 'three' ? 'none' : null)
     clearSaveFeedback()
     if (statusRef.current === 'connected') {
       void selectCode(nextSeed.id)
@@ -469,6 +485,36 @@ function ArtworkApp() {
           }
         })
     }
+  }
+
+  const handleAuraChange = (nextAuraId: AuraId) => {
+    if (statusRef.current !== 'connected') return
+    void setPresenceAura(nextAuraId)
+      .then((snapshot) => applyPresence(snapshot))
+      .catch((error: unknown) => {
+        if (!requirePairing(error)) {
+          reportApplicationError(`Aura selection failed: ${errorMessage(error)}`)
+        }
+        if (!(error instanceof ControlApiError)) {
+          statusRef.current = 'offline'
+          setControlStatus('offline')
+        }
+      })
+  }
+
+  const handleToneMappingChange = (nextToneMappingId: ToneMappingId) => {
+    if (statusRef.current !== 'connected') return
+    void setPresenceToneMapping(nextToneMappingId)
+      .then((snapshot) => applyPresence(snapshot))
+      .catch((error: unknown) => {
+        if (!requirePairing(error)) {
+          reportApplicationError(`Tone mapping selection failed: ${errorMessage(error)}`)
+        }
+        if (!(error instanceof ControlApiError)) {
+          statusRef.current = 'offline'
+          setControlStatus('offline')
+        }
+      })
   }
 
   const handleGenesChange = (values: ArtworkGeneValues) => {
@@ -663,6 +709,8 @@ function ArtworkApp() {
         genes={geneValues}
         paused={paused}
         speed={speed}
+        auraId={auraId}
+        toneMappingId={toneMappingId}
         onFpsChange={import.meta.env.DEV ? setFps : undefined}
         onCanvasReady={handleCanvasReady}
       />
@@ -708,6 +756,10 @@ function ArtworkApp() {
         activeSeed={seed}
         seeds={artworkSeeds}
         onSeedChange={handleSeedChange}
+        auraId={auraId}
+        onAuraChange={handleAuraChange}
+        toneMappingId={toneMappingId}
+        onToneMappingChange={handleToneMappingChange}
         geneValues={geneValues}
         onGeneChange={handleGeneChange}
         onGenesChange={handleGenesChange}

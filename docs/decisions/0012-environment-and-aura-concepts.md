@@ -26,6 +26,10 @@ exclusively to one Seed.
   Selecting a Seed starts with its declared default Aura, or Off if it has no
   default. Saving an Imprint captures the active Aura ID; selecting that
   Imprint restores its Aura.
+- Three.js tone mapping is a separate renderer output setting, not an Aura
+  effect. It is shared Presence state, starts at None for Three Seeds, and is
+  captured and restored with Imprints. Legacy Imprints without a tone-mapping
+  ID restore as None; non-Three Presences have no tone mapping.
 - When an Imprint has no Aura ID, as with Imprints created before Aura capture
   is supported, use the Seed's default Aura or Off. This gives Imprint-specific
   Aura state precedence over the Seed default.
@@ -43,6 +47,7 @@ catalog and its editing experience remain implementation questions.
 - An Aura can be selected independently of the Seed that first introduced or
   recommended it.
 - Imprints preserve their own Aura selection, with a Seed default as fallback.
+- Imprints also preserve Three.js tone mapping independently of Aura.
 - Aura compatibility must be considered when selecting one for a Presence.
 
 ## Alternatives considered

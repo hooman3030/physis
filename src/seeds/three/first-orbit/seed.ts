@@ -20,6 +20,7 @@ export const firstOrbitSeed: ThreeSeed = {
   id: 'first-orbit',
   label: 'First orbit',
   runtime: 'three',
+  defaultAuraId: 'soft-bloom',
   genes: [
     { id: 'hue', label: 'Hue', defaultValue: 0.58, min: 0, max: 1, step: 0.01 },
     { id: 'accent', label: 'Accent', defaultValue: 0.18, min: 0.08, max: 0.5, step: 0.01 },

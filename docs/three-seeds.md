@@ -91,6 +91,34 @@ and resume and keeps the user-facing controls consistent across p5 and Three.
 Changing either control must update the mounted runtime rather than remounting
 the Seed.
 
+## Aura post-processing
+
+The Three runtime owns a TSL `RenderPipeline` that applies the active Aura
+after the Seed scene pass. Aura presets are registered presentation settings,
+not Genes: they can be reused across compatible Three Seeds without changing
+the Seed's scene or parameters. A Three Seed may declare a default Aura;
+otherwise it starts with Aura Off. Selecting an Imprint restores its captured
+Aura, while legacy Imprints without one fall back to the Seed default or Off.
+The presets combine bloom, color grading, vignette, film grain, chromatic
+aberration, scanlines, signal warp, dot-screen, and pixelation. The runtime
+keeps this pipeline inside the existing WebGPU/WebGL 2 renderer path and
+disposes it when the Seed unmounts. p5 Seeds do not use Aura.
+
+Tone mapping is configured separately from Aura and uses Three's registered
+TSL output transforms: None, Linear, Reinhard, Cineon, ACES Filmic, AgX, or
+Neutral. It is shared Presence state, defaults to None, updates the mounted
+renderer without remounting the Seed, and is captured and restored with
+Imprints. Legacy Imprints restore with None; non-Three Presences have no
+tone-mapping selection.
+
+### Future Aura customization
+
+The longer-term direction is to let artists customize effects beyond choosing
+a preset, with grouped and orderable effect controls as one possibility and a
+node editor as another. This is an aspiration, not a settled implementation
+decision; the current reusable presets remain the contract until that
+interaction is designed.
+
 The bundled `first-orbit` Seed is the small reference scene: its Gene controls
 feed TSL uniforms, its central body is centered at the origin, and its planets
 orbit using playback time.
