@@ -16,8 +16,6 @@ import {
   selectImprint,
   setPresencePaused,
   setPresenceSpeed as updatePresenceSpeed,
-  setPresenceAura,
-  setPresenceToneMapping,
   setGenes as updateApiGenes,
   subscribeToPresence,
   type ImprintRecord,
@@ -92,14 +90,6 @@ function ArtworkApp() {
   const [controlStatus, setControlStatus] = useState<ControlStatus>('connecting')
   const [paused, setPaused] = useState(false)
   const [speed, setSpeed] = useState(DEFAULT_PLAYBACK_SPEED)
-  const [auraId, setAuraId] = useState<AuraId | null>(
-    initialSettings.settings.seed.runtime === 'three'
-      ? (initialSettings.settings.seed.defaultAuraId ?? 'off')
-      : null,
-  )
-  const [toneMappingId, setToneMappingId] = useState<ToneMappingId | null>(
-    initialSettings.settings.seed.runtime === 'three' ? 'none' : null,
-  )
   const [playbackUpdating, setPlaybackUpdating] = useState(false)
   const [fps, setFps] = useState<number | null>(null)
   const [authenticationRequired, setAuthenticationRequired] = useState(false)
@@ -161,8 +151,6 @@ function ArtworkApp() {
     setPaused(snapshot.paused)
     authoritativeSpeedRef.current = snapshot.speed
     if (pendingSpeedRef.current === null) setSpeed(snapshot.speed)
-    setAuraId(snapshot.auraId)
-    setToneMappingId(snapshot.toneMappingId)
     setActiveImprintId(snapshot.imprint?.id ?? null)
     if (snapshot.code === null) return
     const activeSeed = artworkSeeds.find((candidate) => candidate.id === snapshot.code?.id)
@@ -469,8 +457,6 @@ function ArtworkApp() {
 
   const handleSeedChange = (nextSeed: ArtworkSeed) => {
     setSettings((current) => ({ ...current, seed: nextSeed }))
-    setAuraId(nextSeed.runtime === 'three' ? (nextSeed.defaultAuraId ?? 'off') : null)
-    setToneMappingId(nextSeed.runtime === 'three' ? 'none' : null)
     clearSaveFeedback()
     if (statusRef.current === 'connected') {
       void selectCode(nextSeed.id)
@@ -488,33 +474,11 @@ function ArtworkApp() {
   }
 
   const handleAuraChange = (nextAuraId: AuraId) => {
-    if (statusRef.current !== 'connected') return
-    void setPresenceAura(nextAuraId)
-      .then((snapshot) => applyPresence(snapshot))
-      .catch((error: unknown) => {
-        if (!requirePairing(error)) {
-          reportApplicationError(`Aura selection failed: ${errorMessage(error)}`)
-        }
-        if (!(error instanceof ControlApiError)) {
-          statusRef.current = 'offline'
-          setControlStatus('offline')
-        }
-      })
+    setSettings((current) => ({ ...current, auraId: nextAuraId }))
   }
 
   const handleToneMappingChange = (nextToneMappingId: ToneMappingId) => {
-    if (statusRef.current !== 'connected') return
-    void setPresenceToneMapping(nextToneMappingId)
-      .then((snapshot) => applyPresence(snapshot))
-      .catch((error: unknown) => {
-        if (!requirePairing(error)) {
-          reportApplicationError(`Tone mapping selection failed: ${errorMessage(error)}`)
-        }
-        if (!(error instanceof ControlApiError)) {
-          statusRef.current = 'offline'
-          setControlStatus('offline')
-        }
-      })
+    setSettings((current) => ({ ...current, toneMappingId: nextToneMappingId }))
   }
 
   const handleGenesChange = (values: ArtworkGeneValues) => {
@@ -709,8 +673,8 @@ function ArtworkApp() {
         genes={geneValues}
         paused={paused}
         speed={speed}
-        auraId={auraId}
-        toneMappingId={toneMappingId}
+        auraId={settings.auraId}
+        toneMappingId={settings.toneMappingId}
         onFpsChange={import.meta.env.DEV ? setFps : undefined}
         onCanvasReady={handleCanvasReady}
       />
@@ -756,9 +720,9 @@ function ArtworkApp() {
         activeSeed={seed}
         seeds={artworkSeeds}
         onSeedChange={handleSeedChange}
-        auraId={auraId}
+        auraId={settings.auraId}
         onAuraChange={handleAuraChange}
-        toneMappingId={toneMappingId}
+        toneMappingId={settings.toneMappingId}
         onToneMappingChange={handleToneMappingChange}
         geneValues={geneValues}
         onGeneChange={handleGeneChange}

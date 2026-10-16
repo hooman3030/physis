@@ -1,7 +1,7 @@
 import type { ArtworkGene, ArtworkGeneValues, RuntimeKind, SeedDeclaration } from './seeds/types'
 import { isAuraCompatible, isAuraId } from './auras/registry'
 import type { AuraId } from './auras/types'
-import { isToneMappingCompatible, isToneMappingId, type ToneMappingId } from './auras/toneMapping'
+import { isToneMappingId, type ToneMappingId } from './auras/toneMapping'
 import { isPlaybackSpeed } from './playbackClock'
 
 const API_BASE_URL = '/api/v1'
@@ -11,8 +11,6 @@ export type PresenceSnapshot = {
   revision: number
   paused: boolean
   speed: number
-  auraId: AuraId | null
-  toneMappingId: ToneMappingId | null
   code: { id: string } | null
   imprint: { id: string } | null
   module: SeedDeclaration | null
@@ -234,33 +232,17 @@ function parsePresenceSnapshot(value: unknown): PresenceSnapshot {
     typeof value.revision !== 'number' ||
     !Number.isSafeInteger(value.revision) ||
     typeof value.paused !== 'boolean' ||
-    !isPlaybackSpeed(value.speed) ||
-    (value.auraId !== null && !isAuraId(value.auraId)) ||
-    (value.toneMappingId !== null && !isToneMappingId(value.toneMappingId))
+    !isPlaybackSpeed(value.speed)
   ) {
     throw new Error('Control API returned an invalid Presence snapshot')
   }
 
   const module = parseModule(value.module)
-  if (
-    value.auraId !== null &&
-    (module === null || !isAuraCompatible(value.auraId, module.runtime))
-  ) {
-    throw new Error('Control API returned an Aura incompatible with the active module')
-  }
-  if (
-    value.toneMappingId !== null &&
-    (module === null || !isToneMappingCompatible(value.toneMappingId, module.runtime))
-  ) {
-    throw new Error('Control API returned tone mapping incompatible with the active module')
-  }
 
   return {
     revision: value.revision,
     paused: value.paused,
     speed: value.speed,
-    auraId: value.auraId,
-    toneMappingId: value.toneMappingId,
     code: parseIdentity(value.code, 'code node'),
     imprint: parseIdentity(value.imprint, 'Imprint'),
     module,
@@ -403,26 +385,6 @@ export async function setPresenceSpeed(speed: number): Promise<PresenceSnapshot>
     await request('/presence/playback', {
       method: 'PUT',
       body: JSON.stringify({ speed }),
-    }),
-  )
-}
-
-export async function setPresenceAura(auraId: AuraId): Promise<PresenceSnapshot> {
-  return parsePresenceSnapshot(
-    await request('/presence/aura', {
-      method: 'PUT',
-      body: JSON.stringify({ auraId }),
-    }),
-  )
-}
-
-export async function setPresenceToneMapping(
-  toneMappingId: ToneMappingId,
-): Promise<PresenceSnapshot> {
-  return parsePresenceSnapshot(
-    await request('/presence/tone-mapping', {
-      method: 'PUT',
-      body: JSON.stringify({ toneMappingId }),
     }),
   )
 }

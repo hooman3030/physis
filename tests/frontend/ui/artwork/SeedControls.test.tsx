@@ -37,7 +37,7 @@ describe('seed controls', () => {
     expect(markup).not.toContain('for="aura"')
   })
 
-  it('offers Aura presets only for compatible Three Seeds', () => {
+  it('offers local Aura presets on Three Seeds while the control API is offline', () => {
     const markup = renderToStaticMarkup(
       <SeedControls
         activeSeed={firstOrbitSeed}
@@ -52,7 +52,7 @@ describe('seed controls', () => {
         onGenesChange={vi.fn()}
         onResetCanvas={vi.fn()}
         onSaveImprint={vi.fn()}
-        controlStatus="connected"
+        controlStatus="offline"
         saveStatus="idle"
       />,
     )
@@ -69,6 +69,8 @@ describe('seed controls', () => {
     expect(markup).toContain('<label for="tone-mapping">Tone mapping</label>')
     expect(markup).toContain('<option value="agx" selected="">AgX</option>')
     expect(markup).toContain('<option value="neutral">Neutral</option>')
+    expect(markup.match(/<select id="aura"[^>]*>/)?.[0]).not.toContain('disabled')
+    expect(markup.match(/<select id="tone-mapping"[^>]*>/)?.[0]).not.toContain('disabled')
   })
 
   it('renders Gene sliders for the active module', () => {

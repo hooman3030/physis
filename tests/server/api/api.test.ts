@@ -73,8 +73,9 @@ describe('presence', () => {
       genes: null,
       paused: false,
       speed: 1,
-      toneMappingId: null,
     })
+    expect((await call('GET', '/presence')).body).not.toHaveProperty('auraId')
+    expect((await call('GET', '/presence')).body).not.toHaveProperty('toneMappingId')
 
     const { status, body } = await call('POST', '/presence', { kind: 'code', id: seedId })
     expect(status).toBe(200)
@@ -85,49 +86,15 @@ describe('presence', () => {
     expect(body.module.genes).toHaveLength(driftingFilamentsSeed.genes.length)
   })
 
-  it('shares a compatible Aura and treats Off as an explicit selection', async () => {
+  it('keeps Aura and tone mapping out of shared Presence state and the API', async () => {
     const selected = await call('POST', '/presence', {
       kind: 'code',
       id: firstOrbitSeed.id,
     })
-    expect(selected.body.auraId).toBe('soft-bloom')
-
-    const off = await call('PUT', '/presence/aura', { auraId: 'off' })
-    expect(off.status).toBe(200)
-    expect(off.body.auraId).toBe('off')
-    expect((await call('GET', '/presence')).body.auraId).toBe('off')
-
-    expect((await call('PUT', '/presence/aura', { auraId: 'warm-film' })).body.auraId).toBe(
-      'warm-film',
-    )
-    await call('POST', '/presence', { kind: 'code', id: seedId })
-    expect((await call('GET', '/presence')).body.auraId).toBeNull()
-    expect((await call('PUT', '/presence/aura', { auraId: 'soft-bloom' })).status).toBe(400)
-    expect((await call('PUT', '/presence/aura', { auraId: 'unknown' })).status).toBe(400)
-  })
-
-  it('shares compatible Three tone mapping and validates incompatible selections', async () => {
-    const selected = await call('POST', '/presence', {
-      kind: 'code',
-      id: firstOrbitSeed.id,
-    })
-    expect(selected.body.toneMappingId).toBe('none')
-
-    const mapped = await call('PUT', '/presence/tone-mapping', { toneMappingId: 'agx' })
-    expect(mapped.status).toBe(200)
-    expect(mapped.body.toneMappingId).toBe('agx')
-    expect((await call('GET', '/presence')).body.toneMappingId).toBe('agx')
-    expect((await call('PUT', '/presence/tone-mapping', { toneMappingId: 'unknown' })).status).toBe(
-      400,
-    )
-    expect(
-      (await call('PUT', '/presence/tone-mapping', { toneMappingId: 'neutral', extra: true }))
-        .status,
-    ).toBe(400)
-
-    await call('POST', '/presence', { kind: 'code', id: seedId })
-    expect((await call('GET', '/presence')).body.toneMappingId).toBeNull()
-    expect((await call('PUT', '/presence/tone-mapping', { toneMappingId: 'agx' })).status).toBe(400)
+    expect(selected.body).not.toHaveProperty('auraId')
+    expect(selected.body).not.toHaveProperty('toneMappingId')
+    expect((await call('PUT', '/presence/aura', { auraId: 'prismatic' })).status).toBe(405)
+    expect((await call('PUT', '/presence/tone-mapping', { toneMappingId: 'agx' })).status).toBe(405)
   })
 
   it('shares transient playback controls and resets them for newly selected artwork', async () => {
@@ -233,37 +200,19 @@ describe('presence', () => {
     expect(body.genes[firstGene.id]).toBe(firstGene.max)
   })
 
-  it('captures Aura and tone mapping per Imprint and falls back for legacy Imprints', async () => {
+  it('does not capture Aura or tone mapping in newly created Imprints', async () => {
     await call('POST', '/presence', { kind: 'code', id: firstOrbitSeed.id })
-    await call('PUT', '/presence/aura', { auraId: 'prismatic' })
-    await call('PUT', '/presence/tone-mapping', { toneMappingId: 'agx' })
     const saved = await call('POST', '/imprints', {})
-    expect(saved.body.auraId).toBe('prismatic')
-    expect(saved.body.toneMappingId).toBe('agx')
+    expect(saved.body.auraId).toBeNull()
+    expect(saved.body.toneMappingId).toBeNull()
 
     await call('POST', '/presence', { kind: 'code', id: firstLightSeed.id })
     const restored = await call('POST', '/presence', {
       kind: 'imprint',
       id: saved.body.id,
     })
-    expect(restored.body.auraId).toBe('prismatic')
-    expect(restored.body.toneMappingId).toBe('agx')
-
-    const legacy = archive.saveImprint({
-      codeId: firstOrbitSeed.id,
-      sourceRevision: REVISION,
-      genes: Object.fromEntries(
-        firstOrbitSeed.genes.map(({ id, defaultValue }) => [id, defaultValue]),
-      ),
-      auraId: null,
-      toneMappingId: null,
-    })
-    const legacyRestored = await call('POST', '/presence', {
-      kind: 'imprint',
-      id: legacy.id,
-    })
-    expect(legacyRestored.body.auraId).toBe(firstOrbitSeed.defaultAuraId)
-    expect(legacyRestored.body.toneMappingId).toBe('none')
+    expect(restored.body).not.toHaveProperty('auraId')
+    expect(restored.body).not.toHaveProperty('toneMappingId')
   })
 
   it('validates selection requests', async () => {

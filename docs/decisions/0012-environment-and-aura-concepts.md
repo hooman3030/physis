@@ -22,17 +22,14 @@ exclusively to one Seed.
   Presences.
 - An Aura is a presentation treatment, not a Gene or an Environment. It does
   not itself change Gene values.
-- A Presence has an active Aura selection, synchronized with connected clients.
-  Selecting a Seed starts with its declared default Aura, or Off if it has no
-  default. Saving an Imprint captures the active Aura ID; selecting that
-  Imprint restores its Aura.
-- Three.js tone mapping is a separate renderer output setting, not an Aura
-  effect. It is shared Presence state, starts at None for Three Seeds, and is
-  captured and restored with Imprints. Legacy Imprints without a tone-mapping
-  ID restore as None; non-Three Presences have no tone mapping.
-- When an Imprint has no Aura ID, as with Imprints created before Aura capture
-  is supported, use the Seed's default Aura or Off. This gives Imprint-specific
-  Aura state precedence over the Seed default.
+- Aura selection and Three.js tone mapping are browser-local presentation
+  preferences, persisted with the browser's local artwork settings. They are
+  independent of Genes and are not shared through the control service.
+- A Seed's declared default Aura is used only to initialize a browser that has
+  no saved Aura preference. Subsequent Seed changes do not replace the saved
+  preference.
+- Selecting an Imprint restores its Genes only; it does not change Aura or
+  tone mapping. Imprints do not capture either setting.
 - For the current Three.js runtime, Aura processing is renderer-specific and
   should be applied by the runtime after the Seed creates its scene. Reuse is
   across compatible Seeds and Presences; cross-runtime portability is not
@@ -46,9 +43,12 @@ catalog and its editing experience remain implementation questions.
 - Documentation uses **Environment** instead of **World** for Gene drift.
 - An Aura can be selected independently of the Seed that first introduced or
   recommended it.
-- Imprints preserve their own Aura selection, with a Seed default as fallback.
-- Imprints also preserve Three.js tone mapping independently of Aura.
+- Aura and tone mapping persist in the local browser settings, independent of
+  Seed and Imprint selection. Different browsers can use different settings.
 - Aura compatibility must be considered when selecting one for a Presence.
+- Historical Imprint Aura and tone-mapping columns are retained for
+  append-only archive compatibility, but are no longer read for display or
+  written to new Imprints.
 
 ## Alternatives considered
 

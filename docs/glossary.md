@@ -7,21 +7,24 @@
   Selected Mutations may be promoted to Seeds; a Seed is a promoted code node.
 - **Gene** – a bounded, Seed-declared artistic trait that influences how the
   artwork is rendered. A Gene has a current value in a Presence.
-- **Imprint** – an immutable capture of an artwork's Genes, selected Aura,
-  Three.js tone mapping, and random seed when applicable at a point in time.
+- **Imprint** – an immutable capture of an artwork's Genes and random seed
+  when applicable at a point in time.
   It references the Seed and source revision used to render it and may have a
   parent Imprint. It is data, not a screenshot.
 - **Presence** – an artwork currently running in the browser: a pointer to the
   Seed or Mutation it runs and, optionally, the Imprint it started from. It is
   not part of any lineage; selecting anything in the archive starts a Presence.
   Its transient playback state is authoritative in the local control service
-  and shared with connected clients.
+  and shared with connected clients. Aura and tone-mapping preferences are
+  saved locally in each browser and are not changed by Seed or Imprint
+  selection.
 - **Environment** – an adjustable influence on how a Presence's Gene values
   change over time. Saved-Imprint-informed bias is a future direction, not yet
   a defined analysis.
 - **Aura** – a reusable post-processing treatment applied to a Presence's
   rendered output. An Aura may be associated with a Seed, but is not owned by
-  it and may be reused with other compatible Seeds and Presences.
+  it and may be reused with other compatible Seeds and Presences. Its
+  selection is a browser-local preference, independent of Imprints.
 - **Source revision** – a Git commit hash identifying the build that
   contained a Seed or Mutation's code. It is provenance only; Seed modules
   are immutable, so each Seed ID always resolves to its original code.

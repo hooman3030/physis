@@ -82,32 +82,16 @@ describe('imprints', () => {
     expect(saved.validation).toEqual({ ok: true })
   })
 
-  it('stores registered Auras with compatible Three Imprints', () => {
+  it('leaves legacy Aura and tone-mapping columns empty on new Imprints', () => {
     archive.registerSeed({ id: firstOrbitSeed.id, sourceRevision: REV_A })
     const saved = archive.saveImprint({
       codeId: firstOrbitSeed.id,
       sourceRevision: REV_A,
       genes: defaults(firstOrbitSeed),
-      auraId: 'soft-bloom',
-      toneMappingId: 'agx',
     })
 
-    expect(saved.auraId).toBe('soft-bloom')
-    expect(saved.toneMappingId).toBe('agx')
-    expect(archive.selectImprint(saved.id).imprint?.auraId).toBe('soft-bloom')
-    expect(archive.selectImprint(saved.id).imprint?.toneMappingId).toBe('agx')
-    expectCode(() => save({ auraId: 'soft-bloom' }), 'invalid-input')
-    expectCode(() => save({ toneMappingId: 'agx' }), 'invalid-input')
-    expectCode(
-      () =>
-        archive.saveImprint({
-          codeId: firstOrbitSeed.id,
-          sourceRevision: REV_A,
-          genes: defaults(firstOrbitSeed),
-          toneMappingId: 'unregistered',
-        }),
-      'invalid-input',
-    )
+    expect(saved.auraId).toBeNull()
+    expect(saved.toneMappingId).toBeNull()
   })
 
   it('chains saves as parent/child lineage without losing ancestors', () => {

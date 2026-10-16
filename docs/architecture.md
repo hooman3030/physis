@@ -46,12 +46,13 @@ authored Seed + prompt
                          new Seed
 ```
 
-An Imprint records the Genes, selected Aura, and Three.js tone mapping used by
-a Presence and can have a parent Imprint, forming a trait lineage. A Mutation
-records a source-code change and can have a parent Seed or Mutation, forming a
-separate code lineage. An Imprint references the Seed and source revision it
-uses. The control plane records both lineages; a rejected Mutation never
-replaces the active Seed.
+An Imprint records the Genes used by a Presence and can have a parent Imprint,
+forming a trait lineage. Aura and Three.js tone mapping are browser-local
+presentation preferences, independent of Seed and Imprint selection. A
+Mutation records a source-code change and can have a parent Seed or Mutation,
+forming a separate code lineage. An Imprint references the Seed and source
+revision it uses. The control plane records both lineages; a rejected Mutation
+never replaces the active Seed.
 
 ## Runtime and rendering
 
@@ -105,16 +106,17 @@ should record at least:
 - **Mutation:** stable identity, parent Seed or Mutation, source revision, and
   validation/promotion metadata.
 - **Imprint:** stable identity, parent Imprint, Seed and source revision used,
-  Gene values, selected Aura, Three.js tone mapping, random seed when
-  applicable, creation time, and validation metadata.
+  Gene values, random seed when applicable, creation time, and validation
+  metadata.
 - **Presence:** the active Imprint and runtime status; it can resume from its
   last-known-good local settings if the control service is unavailable.
 
-Imprints capture Gene state, selected Aura and Three.js tone-mapping IDs, not
-screenshots. A visual capture, if needed later, is a separate image asset
-linked to a Presence or Imprint and does not replace the Imprint's data.
-Selecting an Imprint as the starting state for further work creates a child
-Imprint and preserves its ancestors.
+Imprints capture Gene state, not Aura or Three.js tone-mapping preferences and
+not screenshots. Aura and tone mapping are saved in each browser's local
+artwork settings and can differ between connected clients. A visual capture,
+if needed later, is a separate image asset linked to a Presence or Imprint and
+does not replace the Imprint's data. Selecting an Imprint as the starting state
+for further work creates a child Imprint and preserves its ancestors.
 
 ## Remote studio
 

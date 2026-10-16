@@ -17,8 +17,6 @@ import {
   selectCode,
   selectImprint,
   setGenes,
-  setPresenceAura,
-  setPresenceToneMapping,
   setPresencePaused,
   setPresenceSpeed,
   subscribeToPresence,
@@ -28,8 +26,6 @@ const snapshot = {
   revision: 3,
   paused: false,
   speed: 1,
-  auraId: null,
-  toneMappingId: null,
   code: { id: 'first-light' },
   imprint: null,
   module: { id: 'first-light', label: 'First Light', genes: [], runtime: 'p5' },
@@ -91,8 +87,9 @@ describe('control API client', () => {
   })
 
   it('loads and validates the current Presence', async () => {
+    const legacySnapshot = { ...snapshot, auraId: 'warm-film', toneMappingId: 'agx' }
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(JSON.stringify(snapshot), {
+      new Response(JSON.stringify(legacySnapshot), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       }),
@@ -140,64 +137,6 @@ describe('control API client', () => {
       expect.objectContaining({
         method: 'PUT',
         body: JSON.stringify({ speed: 2.5 }),
-        headers: expect.any(Headers),
-      }),
-    )
-  })
-
-  it('sets and validates a compatible shared Presence Aura', async () => {
-    const threeSnapshot = {
-      ...snapshot,
-      auraId: 'warm-film',
-      code: { id: 'first-orbit' },
-      module: {
-        id: 'first-orbit',
-        label: 'First Orbit',
-        genes: [],
-        runtime: 'three',
-        defaultAuraId: 'soft-bloom',
-      },
-    }
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(new Response(JSON.stringify(threeSnapshot), { status: 200 }))
-    vi.stubGlobal('fetch', fetchMock)
-
-    await expect(setPresenceAura('warm-film')).resolves.toEqual(threeSnapshot)
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/v1/presence/aura',
-      expect.objectContaining({
-        method: 'PUT',
-        body: JSON.stringify({ auraId: 'warm-film' }),
-        headers: expect.any(Headers),
-      }),
-    )
-  })
-
-  it('sets and validates compatible shared Presence tone mapping', async () => {
-    const threeSnapshot = {
-      ...snapshot,
-      toneMappingId: 'agx',
-      code: { id: 'first-orbit' },
-      module: {
-        id: 'first-orbit',
-        label: 'First Orbit',
-        genes: [],
-        runtime: 'three',
-        defaultAuraId: 'soft-bloom',
-      },
-    }
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(new Response(JSON.stringify(threeSnapshot), { status: 200 }))
-    vi.stubGlobal('fetch', fetchMock)
-
-    await expect(setPresenceToneMapping('agx')).resolves.toEqual(threeSnapshot)
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/v1/presence/tone-mapping',
-      expect.objectContaining({
-        method: 'PUT',
-        body: JSON.stringify({ toneMappingId: 'agx' }),
         headers: expect.any(Headers),
       }),
     )

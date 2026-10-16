@@ -177,7 +177,6 @@ export function SeedControls({
               id="aura"
               className="control"
               value={auraId ?? 'off'}
-              disabled={controlsDisabled || controlStatus !== 'connected'}
               onChange={(event) => {
                 const value = event.currentTarget.value
                 if (isAuraId(value)) {
@@ -200,7 +199,6 @@ export function SeedControls({
               id="tone-mapping"
               className="control"
               value={toneMappingId ?? 'none'}
-              disabled={controlsDisabled || controlStatus !== 'connected'}
               onChange={(event) => {
                 const value = event.currentTarget.value
                 if (isToneMappingId(value)) {

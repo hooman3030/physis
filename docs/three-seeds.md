@@ -96,9 +96,11 @@ the Seed.
 The Three runtime owns a TSL `RenderPipeline` that applies the active Aura
 after the Seed scene pass. Aura presets are registered presentation settings,
 not Genes: they can be reused across compatible Three Seeds without changing
-the Seed's scene or parameters. A Three Seed may declare a default Aura;
-otherwise it starts with Aura Off. Selecting an Imprint restores its captured
-Aura, while legacy Imprints without one fall back to the Seed default or Off.
+the Seed's scene or parameters. Aura selection is stored in the browser's
+local artwork settings, independently of Seed and Imprint selection. A Three
+Seed's declared default Aura initializes the preference only when the browser
+has no saved Aura selection; otherwise the saved preference is kept. Imprints
+do not capture or restore Aura.
 The presets combine bloom, color grading, vignette, film grain, chromatic
 aberration, scanlines, signal warp, dot-screen, and pixelation. The runtime
 keeps this pipeline inside the existing WebGPU/WebGL 2 renderer path and
@@ -106,10 +108,11 @@ disposes it when the Seed unmounts. p5 Seeds do not use Aura.
 
 Tone mapping is configured separately from Aura and uses Three's registered
 TSL output transforms: None, Linear, Reinhard, Cineon, ACES Filmic, AgX, or
-Neutral. It is shared Presence state, defaults to None, updates the mounted
-renderer without remounting the Seed, and is captured and restored with
-Imprints. Legacy Imprints restore with None; non-Three Presences have no
-tone-mapping selection.
+Neutral. It is also stored in the browser's local artwork settings, defaults
+to None, and updates the mounted renderer without remounting the Seed.
+Imprints do not capture or restore tone mapping. Aura and tone mapping are
+browser-local and may differ between connected clients; non-Three Seeds simply
+do not apply them.
 
 ### Future Aura customization
 

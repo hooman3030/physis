@@ -1,4 +1,8 @@
 import type { ArtworkGeneValues, SeedDeclaration } from './seeds/types'
+import { isAuraId } from './auras/registry'
+import type { AuraId } from './auras/types'
+import { isToneMappingId } from './auras/toneMapping'
+import type { ToneMappingId } from './auras/toneMapping'
 
 const STORAGE_KEY = 'physis:settings:v1'
 
@@ -8,6 +12,8 @@ type ErrorReporter = (message: string) => void
 export type ArtworkSettings<TSeed extends SeedDeclaration = SeedDeclaration> = {
   seed: TSeed
   genesBySeed: Readonly<Record<string, ArtworkGeneValues>>
+  auraId: AuraId
+  toneMappingId: ToneMappingId
 }
 
 export function getDefaultGeneValues(seed: SeedDeclaration): ArtworkGeneValues {
@@ -77,11 +83,32 @@ export function loadSettings<TSeed extends SeedDeclaration>(
         ? (record.parameters as Record<string, unknown>)
         : {}
 
+  const seed = seeds.find((candidate) => candidate.id === record.seedId) ?? defaultSeed
+  const defaultAuraId = seed.defaultAuraId ?? 'off'
+  let auraId = defaultAuraId
+  if (record.auraId !== undefined) {
+    if (isAuraId(record.auraId)) {
+      auraId = record.auraId
+    } else {
+      reportError('Saved Aura preference is invalid; the Seed default will be used.')
+    }
+  }
+  let toneMappingId: ToneMappingId = 'none'
+  if (record.toneMappingId !== undefined) {
+    if (isToneMappingId(record.toneMappingId)) {
+      toneMappingId = record.toneMappingId
+    } else {
+      reportError('Saved tone-mapping preference is invalid; None will be used.')
+    }
+  }
+
   return {
-    seed: seeds.find((candidate) => candidate.id === record.seedId) ?? defaultSeed,
+    seed,
     genesBySeed: Object.fromEntries(
       seeds.map((seed) => [seed.id, sanitizeGeneValues(seed, storedGenes[seed.id])]),
     ),
+    auraId,
+    toneMappingId,
   }
 }
 
@@ -93,7 +120,12 @@ export function saveSettings(
   try {
     storage?.setItem(
       STORAGE_KEY,
-      JSON.stringify({ seedId: settings.seed.id, genes: settings.genesBySeed }),
+      JSON.stringify({
+        seedId: settings.seed.id,
+        genes: settings.genesBySeed,
+        auraId: settings.auraId,
+        toneMappingId: settings.toneMappingId,
+      }),
     )
   } catch (error) {
     reportError(`Could not save artwork settings: ${errorMessage(error)}`)

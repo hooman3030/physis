@@ -4,7 +4,7 @@ import { backup as sqliteBackup, DatabaseSync } from 'node:sqlite'
 import type { SeedDeclaration } from '../../src/seeds/types'
 import { isAuraCompatible, isAuraId } from '../../src/auras/registry'
 import type { AuraId } from '../../src/auras/types'
-import { isToneMappingCompatible, isToneMappingId } from '../../src/auras/toneMapping'
+import { isToneMappingId } from '../../src/auras/toneMapping'
 import type { ToneMappingId } from '../../src/auras/toneMapping'
 import { ArchiveError } from './errors'
 import { migrate } from './migrations'
@@ -48,8 +48,6 @@ export type SaveImprintInput = {
   codeId: string
   sourceRevision: string
   genes: GeneValues
-  auraId?: AuraId | null
-  toneMappingId?: ToneMappingId | null
   randomSeed?: number | null
   validation?: unknown
   // Defaults to the Presence's Imprint when it runs the same code, otherwise
@@ -277,15 +275,6 @@ export class Archive {
       this.getCodeNode(input.codeId)
       const declaration = this.#declaration(input.codeId)
       validateGenes(declaration, input.genes)
-      if (input.auraId != null && !isAuraCompatible(input.auraId, declaration.runtime)) {
-        throw invalid(`Aura ${input.auraId} is incompatible with ${input.codeId}`)
-      }
-      if (
-        input.toneMappingId != null &&
-        !isToneMappingCompatible(input.toneMappingId, declaration.runtime)
-      ) {
-        throw invalid(`Tone mapping ${input.toneMappingId} is incompatible with ${input.codeId}`)
-      }
 
       const presence = this.getPresence()
       const parentId =
@@ -315,8 +304,8 @@ export class Archive {
           input.codeId,
           input.sourceRevision,
           JSON.stringify(input.genes),
-          input.auraId ?? null,
-          input.toneMappingId ?? null,
+          null,
+          null,
           randomSeed,
           input.validation === undefined ? null : JSON.stringify(input.validation),
           this.#timestamp(),

@@ -21,8 +21,6 @@ import {
   toHttpError,
 } from './http'
 import { LivePresence, type ControlModule, type SelectKind } from './presence'
-import { isAuraId } from '../../src/auras/registry'
-import { isToneMappingId } from '../../src/auras/toneMapping'
 import { isPlaybackSpeed } from '../../src/playbackClock'
 
 const DEFAULT_ALLOWED_ORIGINS = ['http://127.0.0.1:5173', 'http://localhost:5173']
@@ -236,35 +234,6 @@ export function createControlServer(options: ControlServerOptions): ControlServe
         throw new HttpError(400, '"genes" must be an object')
       }
       return ok(presence.setGenes(values as Record<string, unknown>))
-    }
-
-    if (method === 'PUT' && resource === 'presence' && id === 'aura' && segments.length === 2) {
-      const body = await readJsonObject(request)
-      if (Object.keys(body).length !== 1 || !Object.hasOwn(body, 'auraId')) {
-        throw new HttpError(400, 'Provide exactly one "auraId"')
-      }
-      const auraId = body.auraId
-      if (!isAuraId(auraId)) {
-        throw new HttpError(400, '"auraId" must be a registered Aura ID')
-      }
-      return ok(presence.setAura(auraId))
-    }
-
-    if (
-      method === 'PUT' &&
-      resource === 'presence' &&
-      id === 'tone-mapping' &&
-      segments.length === 2
-    ) {
-      const body = await readJsonObject(request)
-      if (Object.keys(body).length !== 1 || !Object.hasOwn(body, 'toneMappingId')) {
-        throw new HttpError(400, 'Provide exactly one "toneMappingId"')
-      }
-      const toneMappingId = body.toneMappingId
-      if (!isToneMappingId(toneMappingId)) {
-        throw new HttpError(400, '"toneMappingId" must be a registered tone-mapping ID')
-      }
-      return ok(presence.setToneMapping(toneMappingId))
     }
 
     if (method === 'PUT' && resource === 'presence' && id === 'playback' && segments.length === 2) {
