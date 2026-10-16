@@ -36,9 +36,10 @@ import type StorageBufferNode from 'three/src/nodes/accessors/StorageBufferNode.
 import type UniformNode from 'three/src/nodes/core/UniformNode.js'
 
 export const MAX_BOID_COUNT = 8192
-const CLICK_BOOST = 3
-// Speeds up to this share of the maximum are untouched; above it they taper exponentially.
-const SPEED_TAPER_START = 0.6
+const CLICK_STRENGTH_BOOST = 20
+const CLICK_SPEED_BOOST = 10
+// Rate (per second) at which speed above the maximum decays back toward it.
+const SPEED_EXCESS_DECAY = 1.5
 const MINIMUM_SPEED = 0.04
 const SEPARATION_STRENGTH_MULTIPLIER = 2.5
 const SEPARATION_DISTANCE_MULTIPLIER = 1.5
@@ -190,7 +191,9 @@ function createUpdatePass(
     const cursorDistance = cursorOffset.length()
     If(cursor.w.notEqual(0).and(cursorDistance.lessThan(cursor.z)), () => {
       const falloff = float(1).sub(cursorDistance.div(cursor.z))
-      speedCeiling.assign(maximumSpeed.mul(float(1).add(burst.mul(falloff).mul(CLICK_BOOST - 1))))
+      speedCeiling.assign(
+        maximumSpeed.mul(float(1).add(burst.mul(falloff).mul(CLICK_SPEED_BOOST - 1))),
+      )
       const desiredVelocity = cursorOffset
         .div(cursorDistance.max(0.0001))
         .mul(select(cursor.w.greaterThan(0), float(1), float(-1)))
@@ -210,13 +213,12 @@ function createUpdatePass(
       candidateVelocity.div(candidateSpeed.max(0.0001)),
       fallbackDirection,
     )
-    const taperStart = speedCeiling.mul(SPEED_TAPER_START)
-    const taperRange = speedCeiling.sub(taperStart)
+    // Speed above the maximum is not clamped; the excess decays exponentially over time.
     const unclampedSpeed = candidateSpeed.max(MINIMUM_SPEED)
     const speed = select(
-      unclampedSpeed.greaterThan(taperStart),
-      taperStart.add(
-        taperRange.mul(float(1).sub(exp(unclampedSpeed.sub(taperStart).div(taperRange).negate()))),
+      unclampedSpeed.greaterThan(maximumSpeed),
+      maximumSpeed.add(
+        unclampedSpeed.sub(maximumSpeed).mul(exp(deltaSeconds.mul(-SPEED_EXCESS_DECAY))),
       ),
       unclampedSpeed,
     )
@@ -369,7 +371,7 @@ export function createBoidSimulation(
       (pointer?.x ?? 0) * aspect,
       pointer?.y ?? 0,
       genes.cursorRadius,
-      pointer === null ? 0 : genes.cursorAttraction * (pointer.pressed ? CLICK_BOOST : 1),
+      pointer === null ? 0 : genes.cursorAttraction * (pointer.pressed ? CLICK_STRENGTH_BOOST : 1),
     )
     burst.value = pointer?.pressed === true ? 1 : 0
     viewHeight.value = 2 * Math.tan((camera.fov * Math.PI) / 360)
