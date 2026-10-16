@@ -19,6 +19,7 @@ import type { LineageSelection } from './LineageExplorer'
 import {
   createInitialLineagePositions,
   graphDimensions,
+  type GraphDimensions,
   type GraphPosition,
   type LineageGraph,
   type LineageGraphNode,
@@ -30,7 +31,9 @@ type LineageGraphViewProps = {
   graph: LineageGraph
   presence: PresenceSnapshot | null
   selection: LineageSelection | null
+  canDeleteImprints: boolean
   onSelect: (selection: LineageSelection) => void
+  onDeleteImprints: (imprintIds: readonly string[]) => Promise<readonly string[]>
 }
 
 type Viewport = {
@@ -63,16 +66,91 @@ type Gesture =
       moved: boolean
     }
 
-const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, scale: 1 }
+const DEFAULT_ZOOM_SCALE = 1.15
 const MIN_ZOOM = 0.5
-const MAX_ZOOM = 2.5
+const MAX_ZOOM = 3
 const DRAG_THRESHOLD = 3
 const NODE_MOVE_STEP = 12
 const WHEEL_ZOOM_SENSITIVITY = 0.0005
 const BACKDROP_TRANSITION_DURATION = 450
 
+const LINEAGE_GRAIN_LAYERS = [
+  {
+    width: 103,
+    height: 97,
+    depth: 0.08,
+    radius: 1.55,
+    fill: 'var(--color-warning)',
+    opacity: 0.36,
+  },
+  {
+    width: 71,
+    height: 67,
+    depth: 0.04,
+    radius: 0.85,
+    fill: 'var(--color-accent)',
+    opacity: 0.38,
+  },
+  {
+    width: 30,
+    height: 30,
+    depth: 0.02,
+    radius: 0.55,
+    fill: 'var(--surface-grid-dot)',
+    opacity: 1,
+  },
+] as const
+
 export function wheelZoomFactor(deltaY: number): number {
   return Math.exp(-deltaY * WHEEL_ZOOM_SENSITIVITY)
+}
+
+export function zoomedScale(currentScale: number, factor: number): number {
+  return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, currentScale * factor))
+}
+
+export function lineageGrainPatternTransforms(
+  viewport: Viewport,
+  reducedMotion: boolean,
+): string[] {
+  const motionScale = reducedMotion ? 0 : 1
+  const number = (value: number) => Number(value.toFixed(6)).toString()
+  return LINEAGE_GRAIN_LAYERS.map((layer) => {
+    const parallax = layer.depth * motionScale
+    const scale = 1 + (viewport.scale - 1) * parallax
+    return `translate(${number(viewport.x * parallax)} ${number(viewport.y * parallax)}) scale(${number(scale)})`
+  })
+}
+
+export function getActivePresenceNodeKey(
+  graph: LineageGraph,
+  presence: PresenceSnapshot | null,
+): string | null {
+  const imprintId = presence?.imprint?.id
+  const imprintKey = imprintId === undefined ? null : `imprint:${imprintId}`
+  if (imprintKey !== null && graph.nodes.some((node) => node.key === imprintKey)) {
+    return imprintKey
+  }
+
+  const codeId = presence?.code?.id
+  const codeKey = codeId === undefined ? null : `code:${codeId}`
+  return codeKey !== null && graph.nodes.some((node) => node.key === codeKey) ? codeKey : null
+}
+
+export function centeredViewportAt(
+  position: GraphPosition,
+  dimensions: GraphDimensions,
+  scale = DEFAULT_ZOOM_SCALE,
+): Viewport {
+  return {
+    x: dimensions.width / 2 - position.x * scale,
+    y: dimensions.height / 2 - position.y * scale,
+    scale,
+  }
+}
+
+function defaultViewportAt(dimensions: GraphDimensions): Viewport {
+  return centeredViewportAt({ x: dimensions.width / 2, y: dimensions.height / 2 }, dimensions)
 }
 
 function nodeLabel(node: LineageGraphNode): string {
@@ -91,6 +169,39 @@ function isSelected(selection: LineageSelection | null, node: LineageGraphNode):
 
 function isActive(node: LineageGraphNode, presence: PresenceSnapshot | null): boolean {
   return node.kind === 'code' ? presence?.code?.id === node.id : presence?.imprint?.id === node.id
+}
+
+export function canDeleteLineageNode(
+  node: LineageGraphNode,
+  presence: PresenceSnapshot | null,
+): boolean {
+  return node.kind === 'imprint' && presence?.imprint?.id !== node.id
+}
+
+export function toggleDeleteSelection(selected: ReadonlySet<string>, id: string): Set<string> {
+  const next = new Set(selected)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  return next
+}
+
+export function getLineageGraphSelectionAction(
+  selection: LineageSelection,
+  deleteMode: boolean,
+  nodes: readonly LineageGraphNode[],
+  presence: PresenceSnapshot | null,
+):
+  | { type: 'activate'; selection: LineageSelection }
+  | { type: 'toggle-delete'; imprintId: string }
+  | { type: 'ignore' } {
+  if (!deleteMode) return { type: 'activate', selection }
+  if (selection.kind !== 'imprint') return { type: 'ignore' }
+  const node = nodes.find(
+    (candidate) => candidate.kind === 'imprint' && candidate.id === selection.id,
+  )
+  return node !== undefined && canDeleteLineageNode(node, presence)
+    ? { type: 'toggle-delete', imprintId: selection.id }
+    : { type: 'ignore' }
 }
 
 function selectionForNode(node: LineageGraphNode): LineageSelection {
@@ -223,8 +334,11 @@ function GraphNode({
   position,
   active,
   selected,
+  deleteMode,
+  deletable,
   animationActive,
   reducedMotion,
+  sheenId,
   onSelect,
   onSelectedPreviewChange,
   onPointerDown,
@@ -236,8 +350,11 @@ function GraphNode({
   position: GraphPosition
   active: boolean
   selected: boolean
+  deleteMode: boolean
+  deletable: boolean
   animationActive: boolean
   reducedMotion: boolean
+  sheenId: string
   onSelect: (selection: LineageSelection) => void
   onSelectedPreviewChange: (previewUrl: string | null) => void
   onPointerDown: (event: ReactPointerEvent<SVGGElement>, key: string) => void
@@ -250,7 +367,16 @@ function GraphNode({
   const animationUrl = useAnimationUrl(node.kind, node.id, animationActive, reducedMotion)
   const imageUrl = animationActive && !reducedMotion ? (animationUrl ?? previewUrl) : previewUrl
   const clipId = `lineage-preview-clip-${useId().replace(/:/g, '')}`
-  const accessibleLabel = `${nodeLabel(node)} ${node.id}${active ? ', active Presence' : ''}${selected ? ', selected' : ''}${node.kind === 'code' && !node.available ? ', unavailable in this build' : ''}${previewUrl === null && animationUrl === null ? ', no saved preview' : ', saved preview available'}`
+  const selectionDescription = deleteMode
+    ? deletable
+      ? selected
+        ? ', selected for deletion'
+        : ', available for deletion'
+      : ', unavailable for deletion'
+    : selected
+      ? ', selected'
+      : ''
+  const accessibleLabel = `${nodeLabel(node)} ${node.id}${active ? ', active Presence' : ''}${selectionDescription}${node.kind === 'code' && !node.available ? ', unavailable in this build' : ''}${previewUrl === null && animationUrl === null ? ', no saved preview' : ', saved preview available'}`
   useEffect(() => {
     if (selected && preview.loaded) onSelectedPreviewChange(previewUrl)
   }, [onSelectedPreviewChange, preview.loaded, previewUrl, selected])
@@ -276,11 +402,12 @@ function GraphNode({
 
   return (
     <g
-      className={`lineage-graph-node lineage-graph-node-${node.role}${active ? ' lineage-graph-node-active' : ''}${selected ? ' lineage-graph-node-selected' : ''}`}
+      className={`lineage-graph-node lineage-graph-node-${node.role}${active ? ' lineage-graph-node-active' : ''}${selected ? ' lineage-graph-node-selected' : ''}${deleteMode ? ' lineage-graph-node-delete-mode' : ''}${deleteMode && !deletable ? ' lineage-graph-node-delete-unavailable' : ''}${deleteMode && selected ? ' lineage-graph-node-delete-selected' : ''}`}
       role="button"
       tabIndex={0}
       aria-label={accessibleLabel}
       aria-pressed={selected}
+      aria-disabled={deleteMode && !deletable}
       transform={`translate(${position.x} ${position.y})${node.role === 'seed' ? ' scale(1.33)' : ''}`}
       onClick={(event) => {
         if (event.detail === 0) onSelect(selectionForNode(node))
@@ -303,11 +430,15 @@ function GraphNode({
       <title>{accessibleLabel}</title>
       {active && <circle className="lineage-graph-active-ring" r="51" />}
       {selected && <circle className="lineage-graph-selected-ring" r="48" />}
+      {selected && <circle className="lineage-graph-node-orbit" r="44" />}
       <circle className={`lineage-graph-shape lineage-graph-shape-${node.role}`} r="39" />
       {imageUrl === null ? (
-        <text className="lineage-graph-glyph" y="6" aria-hidden="true">
-          {node.role === 'seed' ? 'S' : node.role === 'mutation' ? 'M' : 'I'}
-        </text>
+        <>
+          <circle className="lineage-graph-glass" r="36" fill={`url(#${sheenId})`} />
+          <text className="lineage-graph-glyph" y="6" aria-hidden="true">
+            {node.role === 'seed' ? 'S' : node.role === 'mutation' ? 'M' : 'I'}
+          </text>
+        </>
       ) : (
         <>
           <defs>
@@ -325,8 +456,10 @@ function GraphNode({
             preserveAspectRatio="xMidYMid slice"
             clipPath={`url(#${clipId})`}
           />
+          <circle className="lineage-graph-glass" r="36" fill={`url(#${sheenId})`} />
         </>
       )}
+      <circle className="lineage-graph-inner-rim" r="35" />
       <text className="lineage-graph-type" y="60" aria-hidden="true">
         {nodeLabel(node).toUpperCase()}
       </text>
@@ -337,24 +470,45 @@ function GraphNode({
   )
 }
 
-export function LineageGraphView({ graph, presence, selection, onSelect }: LineageGraphViewProps) {
+export function LineageGraphView({
+  graph,
+  presence,
+  selection,
+  canDeleteImprints,
+  onSelect,
+  onDeleteImprints,
+}: LineageGraphViewProps) {
   const reducedMotion = usePrefersReducedMotion()
+  const grainPatternPrefix = `lineage-grain-${useId().replace(/:/g, '')}`
+  const nodeSheenId = `${grainPatternPrefix}-node-sheen`
+  const edgeGradientId = `${grainPatternPrefix}-edge-gradient`
+  const parentArrowId = `${grainPatternPrefix}-parent-arrow`
   const dimensions = useMemo(() => graphDimensions(graph.nodes.length), [graph.nodes.length])
   const initialPositions = useMemo(
     () => createInitialLineagePositions(graph.nodes, dimensions, new Map(), graph.edges),
     [dimensions, graph],
   )
   const [positions, setPositions] = useState(initialPositions)
-  const [viewport, setViewport] = useState(DEFAULT_VIEWPORT)
+  const [viewport, setViewport] = useState(() => defaultViewportAt(dimensions))
+  const grainPatternTransforms = lineageGrainPatternTransforms(viewport, reducedMotion)
+  const presenceRef = useRef(presence)
+  presenceRef.current = presence
   const [layoutRevision, setLayoutRevision] = useState(0)
   const [activeAnimationKey, setActiveAnimationKey] = useState<string | null>(null)
   const [selectedPreviewUrl, setSelectedPreviewUrl] = useState<string | null>(null)
+  const [deleteMode, setDeleteMode] = useState(false)
+  const [deleteSelection, setDeleteSelection] = useState<ReadonlySet<string>>(() => new Set())
+  const [deleteRequestPending, setDeleteRequestPending] = useState(false)
   const [backdropLayers, setBackdropLayers] = useState<BackdropLayers>({
     previous: null,
     current: null,
   })
   const svgRef = useRef<SVGSVGElement | null>(null)
+  const graphContentRef = useRef<SVGGElement | null>(null)
   const graphGroupRef = useRef<SVGGElement | null>(null)
+  const centerPresenceAfterLayoutRef = useRef(true)
+  const animatePresenceAfterLayoutRef = useRef(true)
+  const followPresenceDuringResetRef = useRef(false)
   const gestureRef = useRef<Gesture | null>(null)
   const positionsRef = useRef(positions)
   const simulationRef = useRef<ReturnType<typeof createLineageLayoutSimulation>['simulation']>(null)
@@ -362,6 +516,19 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
   const persistOnEndRef = useRef(false)
   const touchAnimationTimer = useRef<number | null>(null)
   const backdropCurrentUrlRef = useRef<string | null>(null)
+
+  const playGraphZoomIn = useCallback(() => {
+    if (reducedMotion) return
+    graphContentRef.current?.animate([{ transform: 'scale(0.8)' }, { transform: 'scale(1)' }], {
+      duration: 900,
+      easing: 'cubic-bezier(0.42, 0, 0.58, 1)',
+    })
+  }, [reducedMotion])
+
+  useEffect(() => {
+    if (!reducedMotion) return
+    graphContentRef.current?.getAnimations().forEach((animation) => animation.cancel())
+  }, [reducedMotion])
 
   const publishPositions = useCallback(
     (nodes: Iterable<LineageSimulationNode> = nodesByKeyRef.current.values()) => {
@@ -415,11 +582,40 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
     publishPositions(nodes)
 
     let frame: number | null = null
+    let entryAnimationFrame: number | null = null
+    const centerPresenceAndAnimate = () => {
+      if (!centerPresenceAfterLayoutRef.current) return
+      centerPresenceAfterLayoutRef.current = false
+      const shouldAnimate = animatePresenceAfterLayoutRef.current
+      animatePresenceAfterLayoutRef.current = false
+      const activeNodeKey = getActivePresenceNodeKey(graph, presenceRef.current)
+      const activeNode =
+        activeNodeKey === null ? undefined : nodes.find((node) => node.key === activeNodeKey)
+      if (activeNode?.x !== undefined && activeNode.y !== undefined) {
+        setViewport(centeredViewportAt({ x: activeNode.x, y: activeNode.y }, dimensions))
+      } else {
+        setViewport(defaultViewportAt(dimensions))
+      }
+      if (shouldAnimate) {
+        entryAnimationFrame = window.requestAnimationFrame(() => {
+          entryAnimationFrame = null
+          playGraphZoomIn()
+        })
+      }
+    }
     const updateAfterTick = () => {
       if (frame !== null) return
       frame = window.requestAnimationFrame(() => {
         frame = null
         publishPositions(nodes)
+        if (followPresenceDuringResetRef.current) {
+          const activeNodeKey = getActivePresenceNodeKey(graph, presenceRef.current)
+          const activeNode =
+            activeNodeKey === null ? undefined : nodes.find((node) => node.key === activeNodeKey)
+          if (activeNode?.x !== undefined && activeNode.y !== undefined) {
+            setViewport(centeredViewportAt({ x: activeNode.x, y: activeNode.y }, dimensions))
+          }
+        }
       })
     }
     const finishSimulation = () => {
@@ -427,7 +623,9 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
         window.cancelAnimationFrame(frame)
         frame = null
       }
+      followPresenceDuringResetRef.current = false
       publishPositions(nodes)
+      centerPresenceAndAnimate()
       if (persistOnEndRef.current) saveCurrentPositions()
     }
 
@@ -436,6 +634,7 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
       simulation.stop()
       simulation.tick(140)
       publishPositions(nodes)
+      centerPresenceAndAnimate()
       if (persistOnEndRef.current) saveCurrentPositions()
     } else {
       simulation.restart()
@@ -445,9 +644,18 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
       simulation.stop()
       simulation.on('tick', null).on('end', null)
       if (frame !== null) window.cancelAnimationFrame(frame)
+      if (entryAnimationFrame !== null) window.cancelAnimationFrame(entryAnimationFrame)
       if (simulationRef.current === simulation) simulationRef.current = null
     }
-  }, [dimensions, graph, layoutRevision, publishPositions, reducedMotion, saveCurrentPositions])
+  }, [
+    dimensions,
+    graph,
+    layoutRevision,
+    playGraphZoomIn,
+    publishPositions,
+    reducedMotion,
+    saveCurrentPositions,
+  ])
 
   useEffect(
     () => () => {
@@ -549,6 +757,22 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
     [pointInGraph, pointInSvg, publishPositions],
   )
 
+  const handleNodeSelect = useCallback(
+    (nextSelection: LineageSelection) => {
+      const action = getLineageGraphSelectionAction(
+        nextSelection,
+        deleteMode,
+        graph.nodes,
+        presence,
+      )
+      if (action.type === 'activate') onSelect(action.selection)
+      if (action.type === 'toggle-delete') {
+        setDeleteSelection((current) => toggleDeleteSelection(current, action.imprintId))
+      }
+    },
+    [deleteMode, graph.nodes, onSelect, presence],
+  )
+
   const finishGesture = useCallback(
     (event: ReactPointerEvent<SVGSVGElement>, cancelled: boolean) => {
       const gesture = gestureRef.current
@@ -563,7 +787,7 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
       if (node === undefined) return
       if (!gesture.moved) {
         if (!cancelled) {
-          onSelect(selectionForNode(node))
+          handleNodeSelect(selectionForNode(node))
           if (event.pointerType === 'touch') playTouchAnimation(node.key)
         }
         return
@@ -579,7 +803,7 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
         saveCurrentPositions()
       }
     },
-    [onSelect, playTouchAnimation, publishPositions, reducedMotion, saveCurrentPositions],
+    [handleNodeSelect, playTouchAnimation, publishPositions, reducedMotion, saveCurrentPositions],
   )
 
   const onNodeMoveBy = useCallback(
@@ -604,7 +828,7 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
 
   const zoomAround = useCallback((factor: number, anchor: GraphPosition) => {
     setViewport((current) => {
-      const scale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, current.scale * factor))
+      const scale = zoomedScale(current.scale, factor)
       if (scale === current.scale) return current
       const worldX = (anchor.x - current.x) / current.scale
       const worldY = (anchor.y - current.y) / current.scale
@@ -627,9 +851,21 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
 
   const handleResetLayout = useCallback(() => {
     clearLineageLayout()
-    setViewport(DEFAULT_VIEWPORT)
+    centerPresenceAfterLayoutRef.current = true
+    animatePresenceAfterLayoutRef.current = false
+    positionsRef.current = initialPositions
+    setPositions(initialPositions)
+    const activeNodeKey = getActivePresenceNodeKey(graph, presenceRef.current)
+    const activePosition = activeNodeKey === null ? undefined : initialPositions.get(activeNodeKey)
+    followPresenceDuringResetRef.current = activePosition !== undefined
+    setViewport(
+      activePosition === undefined
+        ? defaultViewportAt(dimensions)
+        : centeredViewportAt(activePosition, dimensions),
+    )
     setLayoutRevision((revision) => revision + 1)
-  }, [])
+    window.requestAnimationFrame(playGraphZoomIn)
+  }, [dimensions, graph, initialPositions, playGraphZoomIn])
 
   const zoomAtCenter = useCallback(
     (factor: number) => zoomAround(factor, { x: dimensions.width / 2, y: dimensions.height / 2 }),
@@ -643,6 +879,41 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
   )
 
   const nodesByKey = useMemo(() => new Map(graph.nodes.map((node) => [node.key, node])), [graph])
+
+  useEffect(() => {
+    if (!deleteMode) return
+    const deletableIds = new Set(
+      graph.nodes.filter((node) => canDeleteLineageNode(node, presence)).map((node) => node.id),
+    )
+    setDeleteSelection((current) => {
+      const next = new Set([...current].filter((id) => deletableIds.has(id)))
+      return next.size === current.size ? current : next
+    })
+  }, [deleteMode, graph.nodes, presence?.imprint?.id])
+
+  const handleToggleDeleteMode = useCallback(() => {
+    setDeleteMode((current) => !current)
+    setDeleteSelection(new Set())
+  }, [])
+
+  const handleDeleteSelected = useCallback(async () => {
+    const selectedIds = [...deleteSelection]
+    if (!canDeleteImprints || selectedIds.length === 0 || deleteRequestPending) return
+
+    setDeleteRequestPending(true)
+    try {
+      const requestedIds = new Set(selectedIds)
+      const deletedIds = new Set(
+        (await onDeleteImprints(selectedIds)).filter((id) => requestedIds.has(id)),
+      )
+      if (deletedIds.size > 0) {
+        setDeleteSelection(new Set())
+        setDeleteMode(false)
+      }
+    } finally {
+      setDeleteRequestPending(false)
+    }
+  }, [canDeleteImprints, deleteRequestPending, deleteSelection, onDeleteImprints])
 
   useEffect(() => {
     if (reducedMotion) {
@@ -686,7 +957,51 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
         <div className="lineage-graph-buttons">
           <button
             type="button"
-            className="button--quiet"
+            className={`button--quiet lineage-graph-delete-action${
+              deleteMode ? '' : ' lineage-graph-delete-action-hidden'
+            }`}
+            aria-hidden={!deleteMode}
+            aria-label={
+              deleteMode
+                ? `Delete ${deleteSelection.size} selected Imprint${deleteSelection.size === 1 ? '' : 's'}`
+                : 'Delete mode selection count'
+            }
+            aria-busy={deleteRequestPending}
+            disabled={
+              !deleteMode ||
+              deleteSelection.size === 0 ||
+              !canDeleteImprints ||
+              deleteRequestPending
+            }
+            onClick={() => {
+              void handleDeleteSelected().catch((error: unknown) => {
+                reportApplicationError(
+                  `Could not delete the selected Imprints: ${error instanceof Error ? error.message : String(error)}`,
+                )
+              })
+            }}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5" />
+            </svg>
+            <span aria-live="polite">{deleteSelection.size}x</span>
+          </button>
+          <button
+            type="button"
+            className={`lineage-graph-delete-switch${deleteMode ? ' lineage-graph-delete-switch-active' : ''}`}
+            role="switch"
+            aria-label="Delete"
+            aria-checked={deleteMode}
+            onClick={handleToggleDeleteMode}
+          >
+            <span className="lineage-graph-delete-switch-track" aria-hidden="true">
+              <span className="lineage-graph-delete-switch-thumb" />
+            </span>
+            <span>Delete</span>
+          </button>
+          <button
+            type="button"
+            className="button--quiet surface shape-control"
             aria-label="Zoom out"
             onClick={() => zoomAtCenter(1 / 1.2)}
           >
@@ -694,13 +1009,17 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
           </button>
           <button
             type="button"
-            className="button--quiet"
+            className="button--quiet surface shape-control"
             aria-label="Zoom in"
             onClick={() => zoomAtCenter(1.2)}
           >
             +
           </button>
-          <button type="button" className="button--quiet" onClick={handleResetLayout}>
+          <button
+            type="button"
+            className="button--quiet surface shape-control"
+            onClick={handleResetLayout}
+          >
             Reset layout
           </button>
         </div>
@@ -710,7 +1029,11 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
           ref={svgRef}
           className="lineage-graph"
           role="group"
-          aria-label="Lineage graph; Tab to focus a node, Enter or Space to select and activate it in Presence, and arrow keys to move it"
+          aria-label={
+            deleteMode
+              ? 'Lineage graph delete mode; select inactive Imprints to delete, and use arrow keys to move nodes'
+              : 'Lineage graph; Tab to focus a node, Enter or Space to select and activate it in Presence, and arrow keys to move it'
+          }
           viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
           width="100%"
           height="100%"
@@ -720,17 +1043,64 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
           onPointerCancel={(event) => finishGesture(event, true)}
         >
           <defs>
+            {LINEAGE_GRAIN_LAYERS.map((layer, index) => (
+              <pattern
+                key={`grain-pattern-${index}`}
+                id={`${grainPatternPrefix}-${index}`}
+                width={layer.width}
+                height={layer.height}
+                patternUnits="userSpaceOnUse"
+                patternTransform={grainPatternTransforms[index]}
+                x={dimensions.width / 2 - layer.width / 2}
+                y={dimensions.height / 2 - layer.height / 2}
+              >
+                <circle
+                  cx={layer.width / 2}
+                  cy={layer.height / 2}
+                  r={layer.radius}
+                  fill={layer.fill}
+                  opacity={layer.opacity}
+                />
+              </pattern>
+            ))}
+            <radialGradient id={nodeSheenId} cx="32%" cy="18%" r="88%">
+              <stop offset="0" stopColor="var(--color-text)" stopOpacity="0.2" />
+              <stop offset="0.58" stopColor="var(--color-accent)" stopOpacity="0.08" />
+              <stop offset="1" stopColor="var(--color-canvas)" stopOpacity="0.36" />
+            </radialGradient>
+            <linearGradient
+              id={edgeGradientId}
+              x1="0"
+              y1="0"
+              x2="1"
+              y2="0"
+              gradientUnits="objectBoundingBox"
+            >
+              <stop offset="0" stopColor="var(--color-accent)" stopOpacity="0.24" />
+              <stop offset="0.62" stopColor="var(--color-accent)" stopOpacity="0.72" />
+              <stop offset="1" stopColor="var(--color-text)" stopOpacity="0.56" />
+            </linearGradient>
             <marker
-              id="lineage-parent-arrow"
-              markerWidth="2"
-              markerHeight="2"
-              refX="1.75"
-              refY="1"
+              id={parentArrowId}
+              markerWidth="2.8"
+              markerHeight="2.8"
+              refX="2.5"
+              refY="1.4"
               orient="auto"
             >
-              <path d="M0 0 L2 1 L0 2 Z" className="lineage-arrow-parent" />
+              <path d="M0 0 L2.8 1.4 L0 2.8 Z" className="lineage-arrow-parent" />
             </marker>
           </defs>
+          {LINEAGE_GRAIN_LAYERS.map((_, index) => (
+            <rect
+              key={`grain-layer-${index}`}
+              className="lineage-graph-grain"
+              width={dimensions.width}
+              height={dimensions.height}
+              fill={`url(#${grainPatternPrefix}-${index})`}
+              aria-hidden="true"
+            />
+          ))}
           <g transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.scale})`}>
             <rect
               className="lineage-graph-background"
@@ -738,51 +1108,72 @@ export function LineageGraphView({ graph, presence, selection, onSelect }: Linea
               height={dimensions.height}
               aria-hidden="true"
             />
-            <g ref={graphGroupRef}>
-              {graph.edges.map((edge) => {
-                const from = positions.get(edge.from) ?? initialPositions.get(edge.from)
-                const to = positions.get(edge.to) ?? initialPositions.get(edge.to)
-                if (from === undefined || to === undefined) return null
-                const dx = to.x - from.x
-                const dy = to.y - from.y
-                const distance = Math.max(1, Math.hypot(dx, dy))
-                const fromNode = nodesByKey.get(edge.from)
-                const toNode = nodesByKey.get(edge.to)
-                const directionX = dx / distance
-                const directionY = dy / distance
-                const fromOffset = fromNode?.role === 'seed' ? 56 : 43
-                const toOffset = toNode?.role === 'seed' ? 56 : 43
-                return (
-                  <line
-                    key={`${edge.from}:${edge.to}`}
-                    className="lineage-graph-edge"
-                    x1={from.x + directionX * fromOffset}
-                    y1={from.y + directionY * fromOffset}
-                    x2={to.x - directionX * toOffset}
-                    y2={to.y - directionY * toOffset}
-                    markerEnd="url(#lineage-parent-arrow)"
-                    role="img"
-                    aria-label={`Parent: ${fromNode?.id ?? edge.from} to ${toNode?.id ?? edge.to}`}
+            <g className="lineage-graph-zoom-content" ref={graphContentRef}>
+              <g ref={graphGroupRef}>
+                {graph.edges.map((edge) => {
+                  const from = positions.get(edge.from) ?? initialPositions.get(edge.from)
+                  const to = positions.get(edge.to) ?? initialPositions.get(edge.to)
+                  if (from === undefined || to === undefined) return null
+                  const dx = to.x - from.x
+                  const dy = to.y - from.y
+                  const distance = Math.max(1, Math.hypot(dx, dy))
+                  const fromNode = nodesByKey.get(edge.from)
+                  const toNode = nodesByKey.get(edge.to)
+                  const directionX = dx / distance
+                  const directionY = dy / distance
+                  const fromOffset = fromNode?.role === 'seed' ? 56 : 43
+                  const toOffset = toNode?.role === 'seed' ? 56 : 43
+                  const x1 = from.x + directionX * fromOffset
+                  const y1 = from.y + directionY * fromOffset
+                  const x2 = to.x - directionX * toOffset
+                  const y2 = to.y - directionY * toOffset
+                  return (
+                    <g key={`${edge.from}:${edge.to}`}>
+                      <line
+                        className="lineage-graph-edge-glow"
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        aria-hidden="true"
+                      />
+                      <line
+                        className="lineage-graph-edge"
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke={`url(#${edgeGradientId})`}
+                        markerEnd={`url(#${parentArrowId})`}
+                        role="img"
+                        aria-label={`Parent: ${fromNode?.id ?? edge.from} to ${toNode?.id ?? edge.to}`}
+                      />
+                    </g>
+                  )
+                })}
+                {graph.nodes.map((node) => (
+                  <GraphNode
+                    key={node.key}
+                    node={node}
+                    position={positionFor(node)}
+                    active={isActive(node, presence)}
+                    selected={
+                      deleteMode ? deleteSelection.has(node.id) : isSelected(selection, node)
+                    }
+                    deleteMode={deleteMode}
+                    deletable={canDeleteLineageNode(node, presence)}
+                    animationActive={activeAnimationKey === node.key}
+                    reducedMotion={reducedMotion}
+                    sheenId={nodeSheenId}
+                    onSelect={handleNodeSelect}
+                    onSelectedPreviewChange={setSelectedPreviewUrl}
+                    onPointerDown={onNodePointerDown}
+                    onAnimationStart={startAnimation}
+                    onAnimationStop={stopAnimation}
+                    onMoveBy={onNodeMoveBy}
                   />
-                )
-              })}
-              {graph.nodes.map((node) => (
-                <GraphNode
-                  key={node.key}
-                  node={node}
-                  position={positionFor(node)}
-                  active={isActive(node, presence)}
-                  selected={isSelected(selection, node)}
-                  animationActive={activeAnimationKey === node.key}
-                  reducedMotion={reducedMotion}
-                  onSelect={onSelect}
-                  onSelectedPreviewChange={setSelectedPreviewUrl}
-                  onPointerDown={onNodePointerDown}
-                  onAnimationStart={startAnimation}
-                  onAnimationStop={stopAnimation}
-                  onMoveBy={onNodeMoveBy}
-                />
-              ))}
+                ))}
+              </g>
             </g>
           </g>
         </svg>

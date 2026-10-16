@@ -75,9 +75,10 @@ export function createLineageGraph(
   }
 
   for (const imprint of imprints) {
-    if (imprint.parentId !== null && imprintKeys.has(`imprint:${imprint.parentId}`)) {
-      edges.push({ from: `imprint:${imprint.parentId}`, to: `imprint:${imprint.id}` })
-    } else if (imprint.parentId === null && codeKeys.has(`code:${imprint.codeId}`)) {
+    const parentKey = imprint.parentId === null ? null : `imprint:${imprint.parentId}`
+    if (parentKey !== null && imprintKeys.has(parentKey)) {
+      edges.push({ from: parentKey, to: `imprint:${imprint.id}` })
+    } else if (codeKeys.has(`code:${imprint.codeId}`)) {
       edges.push({ from: `code:${imprint.codeId}`, to: `imprint:${imprint.id}` })
     }
   }

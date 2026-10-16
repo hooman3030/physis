@@ -56,37 +56,37 @@ export function createLineageLayoutSimulation(
       'link',
       forceLink<LineageSimulationNode, LineageSimulationLink>(links)
         .id((node) => node.key)
-        .distance(188)
-        .strength(0.85),
+        .distance(210)
+        .strength(0.35),
     )
-    .force('charge', forceManyBody<LineageSimulationNode>().strength(-460).distanceMax(540))
+    .force('charge', forceManyBody<LineageSimulationNode>().strength(-320).distanceMax(230))
     .force(
       'chronology',
       forceY<LineageSimulationNode>(
         (node) => yTargets.get(node.key) ?? dimensions.height / 2,
-      ).strength(0.16),
+      ).strength(0.11),
     )
     .force(
       'branches',
       forceX<LineageSimulationNode>(
         (node) => xTargets.get(node.key) ?? dimensions.width / 2,
-      ).strength(0.42),
+      ).strength(0.28),
     )
     .force(
       'collision',
       forceCollide<LineageSimulationNode>()
         .radius((node) => (node.role === 'seed' ? 70 : node.kind === 'imprint' ? 56 : 52))
         .strength(0.9)
-        .iterations(2),
+        .iterations(1),
     )
     .force(
       'center',
       forceCenter<LineageSimulationNode>(dimensions.width / 2, dimensions.height / 2),
     )
-    .alpha(0.95)
+    .alpha(0.9)
     .alphaMin(0.015)
-    .alphaDecay(0.048)
-    .velocityDecay(0.32)
+    .alphaDecay(0.055)
+    .velocityDecay(0.58)
 
   return { nodes, simulation }
 }

@@ -125,6 +125,25 @@ describe('lineage graph model', () => {
     )
   })
 
+  it('falls back to an Imprint’s source-code lineage when its parent is missing', () => {
+    const orphan = {
+      id: 'orphan',
+      parentId: 'deleted-imprint',
+      codeId: 'mutation-a',
+      sourceRevision: 'fedcba9876543210',
+      createdAt: '2026-10-14T13:00:00.000Z',
+      genes: {},
+    }
+    const graph = createLineageGraph(codeNodes, [...imprints, orphan])
+
+    expect(graph.edges).toEqual(
+      expect.arrayContaining([
+        { from: 'code:seed-a', to: 'code:mutation-a' },
+        { from: 'code:mutation-a', to: 'imprint:orphan' },
+      ]),
+    )
+  })
+
   it('creates deterministic organic positions without duplicating saved node coordinates', () => {
     const graph = createLineageGraph(codeNodes, imprints)
     const dimensions = graphDimensions(graph.nodes.length)
@@ -249,6 +268,18 @@ describe('lineage graph model', () => {
     expect(positions.get(first?.key ?? '')?.y).toBeLessThan(
       positions.get(last?.key ?? '')?.y ?? Infinity,
     )
+  })
+
+  it('starts with more visible movement while keeping strong damping', () => {
+    const graph = createLineageGraph(codeNodes, imprints)
+    const layout = createLineageLayoutSimulation(
+      graph,
+      graphDimensions(graph.nodes.length),
+      new Map(),
+    )
+    expect(layout.simulation.alpha()).toBe(0.9)
+    expect(layout.simulation.velocityDecay()).toBe(0.58)
+    layout.simulation.stop()
   })
 
   it('spreads a larger lineage while keeping older nodes generally higher', () => {

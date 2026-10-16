@@ -30,7 +30,7 @@
   --surface-accent-hover: color-mix(in srgb, var(--color-accent) 18%, transparent);
   --surface-danger-background: color-mix(in srgb, var(--color-danger) 12%, transparent);
   --surface-warning-background: color-mix(in srgb, var(--color-warning) 12%, transparent);
-  --surface-grid-dot: color-mix(in srgb, var(--color-text) 10%, transparent);
+  --surface-grid-dot: color-mix(in srgb, var(--color-text) 16%, transparent);
   --shadow-overlay: 0 0.5rem 2rem color-mix(in srgb, var(--color-shadow) 35%, transparent);
   --shadow-control: 0 0.12rem 0.28rem color-mix(in srgb, var(--color-shadow) 35%, transparent);
   --shadow-raised: 0 0.35rem 1.2rem color-mix(in srgb, var(--color-shadow) 22%, transparent);
@@ -1513,6 +1513,294 @@ main[data-open-panels='both'] .archive-panel {
   font-size: var(--text-sm);
 }
 
+.lineage-graph-delete-switch {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.35rem;
+  margin-right: 0.35rem;
+  padding: 0.25rem 0.15rem;
+  border: 0;
+  color: var(--color-text);
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.lineage-graph-delete-switch:hover {
+  color: var(--color-accent);
+}
+
+.lineage-graph-delete-switch:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-outline-offset);
+}
+
+.lineage-graph-delete-switch-track {
+  position: relative;
+  width: 2rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+  border: 1px solid var(--border-default);
+  border-radius: 1rem;
+  background: var(--surface-control-background);
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.lineage-graph-delete-switch-thumb {
+  position: absolute;
+  top: 0.11rem;
+  left: 0.12rem;
+  width: 0.76rem;
+  height: 0.76rem;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  box-shadow: var(--shadow-control);
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease;
+}
+
+.lineage-graph-delete-switch-active .lineage-graph-delete-switch-track {
+  border-color: var(--border-accent);
+  background: var(--surface-accent-hover);
+}
+
+.lineage-graph-delete-switch-active .lineage-graph-delete-switch-thumb {
+  transform: translateX(0.86rem);
+  background: var(--color-accent);
+}
+
+.lineage-graph-delete-action {
+  display: inline-flex;
+  width: 4.2rem;
+  min-height: 2rem;
+  flex: 0 0 4.2rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.4rem;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lineage-graph-delete-action-hidden {
+  visibility: hidden;
+}
+
+.lineage-graph-delete-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.lineage-graph-delete-action svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.lineage-graph-delete-action:not(:disabled):hover {
+  color: var(--color-accent);
+}
+
+.confirm-dialog-backdrop {
+  position: fixed;
+  z-index: 20;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  overflow-y: auto;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--color-shadow) 76%, transparent);
+  backdrop-filter: blur(0.35rem);
+  inset: 0;
+}
+
+.confirm-dialog {
+  position: relative;
+  display: grid;
+  width: min(28rem, 100%);
+  justify-items: center;
+  gap: 0.75rem;
+  overflow: hidden;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: var(--shadow-overlay);
+  animation: confirm-dialog-enter 180ms ease-out both;
+}
+
+.confirm-dialog h2,
+.confirm-dialog p {
+  margin: 0;
+}
+
+.confirm-dialog p {
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.confirm-dialog-burst {
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  place-items: center;
+  color: var(--color-danger);
+}
+
+.confirm-dialog-burst svg,
+.confirm-dialog-spark {
+  grid-area: 1 / 1;
+}
+
+.confirm-dialog-burst svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  filter: drop-shadow(var(--shadow-accent));
+}
+
+.confirm-dialog-burst-active svg {
+  animation: confirm-dialog-burst 620ms cubic-bezier(0.16, 0.75, 0.24, 1) both;
+}
+
+.confirm-dialog-spark {
+  width: 0.34rem;
+  height: 0.34rem;
+  border-radius: 50%;
+  background: var(--color-danger);
+  opacity: 0;
+}
+
+.confirm-dialog-spark-one {
+  --spark-x: -1.3rem;
+  --spark-y: -1.2rem;
+}
+
+.confirm-dialog-spark-two {
+  --spark-x: 1.4rem;
+  --spark-y: -0.9rem;
+}
+
+.confirm-dialog-spark-three {
+  --spark-x: -1rem;
+  --spark-y: 1.3rem;
+}
+
+.confirm-dialog-spark-four {
+  --spark-x: 1.3rem;
+  --spark-y: 1.2rem;
+}
+
+.confirm-dialog-burst-active .confirm-dialog-spark {
+  animation: confirm-dialog-spark 620ms cubic-bezier(0.15, 0.7, 0.25, 1) both;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.confirm-dialog-delete {
+  border-color: var(--border-danger);
+  color: var(--color-danger);
+  background: var(--surface-danger-background);
+}
+
+.confirm-dialog-delete:not(:disabled):hover {
+  border-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 22%, transparent);
+}
+
+.confirm-dialog-delete:focus-visible {
+  outline: 2px solid var(--color-danger);
+  outline-offset: var(--focus-outline-offset);
+}
+
+@keyframes confirm-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes confirm-dialog-burst {
+  0% {
+    opacity: 0.45;
+    transform: scale(0.25) rotate(-35deg);
+  }
+
+  42% {
+    opacity: 1;
+    transform: scale(1.18) rotate(12deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.72) rotate(45deg);
+  }
+}
+
+@keyframes confirm-dialog-spark {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.2);
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(var(--spark-x), var(--spark-y)) scale(0.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lineage-graph-delete-switch-track,
+  .lineage-graph-delete-switch-thumb,
+  .confirm-dialog {
+    transition: none;
+    animation: none;
+  }
+
+  .confirm-dialog-burst-active svg,
+  .confirm-dialog-burst-active .confirm-dialog-spark {
+    animation: none;
+  }
+}
+
+.lineage-graph-node-delete-selected .lineage-graph-selected-ring {
+  stroke: var(--color-accent);
+}
+
+.lineage-graph-buttons .surface {
+  background: var(--surface-background);
+}
+
 .lineage-graph-viewport {
   position: absolute;
   z-index: 1;
@@ -1527,12 +1815,19 @@ main[data-open-panels='both'] .archive-panel {
   width: 100%;
   height: 100%;
   max-width: none;
-  background-image: radial-gradient(var(--surface-grid-dot) 1px, transparent 1px);
-  background-size: 30px 30px;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   cursor: grab;
+}
+
+.lineage-graph-zoom-content {
+  transform-box: view-box;
+  transform-origin: center;
+}
+
+.lineage-graph-grain {
+  pointer-events: none;
 }
 
 .lineage-graph:active {
@@ -1546,21 +1841,35 @@ main[data-open-panels='both'] .archive-panel {
 
 .lineage-graph-edge {
   stroke: var(--color-accent);
-  stroke-width: 1.5;
+  stroke-width: 1.35;
+  stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
 
+.lineage-graph-edge-glow {
+  stroke: color-mix(in srgb, var(--color-accent) 13%, transparent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
 .lineage-arrow-parent {
-  fill: var(--color-accent);
+  fill: color-mix(in srgb, var(--color-accent) 82%, var(--color-text));
 }
 
 .lineage-graph-node {
   cursor: grab;
-  filter: drop-shadow(var(--shadow-graph-node));
+  filter: drop-shadow(0 5px 8px color-mix(in srgb, var(--color-shadow) 72%, transparent));
   outline: none;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.lineage-graph-node-active {
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--color-accent) 42%, transparent))
+    drop-shadow(0 5px 8px color-mix(in srgb, var(--color-shadow) 72%, transparent));
 }
 
 .lineage-graph-node:active {
@@ -1579,31 +1888,45 @@ main[data-open-panels='both'] .archive-panel {
 
 .lineage-graph-shape {
   fill: var(--color-canvas);
-  stroke-width: 2;
+  stroke-width: 1.6;
   vector-effect: non-scaling-stroke;
 }
 
 .lineage-graph-shape-seed {
-  stroke: var(--color-accent);
+  fill: color-mix(in srgb, var(--color-accent) 12%, var(--color-canvas));
+  stroke: color-mix(in srgb, var(--color-accent) 88%, var(--color-text));
 }
 
 .lineage-graph-shape-mutation {
-  fill: var(--surface-warning-background);
-  stroke: var(--color-warning);
+  fill: color-mix(in srgb, var(--color-warning) 16%, var(--color-canvas));
+  stroke: color-mix(in srgb, var(--color-warning) 86%, var(--color-text));
 }
 
 .lineage-graph-shape-imprint {
-  fill: var(--surface-subtle-background);
-  stroke: var(--color-muted);
+  fill: color-mix(in srgb, #b9a2ff 12%, var(--color-canvas));
+  stroke: color-mix(in srgb, #b9a2ff 56%, var(--color-accent));
+}
+
+.lineage-graph-inner-rim {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-text) 25%, transparent);
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.lineage-graph-glass {
+  pointer-events: none;
 }
 
 .lineage-graph-preview {
   pointer-events: none;
+  filter: saturate(1.1) contrast(1.03);
 }
 
 .lineage-graph-node:hover .lineage-graph-preview,
 .lineage-graph-node:focus-visible .lineage-graph-preview {
-  filter: brightness(1.08);
+  filter: saturate(1.15) brightness(1.08);
 }
 
 .lineage-graph-glyph {
@@ -1635,16 +1958,51 @@ main[data-open-panels='both'] .archive-panel {
 .lineage-graph-active-ring {
   fill: none;
   stroke: var(--color-accent);
-  stroke-width: 2;
+  stroke-width: 1.4;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-accent) 70%, transparent));
   vector-effect: non-scaling-stroke;
+}
+
+.lineage-graph-node-orbit {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-accent) 76%, var(--color-text));
+  stroke-dasharray: 1 5;
+  stroke-width: 1;
+  opacity: 0.8;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }
 
 .lineage-graph-selected-ring {
   fill: none;
   stroke: var(--color-text);
-  stroke-dasharray: 3 3;
-  stroke-width: 1;
+  stroke-dasharray: 1 3;
+  stroke-width: 1.2;
+  opacity: 0.85;
   vector-effect: non-scaling-stroke;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lineage-graph-node-selected .lineage-graph-node-orbit {
+    animation: lineage-selected-sun-wave 4.5s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  @keyframes lineage-selected-sun-wave {
+    0%,
+    100% {
+      opacity: 0.58;
+      stroke-dashoffset: 0;
+      transform: scale(0.98);
+    }
+
+    50% {
+      opacity: 0.9;
+      stroke-dashoffset: -3;
+      transform: scale(1.035);
+    }
+  }
 }
 
 @media (max-width: 40rem) {
@@ -1658,8 +2016,13 @@ main[data-open-panels='both'] .archive-panel {
   }
 
   .lineage-graph-toolbar {
-    top: 0.45rem;
+    top: 6.5rem;
     right: 0.45rem;
+    left: 0.45rem;
+  }
+
+  .lineage-graph-buttons {
+    justify-content: flex-end;
   }
 
   .lineage-graph-buttons {

@@ -53,6 +53,7 @@ type LineageExplorerProps = {
   loading: boolean
   loadFailed: boolean
   authenticationRequired: boolean
+  onDeleteImprints: (imprintIds: readonly string[]) => Promise<readonly string[]>
   onSelect: (selection: LineageSelection) => void
   onActivate: (selection: LineageSelection) => void
   onRetry: () => void
@@ -67,6 +68,7 @@ export function LineageExplorer({
   loading,
   loadFailed,
   authenticationRequired,
+  onDeleteImprints,
   onSelect,
   onActivate,
   onRetry,
@@ -119,7 +121,9 @@ export function LineageExplorer({
                 graph={graph}
                 presence={presence}
                 selection={selection}
+                canDeleteImprints={controlStatus === 'connected' && !authenticationRequired}
                 onSelect={handleSelect}
+                onDeleteImprints={onDeleteImprints}
               />
             </div>
           )}

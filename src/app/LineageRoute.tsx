@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ControlApiError,
   completePairing,
+  deleteImprint,
   dismissPairingPin,
   getPairingStatus,
   getPresence,
@@ -17,12 +18,14 @@ import {
   type PresenceSnapshot,
 } from '../controlClient'
 import { reportApplicationError } from '../errorNotifications'
+import { deleteLineageImprints, removeDeletedImprintAndReparentChildren } from './imprintDeletion'
 import {
   getInitialLineageSelection,
   LineageExplorer,
   type LineageSelection,
 } from '../ui/archive/LineageExplorer'
 import { RemoteAccessPairing } from '../ui/overlays/RemoteAccessPairing'
+import { ConfirmDialog } from '../ui/overlays/ConfirmDialog'
 
 type ControlStatus = 'connecting' | 'connected' | 'offline'
 
@@ -41,6 +44,11 @@ export function LineageRoute() {
   const [authenticationRequired, setAuthenticationRequired] = useState(false)
   const [pairingStatus, setPairingStatus] = useState<PairingStatus | null>(null)
   const [reloadVersion, setReloadVersion] = useState(0)
+  const [pendingImprintDeletion, setPendingImprintDeletion] = useState<{
+    imprintIds: readonly string[]
+    count: number
+  } | null>(null)
+  const pendingDeletionResolver = useRef<((deletedIds: readonly string[]) => void) | null>(null)
   const pairingStatusFailureRef = useRef(false)
 
   useEffect(() => {
@@ -162,6 +170,61 @@ export function LineageRoute() {
     }
   }
 
+  const handleDeleteImprints = useCallback(
+    (imprintIds: readonly string[]) => {
+      if (imprintIds.length === 0) return Promise.resolve([])
+      if (controlStatus !== 'connected' || authenticationRequired) {
+        reportApplicationError(
+          'The local control API is unavailable; selected Imprints were not deleted.',
+        )
+        return Promise.resolve([])
+      }
+
+      return new Promise<readonly string[]>((resolve) => {
+        if (pendingDeletionResolver.current !== null) {
+          resolve([])
+          reportApplicationError('An Imprint deletion confirmation is already open.')
+          return
+        }
+        pendingDeletionResolver.current = resolve
+        setPendingImprintDeletion({ imprintIds: [...imprintIds], count: imprintIds.length })
+      })
+    },
+    [authenticationRequired, controlStatus],
+  )
+
+  const handleCancelDeleteImprints = useCallback(() => {
+    const resolve = pendingDeletionResolver.current
+    pendingDeletionResolver.current = null
+    setPendingImprintDeletion(null)
+    resolve?.([])
+  }, [])
+
+  const handleConfirmDeleteImprints = useCallback(async () => {
+    const pending = pendingImprintDeletion
+    const resolve = pendingDeletionResolver.current
+    if (pending === null || resolve === null) return
+
+    const deletedIds = await deleteLineageImprints(pending.imprintIds, {
+      deleteImprint,
+      onDeleted: (imprintId) => {
+        setImprints((current) => removeDeletedImprintAndReparentChildren(current, imprintId))
+        setSelection((current) =>
+          current?.kind === 'imprint' && current.id === imprintId ? null : current,
+        )
+      },
+      onAuthenticationRequired: () => {
+        setAuthenticationRequired(true)
+        setControlStatus('offline')
+      },
+      onControlApiUnavailable: () => setControlStatus('offline'),
+      reportError: reportApplicationError,
+    })
+    pendingDeletionResolver.current = null
+    setPendingImprintDeletion(null)
+    resolve(deletedIds)
+  }, [pendingImprintDeletion])
+
   return (
     <main className="lineage-page">
       <RemoteAccessPairing
@@ -182,8 +245,18 @@ export function LineageRoute() {
         authenticationRequired={authenticationRequired}
         onSelect={setSelection}
         onActivate={(selected) => void handleActivate(selected)}
+        onDeleteImprints={handleDeleteImprints}
         onRetry={() => setReloadVersion((version) => version + 1)}
       />
+      {pendingImprintDeletion !== null && (
+        <ConfirmDialog
+          title={`Delete ${pendingImprintDeletion.count} selected Imprint${pendingImprintDeletion.count === 1 ? '' : 's'}?`}
+          description="Descendant Imprints will be preserved and reparented. This cannot be undone."
+          confirmLabel="Delete"
+          onConfirm={handleConfirmDeleteImprints}
+          onCancel={handleCancelDeleteImprints}
+        />
+      )}
     </main>
   )
 }
